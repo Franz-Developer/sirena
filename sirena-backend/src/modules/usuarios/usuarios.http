@@ -1,0 +1,197 @@
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_usuarios = {{baseUrl}}/usuarios
+@baseUrl_trabajadores = {{baseUrl}}/trabajadores
+@baseUrl_sucursales = {{baseUrl}}/sucursales
+@baseUrl_roles = {{baseUrl}}/roles
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automatico.
+@authToken = {{login.response.body.token}}
+
+# ----------------------------------------------------------------------
+# EXTRAS
+# ----------------------------------------------------------------------
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_trabajadores}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_sucursales}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### b. LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_roles}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+
+# ----------------------------------------------------------------------
+# ENDPOINTS DE USUARIOS
+# ----------------------------------------------------------------------
+
+### TODOS LOS USUARIOS (Activos e Históricos por defecto)
+GET {{baseUrl_usuarios}}
+Authorization: Bearer {{authToken}}
+
+### USUARIOS FILTRADOS POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_usuarios}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_usuarios}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+### c. BÚSQUEDA GLOBAL (Por login, nombre, apellido, empresa, sucursal o código)
+GET {{baseUrl_usuarios}}?estado_id=1000&q=admin
+Authorization: Bearer {{authToken}}
+
+###
+GET {{baseUrl_usuarios}}?estado_id=1000&q=juan
+Authorization: Bearer {{authToken}}
+
+### d. LISTAR CON PAGINACIÓN
+GET {{baseUrl_usuarios}}?estado_id=1000&offset=0&limit=2&q=admin
+Authorization: Bearer {{authToken}}
+
+### d. LISTAR CON PAGINACIÓN Y ORDENAMIENTO (Ascendente por login)
+GET {{baseUrl_usuarios}}?estado_id=1000&offset=0&limit=5&sortField=login&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### d. LISTAR CON PAGINACIÓN Y ORDENAMIENTO (Descendente por ID)
+GET {{baseUrl_usuarios}}?estado_id=1000&offset=0&limit=5&sortField=usuario_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### e. OBTENER EL ÚLTIMO ENTRENADOR REGISTRADO
+GET {{baseUrl_usuarios}}/ultimo-entrenador
+Authorization: Bearer {{authToken}}
+
+### f. OBTENER UN USUARIO POR ID
+GET {{baseUrl_usuarios}}/1
+Authorization: Bearer {{authToken}}
+
+###
+GET {{baseUrl_usuarios}}/2
+Authorization: Bearer {{authToken}}
+
+### g. SUBIR AVATAR (Retorna el nombre del archivo generado)
+# Nota: Asegúrate de tener un archivo "avatar_prueba.png" en la misma carpeta o ajusta la ruta
+POST {{baseUrl_usuarios}}/upload-avatar
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="avatar_prueba.png"
+Content-Type: image/png
+
+< ./avatar_prueba.png
+--boundary--
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_trabajadores}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_sucursales}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### b. LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_roles}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### h. CREAR UN NUEVO USUARIO
+POST {{baseUrl_usuarios}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "trabajador_id": 18,
+    "sucursal_id": 2,
+    "rol_id": 12,
+    "login": "TESTUSER2",
+    "contrasena": "12345678",
+    "avatar": "avatar.png"
+}
+
+### i. ACTUALIZAR UN USUARIO
+PATCH {{baseUrl_usuarios}}/18
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "login": "UPDLOGIN"
+}
+
+### LISTAR
+GET {{baseUrl_usuarios}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### j. ACTUALIZAR CONTRASEÑA DE USUARIO
+PATCH {{baseUrl_usuarios}}/17/cambiar-password
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "contrasenaActual": "12345678",
+    "nuevaContrasena": "11112222",
+    "confirmarContrasena": "11112222"
+}
+
+### j. ACTUALIZAR CONTRASEÑA DE USUARIO
+PATCH {{baseUrl_usuarios}}/2/password
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "contrasenaActual": "12345678",
+    "nuevaContrasena": "NuevaClave123",
+    "confirmarContrasena": "NuevaClave123"
+}
+
+### k. ARCHIVAR UN USUARIO (Cambiar a estado HISTÓRICO)
+PATCH {{baseUrl_usuarios}}/17/archivar
+Authorization: Bearer {{authToken}}
+
+### l. DESARCHIVAR UN USUARIO (Cambiar a estado ACTIVO)
+PATCH {{baseUrl_usuarios}}/17/desarchivar
+Authorization: Bearer {{authToken}}
+
+### m. ELIMINAR UN USUARIO (Cambiar a estado BORRADO)
+DELETE {{baseUrl_usuarios}}/2
+Authorization: Bearer {{authToken}}
+
+### INTENTAR ELIMINAR EL USUARIO PRINCIPAL (Debería fallar)
+DELETE {{baseUrl_usuarios}}/1
+Authorization: Bearer {{authToken}}
+
+# ----------------------------------------------------------------------
+# PRUEBAS DE VALIDACIONES
+# ----------------------------------------------------------------------
+
+
+### p. OBTENER USUARIO CON ID NO EXISTENTE (Debería retornar 404)
+GET {{baseUrl_usuarios}}/17
+Authorization: Bearer {{authToken}}
+
+### q. PARÁMETROS DE QUERY INVÁLIDOS
+GET {{baseUrl_usuarios}}?estado_id=9999
+Authorization: Bearer {{authToken}}
+
+GET {{baseUrl_usuarios}}?offset=-1
+Authorization: Bearer {{authToken}}
+
+### r. SIN TOKEN (Debería retornar 401)
+GET {{baseUrl_usuarios}}

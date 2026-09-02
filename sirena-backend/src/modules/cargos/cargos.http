@@ -1,0 +1,312 @@
+# C:\sirena\sirena-backend\src\modules\cargos\cargos.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_cargos = {{baseUrl}}/cargos
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automatico.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# LISTAR CARGOS (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_cargos}}
+Authorization: Bearer {{authToken}}
+
+### b. LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_cargos}}?estado_id=1000&usuario_id=2
+Authorization: Bearer {{authToken}}
+
+### LISTAR
+GET {{baseUrl_cargos}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_cargos}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### c. BÚSQUEDA FLEXIBLE (contiene la palabra)
+GET {{baseUrl_cargos}}?q=GERENTE
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por código
+GET {{baseUrl_cargos}}?q=GER
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por descripción
+GET {{baseUrl_cargos}}?q=ADMINISTRATIVO
+Authorization: Bearer {{authToken}}
+
+### d. BÚSQUEDA EXACTA (palabra completa)
+GET {{baseUrl_cargos}}?q=del&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda exacta con acentos
+GET {{baseUrl_cargos}}?q=del&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### e. PÁGINA 1: Registros 0 al 15
+GET {{baseUrl_cargos}}?offset=0&limit=16
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 16 al 31
+GET {{baseUrl_cargos}}?offset=16&limit=16
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 3: Registros 32 al 47
+GET {{baseUrl_cargos}}?offset=32&limit=16
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 4: Registros 48 al 63
+GET {{baseUrl_cargos}}?offset=48&limit=16
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de estado
+GET {{baseUrl_cargos}}?estado_id=1000&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### Paginación con búsqueda
+GET {{baseUrl_cargos}}?estado_id=1000&offset=0&limit=2&q=GERENTE
+Authorization: Bearer {{authToken}}
+
+### Últimos 10 registros
+GET {{baseUrl_cargos}}?offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### f. ORDENAR POR CARGO (Ascendente)
+GET {{baseUrl_cargos}}?sortField=cargo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CARGO (Descendente)
+GET {{baseUrl_cargos}}?sortField=cargo&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_cargos}}?sortField=cargo_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA REGISTRO (Más recientes primero)
+GET {{baseUrl_cargos}}?sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CÓDIGO (Ascendente)
+GET {{baseUrl_cargos}}?sortField=codigo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR + FILTRO + PAGINACIÓN
+GET {{baseUrl_cargos}}?estado_id=1000&sortField=cargo&sortOrder=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### ORDENAR + FILTRO + PAGINACIÓN
+GET {{baseUrl_cargos}}?estado_id=1000&sortField=cargo_id&sortOrder=1&offset=0&limit=2
+Authorization: Bearer {{authToken}}
+
+### 1. Solo Orden Descendente por ID (`sortOrder=-1`)
+GET {{baseUrl_cargos}}?sortField=cargo_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 2. Solo Orden Ascendente por ID (`sortOrder=1`)
+GET {{baseUrl_cargos}}?sortField=cargo_id&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### g. OBTENER CARGO POR ID
+GET {{baseUrl_cargos}}/10
+Authorization: Bearer {{authToken}}
+
+### g. OBTENER CARGO POR ID
+GET {{baseUrl_cargos}}/544
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD CARGO
+# ==============================================================================
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_cargos}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### CREAR NUEVO CARGO
+POST {{baseUrl_cargos}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "cargo": "GERENTE GENERAL",
+    "codigo": "GER",
+    "descripcion": "Responsable de la dirección general de la empresa"
+}
+
+### CREAR CARGO CON CÓDIGO AUTOMÁTICO
+POST {{baseUrl_cargos}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "cargo": "JEFE DE VENTAS 2",
+    "codigo": "JV2",
+    "descripcion": "Responsable del equipo de ventas"
+}
+
+### CREAR CARGO CON CÓDIGO NUMÉRICO
+POST {{baseUrl_cargos}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "cargo": "AUXILIAR ADMINISTRATIVO",
+    "codigo": "AUX_ADM",
+    "descripcion": "Apoyo en tareas administrativas"
+}
+
+### Búsqueda exacta con acentos
+GET {{baseUrl_cargos}}?q=GERENTE&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda exacta con acentos
+GET {{baseUrl_cargos}}?q=GERENTE&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_cargos}}
+Authorization: Bearer {{authToken}}
+
+### Obtener cargo específico
+GET {{baseUrl_cargos}}/2
+Authorization: Bearer {{authToken}}
+
+### ACTUALIZAR TODOS LOS CAMPOS
+PATCH {{baseUrl_cargos}}/14
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "cargo": "GERENTE ADMINISTRATIVO",
+    "codigo": "GER_ADM",
+    "descripcion": "Responsable de la administración general"
+}
+
+### g. OBTENER CARGO POR ID
+GET {{baseUrl_cargos}}/11
+Authorization: Bearer {{authToken}}
+
+### ACTUALIZAR SOLO DESCRIPCIÓN
+PATCH {{baseUrl_cargos}}/15
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "descripcion": "Actualización de descripción del cargo"
+}
+
+### g. OBTENER CARGO POR ID
+GET {{baseUrl_cargos}}/10
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_cargos}}
+Authorization: Bearer {{authToken}}
+
+### ACTUALIZAR CARGO
+PATCH {{baseUrl_cargos}}/46
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "cargo": "SUPERVISOR DE TIENDA"
+}
+
+### ELIMINAR CARGO (ACTIVO → BORRADO)
+DELETE {{baseUrl_cargos}}/9
+Authorization: Bearer {{authToken}}
+
+### Obtener cargo específico
+GET {{baseUrl_cargos}}/20
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de estado)
+# ==============================================================================
+
+### ARCHIVAR CARGO (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_cargos}}/11/archivar
+Authorization: Bearer {{authToken}}
+
+### k. DESARCHIVAR CARGO (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_cargos}}/10/desarchivar
+Authorization: Bearer {{authToken}}
+
+### 11.1 Buscar cargos activos que contengan "GERENTE", ordenados por nombre, página 1
+GET {{baseUrl_cargos}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# 11. CASOS DE USO COMBINADOS (Escenarios reales)
+# ==============================================================================
+
+### 11.1 Buscar cargos activos que contengan "GERENTE", ordenados por nombre, página 1
+GET {{baseUrl_cargos}}?estado_id=1000&q=GERENTE&sortField=cargo&sortOrder=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 11.2 Buscar cargos activos por código "GER", ordenados por ID
+GET {{baseUrl_cargos}}?estado_id=1000&q=GER&sortField=cargo_id&sortOrder=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### 11.3 Listar todos los cargos históricos, ordenados por fecha de registro descendente
+GET {{baseUrl_cargos}}?estado_id=1000&sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 11.4 Buscar cargos activos con descripción que contenga "ADMIN", ordenados por cargo
+GET {{baseUrl_cargos}}?estado_id=1000&q=ADMIN&sortField=cargo&sortOrder=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 11.5 Listar cargos activos ordenados por código (para combos)
+GET {{baseUrl_cargos}}?estado_id=1000&sortField=codigo&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 11.6 Listar cargos activos ordenados por nombre (para combos)
+GET {{baseUrl_cargos}}?estado_id=1000&sortField=cargo&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 11.7 Listar cargos activos ordenados por ID descendente
+GET {{baseUrl_cargos}}?estado_id=1000&sortField=cargo_id&sortOrder=-1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 11.8 Búsqueda flexible por código
+GET {{baseUrl_cargos}}?q=JV&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+### 11.9 Búsqueda exacta por código
+GET {{baseUrl_cargos}}?q=JV&exactMatch=1
+Authorization: Bearer {{authToken}}

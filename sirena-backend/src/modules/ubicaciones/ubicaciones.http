@@ -1,0 +1,376 @@
+# C:\sirena\sirena-backend\src\modules\ubicaciones\ubicaciones.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_ubicaciones = {{baseUrl}}/ubicaciones
+@baseUrl_almacenes = {{baseUrl}}/almacenes
+@baseUrl_constantes = {{baseUrl}}/constantes
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# ENDPOINT EXTRAS
+# ==============================================================================
+
+### Listar almacenes activos
+GET {{baseUrl_almacenes}}?sucursal_id=3&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### UBICACIONES
+GET {{baseUrl_constantes}}/tipos-ubicacion
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR UBICACIONES (GET)
+# ==============================================================================
+
+### Listar todas por almacén (Activos + Históricos)
+GET {{baseUrl_ubicaciones}}?almacen_id=2
+Authorization: Bearer {{authToken}}
+
+### Listar por almacén y estado activo (1000)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### Listar por almacén y estado histórico (1002)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&estado_id=1002
+Authorization: Bearer {{authToken}}
+
+### Listar por almacén y unidad de medida
+GET {{baseUrl_ubicaciones}}?almacen_id=2&unidad_id=3
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### Búsqueda flexible (contiene la palabra)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&q=EST-A
+Authorization: Bearer {{authToken}}
+
+### Búsqueda exacta (palabra completa)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&q=EST-A01&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por código exacto
+GET {{baseUrl_ubicaciones}}?almacen_id=2&q=REF-01&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por camino (jerarquía)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&q=PASILLO A
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR CAMPOS ESPECÍFICOS
+# ==============================================================================
+
+### Filtrar por usuario que registró
+GET {{baseUrl_ubicaciones}}?almacen_id=2&usuario_id=2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### Página 1: Registros 0 al 15
+GET {{baseUrl_ubicaciones}}?almacen_id=2&offset=0&limit=16
+Authorization: Bearer {{authToken}}
+
+### Página 2: Registros 16 al 31
+GET {{baseUrl_ubicaciones}}?almacen_id=2&offset=16&limit=16
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de almacén (limitado a 5)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### Paginación con término de búsqueda
+GET {{baseUrl_ubicaciones}}?almacen_id=2&offset=0&limit=2&q=EST
+Authorization: Bearer {{authToken}}
+
+### Siguiente bloque (registros 10 al 20)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### Ordenar por código (Ascendente)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&sortField=codigo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### Ordenar por código (Descendente)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&sortField=codigo&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### Ordenar por ID (Descendente)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&sortField=ubicacion_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### Ordenar por descripción (Ascendente)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&sortField=descripcion&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### Ordenar por almacén (Ascendente)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&sortField=almacen&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### Ordenar por unidad (Ascendente)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&sortField=unidad&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### Ordenar por fecha de registro (Más recientes primero)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### Ordenamiento + Filtro + Paginación combinados
+GET {{baseUrl_ubicaciones}}?almacen_id=2&estado_id=1000&sortField=codigo&sortOrder=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### Obtener ubicación específica por ID
+GET {{baseUrl_ubicaciones}}/2
+Authorization: Bearer {{authToken}}
+
+### Obtener ubicación con ID 1 (Ninguno - Registro comodín)
+GET {{baseUrl_ubicaciones}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD UBICACIÓN (POST)
+# ==============================================================================
+
+### 1.1 Crear una ubicación (1 nivel por defecto)
+POST {{baseUrl_ubicaciones}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "almacen_id": 4,
+    "tipo": "ESTANTERIA"
+}
+
+### 1.2 Crear una ubicación con descripción personalizada
+POST {{baseUrl_ubicaciones}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "almacen_id": 4,
+    "tipo": "ESTANTERIA",
+    "descripcion": "ESTANTERIA DE MEDICAMENTOS CONTROLADOS"
+}
+
+### 1.3 Crear 5 niveles (batch automático)
+POST {{baseUrl_ubicaciones}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "almacen_id": 4,
+    "tipo": "ESTANTERIA",
+    "niveles": 5,
+    "descripcion": "ESTANTERIA DE VITAMINAS"
+}
+
+### 1.4 Crear 7 niveles en refrigerador
+POST {{baseUrl_ubicaciones}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "almacen_id": 3,
+    "tipo": "REFRIGERADOR",
+    "niveles": 7,
+    "descripcion": "VACUNAS Y BIOLÓGICOS"
+}
+
+### 1.5 Crear 3 niveles en congelador
+POST {{baseUrl_ubicaciones}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "almacen_id": 4,
+    "tipo": "CONGELADOR",
+    "niveles": 3,
+    "descripcion": "PRODUCTOS CONGELADOS"
+}
+
+### 1.6 Crear ubicación tipo CAJA_FUERTE (1 nivel)
+POST {{baseUrl_ubicaciones}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "almacen_id": 2,
+    "tipo": "CAJA_FUERTE",
+    "descripcion": "MEDICAMENTOS CONTROLADOS"
+}
+
+### 1.7 Crear ubicación tipo ZONA (sin niveles)
+POST {{baseUrl_ubicaciones}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "almacen_id": 8,
+    "tipo": "ZONA",
+    "descripcion": "ZONA DE RECEPCIÓN"
+}
+
+# ==============================================================================
+# ACTUALIZAR UBICACIÓN (PATCH)
+# ==============================================================================
+
+### Actualizar todos los campos de una ubicación
+PATCH {{baseUrl_ubicaciones}}/28
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "codigo": "EST-A01-MOD-822",
+    "almacen_id": 2,
+    "jerarquia": {
+        "niveles": [
+            {"tipo": "PASILLO", "valor": "A"},
+            {"tipo": "ESTANTERIA", "valor": "01"},
+            {"tipo": "NIVEL", "valor": "1"},
+            {"tipo": "POSICION", "valor": "A"}
+        ],
+        "camino": "PASILLO A > ESTANTERIA 01 > NIVEL 1 > POSICION A"
+    },
+    "descripcion": "ESTANTERIA PRINCIPAL MODIFICADA - PASILLO A"
+}
+
+### Verificar el cambio de la ubicación 28
+GET {{baseUrl_ubicaciones}}/28
+Authorization: Bearer {{authToken}}
+
+### Actualizar solo la descripción
+PATCH {{baseUrl_ubicaciones}}/25
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "descripcion": "ESTANTERIA PRINCIPAL ACTUALIZADA"
+}
+
+### Actualizar solo la jerarquía
+PATCH {{baseUrl_ubicaciones}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "jerarquia": {
+        "simplificado": true,
+        "valor": "ESTANTERIA-A01",
+        "camino": "ESTANTERIA A01"
+    }
+}
+
+### Cambiar de almacén una ubicación
+PATCH {{baseUrl_ubicaciones}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "almacen_id": 3
+}
+
+# ==============================================================================
+# ELIMINAR UBICACIÓN (Soft Delete)
+# ==============================================================================
+
+### Eliminar ubicación (Activo → Borrado)
+DELETE {{baseUrl_ubicaciones}}/20
+Authorization: Bearer {{authToken}}
+
+### Intentar eliminar ubicación con dependencias (Debería fallar)
+DELETE {{baseUrl_ubicaciones}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de Estado)
+# ==============================================================================
+
+### Archivar ubicación (Activo → Histórico)
+PATCH {{baseUrl_ubicaciones}}/28/archivar
+Authorization: Bearer {{authToken}}
+
+### Desarchivar ubicación (Histórico → Activo)
+PATCH {{baseUrl_ubicaciones}}/28/desarchivar
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CASOS DE USO COMBINADOS (Escenarios Reales)
+# ==============================================================================
+
+### 1. Buscar ubicaciones activas de un almacén que contengan "EST", ordenadas por código
+GET {{baseUrl_ubicaciones}}?almacen_id=2&estado_id=1000&q=EST&sortField=codigo&sortOrder=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 2. Buscar ubicaciones activas por código exacto "EST-A01"
+GET {{baseUrl_ubicaciones}}?almacen_id=2&estado_id=1000&q=EST-A01&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### 3. Listar todas las ubicaciones históricas de un almacén, ordenadas por fecha de registro descendente
+GET {{baseUrl_ubicaciones}}?almacen_id=2&estado_id=1002&sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 4. Buscar ubicaciones activas por descripción "PRINCIPAL"
+GET {{baseUrl_ubicaciones}}?almacen_id=2&estado_id=1000&q=PRINCIPAL&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 5. Listar ubicaciones activas ordenadas por código (para combos)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&estado_id=1000&sortField=codigo&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 6. Listar ubicaciones activas ordenadas por descripción (para combos)
+GET {{baseUrl_ubicaciones}}?almacen_id=2&estado_id=1000&sortField=descripcion&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 7. Listar ubicaciones de un almacén con unidad de medida específica y activas
+GET {{baseUrl_ubicaciones}}?almacen_id=2&unidad_id=1&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 8. Buscar ubicaciones por camino (jerarquía) con "PASILLO B"
+GET {{baseUrl_ubicaciones}}?almacen_id=2&estado_id=1000&q=PASILLO B&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### 9. Listar todas las ubicaciones activas ordenadas por ID de almacén
+GET {{baseUrl_ubicaciones}}?almacen_id=2&estado_id=1000&sortField=almacen_id&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 10. Buscar ubicaciones de refrigeradores por descripción
+GET {{baseUrl_ubicaciones}}?almacen_id=3&estado_id=1000&q=REFRIGERADOR
+Authorization: Bearer {{authToken}}
+
+### 11. Buscar ubicaciones simplificadas por término general
+GET {{baseUrl_ubicaciones}}?q=JUGUETES&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 12. Listar ubicaciones activas con control de temperatura ordenadas por código
+GET {{baseUrl_ubicaciones}}?almacen_id=3&estado_id=1000&sortField=codigo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 13. Buscar ubicaciones que empiecen por "REF" de manera flexible
+GET {{baseUrl_ubicaciones}}?q=REF&exactMatch=0&estado_id=1000
+Authorization: Bearer {{authToken}}

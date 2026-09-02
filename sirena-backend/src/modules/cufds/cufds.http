@@ -1,0 +1,448 @@
+# C:\sirena\sirena-backend\src\modules\cufds\cufds.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_cufds = {{baseUrl}}/cufds
+@baseUrl_sucursales = {{baseUrl}}/sucursales
+@baseUrl_puntos_venta = {{baseUrl}}/puntos-venta
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automático.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# ENDPOINT EXTRAS
+# ==============================================================================
+
+### LISTAR SUCURSALES ACTIVAS
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR PUNTOS DE VENTA ACTIVOS
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR CUFD (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_cufds}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_cufds}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO BORRADOS (1001)
+GET {{baseUrl_cufds}}?estado_id=1001
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO HISTÓRICOS (1002)
+GET {{baseUrl_cufds}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR SUCURSAL
+GET {{baseUrl_cufds}}?sucursal_id=2
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR PUNTO DE VENTA
+GET {{baseUrl_cufds}}?punto_venta_id=2
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR SUCURSAL Y PUNTO DE VENTA
+GET {{baseUrl_cufds}}?sucursal_id=1&punto_venta_id=1
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR SUCURSAL Y ESTADO ACTIVO
+GET {{baseUrl_cufds}}?sucursal_id=1&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BÚSQUEDA FLEXIBLE (contiene la palabra)
+GET {{baseUrl_cufds}}?q=CUFD
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA EXACTA (palabra completa)
+GET {{baseUrl_cufds}}?q=CUFD001&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda flexible por código parcial
+GET {{baseUrl_cufds}}?q=001&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA POR CÓDIGO DE CONTROL
+GET {{baseUrl_cufds}}?q=CTRL001&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA FLEXIBLE EN AMBOS CAMPOS (codigo_cufd + codigo_control)
+GET {{baseUrl_cufds}}?q=ABC&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR CAMPOS ESPECÍFICOS
+# ==============================================================================
+
+### FILTRAR POR SUCURSAL
+GET {{baseUrl_cufds}}?sucursal_id=2
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR PUNTO DE VENTA
+GET {{baseUrl_cufds}}?punto_venta_id=2
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR USUARIO QUE REGISTRÓ
+GET {{baseUrl_cufds}}?usuario_id=2
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR FECHA VIGENCIA INICIO
+GET {{baseUrl_cufds}}?fecha_vigencia_inicio=2027-01-01
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR FECHA VIGENCIA FIN
+GET {{baseUrl_cufds}}?fecha_vigencia_fin=2027-12-31
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR RANGO DE FECHAS VIGENCIA
+GET {{baseUrl_cufds}}?fecha_vigencia_inicio=2027-01-01&fecha_vigencia_fin=2027-12-31
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 9
+GET {{baseUrl_cufds}}?offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 10 al 19
+GET {{baseUrl_cufds}}?offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de sucursal
+GET {{baseUrl_cufds}}?sucursal_id=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### Paginación con búsqueda
+GET {{baseUrl_cufds}}?sucursal_id=1&offset=0&limit=5&q=CUFD
+Authorization: Bearer {{authToken}}
+
+### Últimos 10 registros
+GET {{baseUrl_cufds}}?offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR CÓDIGO CUFD (Ascendente)
+GET {{baseUrl_cufds}}?sortField=codigo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CÓDIGO CUFD (Descendente)
+GET {{baseUrl_cufds}}?sortField=codigo&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CÓDIGO DE CONTROL (Ascendente)
+GET {{baseUrl_cufds}}?sortField=control&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CÓDIGO DE CONTROL (Descendente)
+GET {{baseUrl_cufds}}?sortField=control&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_cufds}}?sortField=cufd_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA VIGENCIA (Más recientes primero)
+GET {{baseUrl_cufds}}?sortField=fecha_vigencia&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR SUCURSAL (Ascendente)
+GET {{baseUrl_cufds}}?sortField=sucursal&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR PUNTO DE VENTA (Ascendente)
+GET {{baseUrl_cufds}}?sortField=punto_venta&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA REGISTRO (Más recientes primero)
+GET {{baseUrl_cufds}}?sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR + FILTRO + PAGINACIÓN
+GET {{baseUrl_cufds}}?sucursal_id=1&estado_id=1000&sortField=codigo&sortOrder=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER CUFD POR ID
+GET {{baseUrl_cufds}}/2
+Authorization: Bearer {{authToken}}
+
+### Obtener CUFD específico (NINGUNO - Registro comodín)
+GET {{baseUrl_cufds}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD CUFD
+# ==============================================================================
+
+### CREAR NUEVO CUFD
+POST {{baseUrl_cufds}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal_id": 3,
+    "punto_venta_id": 4,
+    "codigo_cufd": "CUFD002",
+    "codigo_control": "CTRL002",
+    "fecha_vigencia": "2027-01-01T00:00:00.000Z"
+}
+
+### LISTAR SUCURSALES ACTIVAS
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR PUNTOS DE VENTA ACTIVOS
+GET {{baseUrl_puntos_venta}}?sucursal_id=4&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_cufds}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+
+### ACTUALIZAR
+PATCH {{baseUrl_cufds}}/11
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{"fecha_vigencia": "2027-01-01T14:30:45.123-04:00"}
+
+###
+PATCH {{baseUrl_cufds}}/11
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "codigo_cufd": "CUFD002",
+    "codigo_control": "CTRL002",
+    "fecha_vigencia": "2027-01-01T14:30:45.123-04:00"
+}
+
+### CREAR
+POST {{baseUrl_cufds}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal_id": 3,
+    "punto_venta_id": 14,
+    "codigo_cufd": "CUFD001",
+    "codigo_control": "CTRL001",
+    "fecha_vigencia": "2027-01-01T14:30:45.123-04:00"
+}
+
+### BÚSQUEDA FLEXIBLE (contiene la palabra)
+GET {{baseUrl_cufds}}?estado_id=1000&sucursal_id=3
+Authorization: Bearer {{authToken}}
+
+### LISTAR PUNTOS DE VENTA ACTIVOS
+GET {{baseUrl_puntos_venta}}?estado_id=1000&sucursal_id=3
+Authorization: Bearer {{authToken}}
+
+
+### CREAR OTRO CUFD
+POST {{baseUrl_cufds}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal_id": 3,
+    "punto_venta_id": 5,
+    "codigo_cufd": "CUFD006",
+    "codigo_control": "CTRL006",
+    "fecha_vigencia": "2027-01-01T00:00:00.000Z"
+}
+
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_cufds}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ACTUALIZAR CUFD
+# ==============================================================================
+
+### ACTUALIZAR CÓDIGO CUFD
+PATCH {{baseUrl_cufds}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "codigo_cufd": "CUFD001-UPDATED"
+}
+
+### ACTUALIZAR CÓDIGO DE CONTROL
+PATCH {{baseUrl_cufds}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "codigo_control": "CTRL001-UPDATED"
+}
+
+### ACTUALIZAR FECHA VIGENCIA
+PATCH {{baseUrl_cufds}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "fecha_vigencia": "2027-06-01T00:00:00.000Z"
+}
+
+### ACTUALIZAR SUCURSAL
+PATCH {{baseUrl_cufds}}/5
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal_id": 2
+}
+
+### ACTUALIZAR PUNTO DE VENTA
+PATCH {{baseUrl_cufds}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "punto_venta_id": 2
+}
+
+### ACTUALIZAR MÚLTIPLES CAMPOS
+PATCH {{baseUrl_cufds}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "codigo_cufd": "CUFD006",
+    "codigo_control": "CTRL006",
+    "fecha_vigencia": "2027-07-01T00:00:00.000Z"
+}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_cufds}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ELIMINAR CUFD (Soft Delete)
+# ==============================================================================
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_cufds}}/4
+Authorization: Bearer {{authToken}}
+
+### ELIMINAR CUFD (ACTIVO → BORRADO)
+DELETE {{baseUrl_cufds}}/4
+Authorization: Bearer {{authToken}}
+
+### ELIMINAR CUFD CON ID 1 (Debería dar error - Registro comodín)
+DELETE {{baseUrl_cufds}}/11
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de estado)
+# ==============================================================================
+
+### ARCHIVAR CUFD (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_cufds}}/5/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR CUFD (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_cufds}}/5/desarchivar
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CASOS DE USO COMBINADOS (Escenarios reales)
+# ==============================================================================
+
+### 1. Buscar CUFD activos de una sucursal que contengan "CUFD", ordenados por código
+GET {{baseUrl_cufds}}?sucursal_id=1&estado_id=1000&q=CUFD&sortField=codigo&sortOrder=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 2. Buscar CUFD activos por código exacto
+GET {{baseUrl_cufds}}?estado_id=1000&q=CUFD001&exactMatch=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### 3. Buscar CUFD por código de control exacto
+GET {{baseUrl_cufds}}?estado_id=1000&q=CTRL001&exactMatch=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### 4. Listar todos los CUFD históricos de una sucursal, ordenados por fecha de registro descendente
+GET {{baseUrl_cufds}}?sucursal_id=1&estado_id=1002&sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 5. Listar CUFD activos con fecha de vigencia más reciente
+GET {{baseUrl_cufds}}?estado_id=1000&sortField=fecha_vigencia&sortOrder=-1&limit=10
+Authorization: Bearer {{authToken}}
+
+### 6. Listar CUFD activos ordenados por código (para combos)
+GET {{baseUrl_cufds}}?estado_id=1000&sortField=codigo&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 7. Listar CUFD activos de una sucursal y punto de venta específicos
+GET {{baseUrl_cufds}}?sucursal_id=1&punto_venta_id=1&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 8. Listar CUFD activos de una sucursal con punto de venta
+GET {{baseUrl_cufds}}?sucursal_id=1&estado_id=1000&sortField=punto_venta&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 9. Buscar CUFD por código parcial "001" (búsqueda flexible)
+GET {{baseUrl_cufds}}?q=001&exactMatch=0&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 10. Buscar CUFD por código parcial "CTRL" (búsqueda flexible en codigo_control)
+GET {{baseUrl_cufds}}?q=CTRL&exactMatch=0&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 11. Obtener CUFD con ID 1 (NINGUNO - Registro comodín)
+GET {{baseUrl_cufds}}/1
+Authorization: Bearer {{authToken}}
+
+### 12. Listar todos los CUFD activos de todas las sucursales
+GET {{baseUrl_cufds}}?estado_id=1000&sortField=sucursal_id&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 13. Buscar CUFD activos con rango de fecha de vigencia
+GET {{baseUrl_cufds}}?estado_id=1000&fecha_vigencia_inicio=2027-01-01&fecha_vigencia_fin=2027-12-31
+Authorization: Bearer {{authToken}}
+
+### 14. Buscar CUFD por código exacto y punto de venta
+GET {{baseUrl_cufds}}?q=CUFD001&exactMatch=1&punto_venta_id=5&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 15. Listar CUFD activos ordenados por código de control
+GET {{baseUrl_cufds}}?estado_id=1000&sortField=control&sortOrder=1&limit=50
+Authorization: Bearer {{authToken}}

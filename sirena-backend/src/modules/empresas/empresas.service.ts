@@ -1,0 +1,147 @@
+// C:\sirena\sirena-backend\src\modules\empresas\empresas.service.ts
+import { Injectable, HttpStatus, Logger } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { ESTADOS_VIVOS, ESTADO_ACTIVO } from '../../common/constants/estados.constant';
+import { DomainException } from '../../common/exceptions/domain.exception';
+import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
+import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
+import { runInTransaction } from '../../common/utils/transaction.helper';
+import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
+import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
+import { CreateEmpresaDto } from './dto/create-empresa.dto';
+import { EmpresaResponseDto } from './dto/empresa-response.dto';
+import { FindEmpresasQueryDto } from './dto/find-empresas-query.dto';
+import { UpdateEmpresaDto } from './dto/update-empresa.dto';
+import { Empresa } from './entities/empresa.entity';
+
+@Injectable()
+export class EmpresasService extends BaseService {
+    private readonly customLogger = new Logger(EmpresasService.name);
+
+    protected config: BaseServiceConfig = {
+        nombreTabla: 'empresas',
+        nombreEntidad: 'Empresa',
+        campoPK: 'empresa_id',
+        alias: 't',
+        responseDto: EmpresaResponseDto,
+        camposBusquedaEnQ: FindEmpresasQueryDto.getCamposParaQ(),
+        tablasDependientes: FindEmpresasQueryDto.getDependencias(),
+        joins: [],
+        configuracionFiltros: [],
+        configuracionOrden: {
+            campoOrdenPorDefecto: 'empresa_id',
+            camposPermitidosParaOrdenar: FindEmpresasQueryDto.getCamposPermitidosParaOrdenar(),
+            equivalenciasMapeo: FindEmpresasQueryDto.getEquivalenciasMapeo(),
+        },
+        getCamposProtegidosConDependencias: () => FindEmpresasQueryDto.getCamposProtegidosConDependencias(),
+    };
+
+    constructor(
+        @InjectDataSource() dataSource: DataSource,
+        tablaValidador: TablaValidadorService,
+        private readonly unicidadValidador: UnicidadValidadorService,
+    ) {
+        super(dataSource, tablaValidador);
+        this.customLogger.log('Mensaje personalizado');
+    }
+
+    private get nombreTabla(): string { return this.config.nombreTabla; }
+    private get campoPK(): string { return this.config.campoPK; }
+
+    async create(dto: CreateEmpresaDto, usuarioId: number): Promise<EmpresaResponseDto> {
+        return runInTransaction(this.dataSource, async (manager) => {
+            await this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear');
+
+            await Promise.all([
+                this.unicidadValidador.validarUnicidad({ tabla: this.nombreTabla, campos: [{ nombre: 'empresa', valor: dto.empresa }], campoPk: this.campoPK, estadosValidos: [...ESTADOS_VIVOS] }),
+                this.unicidadValidador.validarUnicidad({ tabla: this.nombreTabla, campos: [{ nombre: 'codigo', valor: dto.codigo }], campoPk: this.campoPK, estadosValidos: [...ESTADOS_VIVOS] }),
+                this.unicidadValidador.validarUnicidad({ tabla: this.nombreTabla, campos: [{ nombre: 'matricula_comercio', valor: dto.matricula_comercio }], campoPk: this.campoPK, estadosValidos: [...ESTADOS_VIVOS] }),
+            ]);
+
+            const empresa = manager.create(Empresa, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
+            });
+
+            try {
+                const saved = await manager.save(empresa);
+                return this.findOne<EmpresaResponseDto>(saved.empresa_id, usuarioId, manager);
+            } catch (error: unknown) {
+                if (isDomainException(error)) {
+                    throw error;
+                }
+                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
+                throw error;
+            }
+        });
+    }
+
+    async update(id: number, dto: UpdateEmpresaDto, usuarioId: number): Promise<EmpresaResponseDto> {
+        return runInTransaction(this.dataSource, async (manager) => {
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
+
+            const empresaActual = await manager.findOne(Empresa, {
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
+            });
+
+            if (!empresaActual) {
+                throw new DomainException('Empresa no encontrada.', { httpStatus: HttpStatus.NOT_FOUND });
+            }
+
+            const tieneDependencias = await this.tablaValidador.validarDependencias(
+                this.nombreTabla,
+                id,
+                FindEmpresasQueryDto.getDependencias(),
+                this.campoPK
+            );
+
+            if (tieneDependencias) {
+                const camposProtegidos = FindEmpresasQueryDto.getCamposProtegidosConDependencias();
+                camposProtegidos.forEach(campo => {
+                    if (campo in dto) {
+                        delete (dto as any)[campo];
+                    }
+                });
+            } else {
+                const validaciones: Promise<any>[] = [];
+                if (dto.empresa !== undefined) validaciones.push(this.unicidadValidador.validarUnicidad({
+                    tabla: this.nombreTabla,
+                    campos: [{ nombre: 'empresa', valor: dto.empresa }],
+                    idExcluir: id,
+                    campoPk: this.campoPK,
+                    estadosValidos: [...ESTADOS_VIVOS]
+                }));
+                if (dto.codigo !== undefined) validaciones.push(this.unicidadValidador.validarUnicidad({
+                    tabla: this.nombreTabla,
+                    campos: [{ nombre: 'codigo', valor: dto.codigo }],
+                    idExcluir: id,
+                    campoPk: this.campoPK,
+                    estadosValidos: [...ESTADOS_VIVOS]
+                }));
+                if (dto.matricula_comercio !== undefined) validaciones.push(this.unicidadValidador.validarUnicidad({
+                    tabla: this.nombreTabla,
+                    campos: [{ nombre: 'matricula_comercio', valor: dto.matricula_comercio }],
+                    idExcluir: id,
+                    campoPk: this.campoPK,
+                    estadosValidos: [...ESTADOS_VIVOS]
+                }));
+                if (validaciones.length > 0) await Promise.all(validaciones);
+            }
+
+            manager.merge(Empresa, empresaActual, dto);
+            empresaActual.update(usuarioId);
+
+            try {
+                const saved = await manager.save(empresaActual);
+            return this.findOne<EmpresaResponseDto>(saved.empresa_id, usuarioId, manager);
+            } catch (error: unknown) {
+                if (isDomainException(error)) {
+                    throw error;
+                }
+                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
+                throw error;
+            }
+        });
+    }
+}

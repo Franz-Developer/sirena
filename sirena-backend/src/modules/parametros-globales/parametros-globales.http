@@ -1,0 +1,473 @@
+# C:\sirena\sirena-backend\src\modules\parametros-globales\parametros-globales.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_parametros = {{baseUrl}}/parametros-globales
+@baseUrl_constantes = {{baseUrl}}/constantes
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automatico.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# ENDPOINT EXTRAS
+# ==============================================================================
+
+### LISTAR POR TIPO: TIPOS DE DATO
+GET {{baseUrl_constantes}}?tipo=tipo_dato_id
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR PARÁMETROS GLOBALES (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_parametros}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_parametros}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### BORRADOS (1001)
+GET {{baseUrl_parametros}}?estado_id=1001
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_parametros}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR TIPO DE DATO
+# ==============================================================================
+
+### FILTRAR POR TIPO STRING (1800)
+GET {{baseUrl_parametros}}?tipo_dato_id=1800
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR TIPO INTEGER (1801)
+GET {{baseUrl_parametros}}?tipo_dato_id=1801
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR TIPO DECIMAL (1802)
+GET {{baseUrl_parametros}}?tipo_dato_id=1802
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR TIPO BOOLEAN (1803)
+GET {{baseUrl_parametros}}?tipo_dato_id=1803
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR TIPO TIMESTAMP (1804)
+GET {{baseUrl_parametros}}?tipo_dato_id=1804
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR TIPO JSONB (1805)
+GET {{baseUrl_parametros}}?tipo_dato_id=1805
+Authorization: Bearer {{authToken}}
+
+
+### FILTRAR POR TIPO JSONB (1805)
+GET {{baseUrl_parametros}}?tipo_dato_id=5000
+Authorization: Bearer {{authToken}}
+
+
+# ==============================================================================
+# FILTROS POR EDITABLE
+# ==============================================================================
+
+### PARÁMETROS EDITABLES (editable = 1)
+GET {{baseUrl_parametros}}?editable=1
+Authorization: Bearer {{authToken}}
+
+### PARÁMETROS NO EDITABLES (editable = 0)
+GET {{baseUrl_parametros}}?editable=0
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BUSCAR POR CLAVE (parcial)
+GET {{baseUrl_parametros}}?q=iva
+Authorization: Bearer {{authToken}}
+
+### BUSCAR POR VALOR
+GET {{baseUrl_parametros}}?q=13.00
+Authorization: Bearer {{authToken}}
+
+### BUSCAR EN DESCRIPCIÓN
+GET {{baseUrl_parametros}}?q=alerta
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA COMBINADA: CLAVE + TIPO
+GET {{baseUrl_parametros}}?q=modelo&tipo_dato_id=18014
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA COMBINADA: DESCRIPCIÓN + EDITABLE
+GET {{baseUrl_parametros}}?q=porcentaje&editable=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# USUARIO
+# ==============================================================================
+
+### BÚSQUEDA POR USUARIO
+GET {{baseUrl_parametros}}?usuario_id=3
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 9
+GET {{baseUrl_parametros}}?offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 10 al 19
+GET {{baseUrl_parametros}}?offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de estado
+GET {{baseUrl_parametros}}?estado_id=1000&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de tipo
+GET {{baseUrl_parametros}}?tipo_dato_id=1801&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### Últimos 5 registros
+GET {{baseUrl_parametros}}?offset=28&limit=5
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR CLAVE (Ascendente)
+GET {{baseUrl_parametros}}?sortField=clave&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CLAVE (Descendente)
+GET {{baseUrl_parametros}}?sortField=clave&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_parametros}}?sortField=parametro_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR TIPO (Ascendente)
+GET {{baseUrl_parametros}}?sortField=tipo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA REGISTRO (Más recientes primero)
+GET {{baseUrl_parametros}}?sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA REGISTRO (Más antiguos primero)
+GET {{baseUrl_parametros}}?sortField=fecha_registro&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR EDITABLE (Descendente)
+GET {{baseUrl_parametros}}?sortField=editable&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# COMBINACIÓN DE FILTROS + ORDENAMIENTO + PAGINACIÓN
+# ==============================================================================
+
+### Parámetros INTEGER, editables, ordenados por clave
+GET {{baseUrl_parametros}}?tipo_dato_id=1801&editable=1&sortField=clave&sortOrder=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### Parámetros NO editables, tipo JSONB, ordenados por ID
+GET {{baseUrl_parametros}}?editable=0&tipo_dato_id=1805&sortField=parametro_id&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda "modelo", tipo INTEGER, activos, ordenados por clave
+GET {{baseUrl_parametros}}?q=modelo&tipo_dato_id=1801&estado_id=1000&sortField=clave&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda "alerta", tipo INTEGER, ordenados por clave
+GET {{baseUrl_parametros}}?q=alerta&tipo_dato_id=1801&sortField=clave&sortOrder=1&limit=10
+Authorization: Bearer {{authToken}}
+
+### Todos los activos ordenados por clave (para combos)
+GET {{baseUrl_parametros}}?estado_id=1000&sortField=clave&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER PARÁMETRO POR ID
+GET {{baseUrl_parametros}}/2
+Authorization: Bearer {{authToken}}
+
+### Obtener configuración de logo (ID = 33)
+GET {{baseUrl_parametros}}/24
+Authorization: Bearer {{authToken}}
+
+### Obtener porcentaje de IVA (ID = 3)
+GET {{baseUrl_parametros}}/3
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD PARÁMETROS GLOBALES
+# ==============================================================================
+
+### CREAR NUEVO PARÁMETRO (STRING)
+POST {{baseUrl_parametros}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "clave": "entorno_sistema_a",
+    "valor": "PRODUCCIONN",
+    "tipo_dato_id": 1800,
+    "descripcion": "Entorno actual del sistema: PRODUCCION, DESARROLLO, TESTING",
+    "editable": 1
+}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_parametros}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### CREAR PARÁMETRO (INTEGER)
+POST {{baseUrl_parametros}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "clave": "limite_credito_default",
+    "valor": "5000",
+    "tipo_dato_id": 1801,
+    "descripcion": "Límite de crédito por defecto para nuevos clientes",
+    "editable": 1
+}
+
+### CREAR PARÁMETRO (TIMESTAMP)
+POST {{baseUrl_parametros}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "clave": "fecha_cierre_anual",
+    "valor": "2026-12-31 23:59:59-04:00",
+    "tipo_dato_id": 1804,
+    "descripcion": "Fecha y hora de cierre del año fiscal",
+    "editable": 0
+}
+
+### CREAR PARÁMETRO (JSONB)
+POST {{baseUrl_parametros}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "clave": "configuracion_seguridad_ab",
+    "valor": "SECURITY_CONFIG",
+    "tipo_dato_id": 1805,
+    "datos_json": {
+        "max_intentos_fallidos": 5,
+        "bloqueo_minutos": 30,
+        "password_min_length": 8,
+        "requiere_mayusculas": true,
+        "requiere_numeros": true,
+        "requiere_especiales": false,
+        "color": 45,
+        "color_letra": "azul"
+    },
+    "descripcion": "Configuración de políticas de seguridad del sistema",
+    "editable": 1
+}
+
+# ==============================================================================
+# ACTUALIZAR PARÁMETRO
+# ==============================================================================
+
+### ACTUALIZAR CONFIGURACIÓN DE LOGO (max_height: 600)
+PATCH {{baseUrl_parametros}}/35
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "valor": "LOGO_CONFIG2",
+    "clave": "multa_valor_diario3",
+    "tipo_dato_id": 1805,
+    "datos_json": {
+        "max_size": 358400,
+        "max_width": 1500,
+        "max_height": 600,
+        "default_logo": null,
+        "retention_days": 1,
+        "allowed_formats": ["png", "jpeg", "jpg"],
+        "allowed_extensions": ["png", "jpg", "jpeg"]
+    },
+    "descripcion": "Configuración de logos de empresas (tamaño máximo: 350 KB, dimensiones: 1500x600 px, formatos: PNG, JPEG, JPG)"
+}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_parametros}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+
+### ACTUALIZAR TIPO DE DATO (INTEGER → DECIMAL)
+PATCH {{baseUrl_parametros}}/34
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "tipo_dato_id": 1802,
+    "valor": "1.00"
+}
+
+### ACTUALIZAR EDITABLE
+PATCH {{baseUrl_parametros}}/34
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "editable": 1
+}
+
+### ACTUALIZAR PARÁMETRO NO EDITABLE (Debería dar error 403)
+PATCH {{baseUrl_parametros}}/34
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "descripcion": "Intento de modificar parámetro no editable"
+}
+
+### ACTUALIZAR CLAVE
+PATCH {{baseUrl_parametros}}/34
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "clave": "entorno_sistema_actualizado"
+}
+
+### 5. Obtener todos los parámetros NO editables (solo administradores)
+GET {{baseUrl_parametros}}?editable=0&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+
+### 5. Obtener todos los parámetros SI editables (solo administradores)
+GET {{baseUrl_parametros}}?editable=1&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### Obtener todos los parámetros SI editables (solo administradores)
+GET {{baseUrl_parametros}}?usuario_id=2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ELIMINAR (Borrado lógico)
+# ==============================================================================
+
+### ELIMINAR PARÁMETRO (ACTIVO → BORRADO)
+DELETE {{baseUrl_parametros}}/34
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR
+# ==============================================================================
+
+### ARCHIVAR PARÁMETRO (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_parametros}}/34/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR PARÁMETRO (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_parametros}}/34/desarchivar
+Authorization: Bearer {{authToken}}
+
+###
+GET {{baseUrl_parametros}}
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CASOS DE USO COMBINADOS (Escenarios reales)
+# ==============================================================================
+
+### 1. Obtener todos los parámetros de configuración de IA (modelos)
+GET {{baseUrl_parametros}}?q=modelo&estado_id=1000&sortField=clave&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 2. Obtener todos los parámetros de alertas
+GET {{baseUrl_parametros}}?q=alerta&estado_id=1000&sortField=clave&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 3. Obtener configuración de logos (JSONB)
+GET {{baseUrl_parametros}}?tipo_dato_id=1805&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 4. Obtener parámetros editables de tipo INTEGER
+GET {{baseUrl_parametros}}?tipo_dato_id=1801&editable=1&estado_id=1000&sortField=clave&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 5. Obtener todos los parámetros NO editables (solo administradores)
+GET {{baseUrl_parametros}}?editable=0&estado_id=1000&sortField=clave&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 6. Obtener parámetros de porcentajes
+GET {{baseUrl_parametros}}?q=porcentaje&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 7. Obtener parámetros de modelo ARIMA
+GET {{baseUrl_parametros}}?q=arima&estado_id=1000&sortField=clave&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 8. Obtener configuración de multas
+GET {{baseUrl_parametros}}?q=multa&estado_id=1000&sortField=clave&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 9. Obtener todos los parámetros activos (para carga inicial del sistema)
+GET {{baseUrl_parametros}}?estado_id=1000&limit=100
+Authorization: Bearer {{authToken}}
+
+### 10. Obtener parámetros por tipo y rango de fechas
+GET {{baseUrl_parametros}}?tipo_dato_id=1804&estado_id=1000&sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PRUEBAS
+# ==============================================================================
+
+###
+GET {{baseUrl_parametros}}
+Authorization: Bearer {{authToken}}
+
+
+###
+GET {{baseUrl_parametros}}/22
+Authorization: Bearer {{authToken}}
+
+### ACTUALIZAR CLAVE
+PATCH {{baseUrl_parametros}}/17
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "descripcion": "Días para alerta MEDIA de vencimiento 23"
+}
+
+### 4. Obtener parámetros editables de tipo INTEGER
+GET {{baseUrl_parametros}}?editable=1&tipo_dato_id=1801
+Authorization: Bearer {{authToken}}
+
+### 4. Obtener parámetros editables de tipo INTEGER
+GET {{baseUrl_parametros}}?editable=0&tipo_dato_id=1801
+Authorization: Bearer {{authToken}}

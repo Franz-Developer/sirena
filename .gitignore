@@ -1,0 +1,75 @@
+# ============================================
+# CARPETAS DE SALIDA Y ARCHIVOS GENERADOS
+# ============================================
+salida/
+db/query/salida.sql
+db/query/error.log
+logs/
+*.log
+
+# ============================================
+# NODE.JS / BACKEND
+# ============================================
+node_modules/
+dist/
+build/
+.nuxt/
+.env
+.env.local
+.env.production
+package-lock.json
+yarn-lock.json
+npm-debug.log
+yarn-error.log
+
+# ============================================
+# PYTHON / MOTOR PRONÓSTICO
+# ============================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+*.venv
+*.egg-info/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ============================================
+# EDITORES Y SISTEMA
+# ============================================
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+*.swo
+.vscode/
+.idea/
+*.iml
+
+# ============================================
+# ARCHIVOS DUPLICADOS EN LA RAÍZ
+# ============================================
+# (Estos ya están dentro de sirena-motor-pronostico/)
+/cambio.py
+/con_f.bat
+/con_todo.py
+/control_nombre_archivo.py
+/exportar.bat
+/inb.bat
+/inf.bat
+/inm.bat
+/limpiar.py
+/m.bat
+/qr.bat
+/visor.py
+
+# ============================================
+# OTROS ARCHIVOS GENERADOS
+# ============================================
+uploads/
+*.sqlite
+*.db

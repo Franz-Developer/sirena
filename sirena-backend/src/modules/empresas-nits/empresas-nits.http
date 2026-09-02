@@ -1,0 +1,385 @@
+# C:\sirena\sirena-backend\src\modules\empresas-nits\empresas-nits.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_empresas_nits = {{baseUrl}}/empresas-nits
+@baseUrl_empresas = {{baseUrl}}/empresas
+@baseUrl_constantes = {{baseUrl}}/constantes
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automatico.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# ENDPOINT EXTRAS
+# ==============================================================================
+
+### LISTAR POR TIPO: AMBIENTES
+GET {{baseUrl_constantes}}?tipo=ambiente_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: MODALIDADES FACTURACIÓN
+GET {{baseUrl_constantes}}?tipo=modalidad_facturacion_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_empresas}}
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR NITS DE EMPRESAS (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_empresas_nits}}?empresa_id=2
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### BORRADOS (1001)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1001
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1002
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR EMPRESA
+# ==============================================================================
+
+### FILTRAR POR EMPRESA_ID (Empresa 2)
+GET {{baseUrl_empresas_nits}}?empresa_id=2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR AMBIENTE
+# ==============================================================================
+
+### FILTRAR POR AMBIENTE PRODUCCIÓN (2750)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&ambiente_id=2750
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR AMBIENTE PILOTO_PRUEBAS (2751)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&ambiente_id=2751
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR MODALIDAD DE FACTURACIÓN
+# ==============================================================================
+
+### FILTRAR POR MODALIDAD ELECTRÓNICA (3901)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&modalidad_facturacion_id=3901
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR MODALIDAD COMPUTARIZADA (3902)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&modalidad_facturacion_id=3902
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR MODALIDAD MANUAL (3903)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&modalidad_facturacion_id=3903
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR FECHAS DE VIGENCIA
+# ==============================================================================
+
+### FILTRAR POR RANGO DE FECHA INICIO DE VIGENCIA
+GET {{baseUrl_empresas_nits}}?empresa_id=2
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR RANGO DE FECHA INICIO DE VIGENCIA
+GET {{baseUrl_empresas_nits}}?empresa_id=2&fecha_inicio_vigencia_desde=2026-02-01&fecha_inicio_vigencia_hasta=2026-12-31
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR RANGO DE FECHA FIN DE VIGENCIA
+GET {{baseUrl_empresas_nits}}?empresa_id=2&fecha_fin_vigencia_desde=2026-01-01&fecha_fin_vigencia_hasta=2026-12-31
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BUSCAR POR RAZÓN SOCIAL
+GET {{baseUrl_empresas_nits}}?empresa_id=2&q=309
+Authorization: Bearer {{authToken}}
+
+### BUSCAR POR NIT
+GET {{baseUrl_empresas_nits}}?empresa_id=2&q=102030
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA COMBINADA: NIT + ESTADO ACTIVO
+GET {{baseUrl_empresas_nits}}?empresa_id=2&q=102031&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 9
+GET {{baseUrl_empresas_nits}}?empresa_id=2&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 10 al 19
+GET {{baseUrl_empresas_nits}}?empresa_id=2&offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de estado
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1000&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de empresa
+GET {{baseUrl_empresas_nits}}?empresa_id=2&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### Últimos 5 registros
+GET {{baseUrl_empresas_nits}}?empresa_id=2&offset=5&limit=5
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR NIT (Ascendente)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&sortField=nit&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR NIT (Descendente)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&sortField=nit&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR RAZÓN SOCIAL (Ascendente)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&sortField=razon_social&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&sortField=empresa_nit_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR AMBIENTE (Ascendente)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&sortField=ambiente&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR MODALIDAD (Ascendente)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&sortField=modalidad&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA REGISTRO (Más recientes primero)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA INICIO VIGENCIA (Descendente)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&sortField=fecha_inicio&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA FIN VIGENCIA (Descendente)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&sortField=fecha_fin&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# COMBINACIÓN DE FILTROS + ORDENAMIENTO + PAGINACIÓN
+# ==============================================================================
+
+### NITs ACTIVOS, ordenados por razón social
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1000&sortField=razon_social&sortOrder=1&offset=0&limit=20
+Authorization: Bearer {{authToken}}
+
+### NITs de empresa 2, ACTIVOS, ordenados por NIT
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1000&sortField=nit&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda "INTI", ACTIVOS, ordenados por razón social
+GET {{baseUrl_empresas_nits}}?empresa_id=2&q=INTI&estado_id=1000&sortField=razon_social&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### Todos los activos ordenados por NIT (para combos)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1000&sortField=nit&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER NIT POR ID
+GET {{baseUrl_empresas_nits}}/1
+Authorization: Bearer {{authToken}}
+
+### Obtener NIT específico (ID = 2)
+GET {{baseUrl_empresas_nits}}/2554
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD NITS DE EMPRESA
+# ==============================================================================
+
+### LISTAR POR TIPO: AMBIENTES
+GET {{baseUrl_constantes}}?tipo=ambiente_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: MODALIDADES FACTURACIÓN
+GET {{baseUrl_constantes}}?tipo=modalidad_facturacion_id
+Authorization: Bearer {{authToken}}
+
+### Todos los activos ordenados por NIT (para combos)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1000&ambiente_id=2750&modalidad_facturacion_id=3901
+Authorization: Bearer {{authToken}}
+
+### Todos los activos ordenados por NIT (para combos)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### CREAR NUEVO NIT DE EMPRESA
+POST {{baseUrl_empresas_nits}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "empresa_id": 2,
+    "ambiente_id": 27505,
+    "nit": "1020528",
+    "razon_social": "DROGUERIA INTI S.A. 55",
+    "actividad_economica_principal": "VENTA DE AGREGADOS111",
+    "etiqueta": "AGREGADOS_Hk",
+    "modalidad_facturacion_id": 3900,
+    "certificado_digital": "certificado_1020304025.p121",
+    "certificado_password": "password1231",
+    "token_siat": "token_12345678911",
+    "fecha_inicio_vigencia": "2026-01-04",
+    "fecha_fin_vigencia": "2026-03-01",
+    "email_fiscal": "contacto@inti.com.bo"
+}
+
+### LISTAR POR TIPO: AMBIENTES
+GET {{baseUrl_constantes}}?tipo=ambiente_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: MODALIDADES FACTURACIÓN
+GET {{baseUrl_constantes}}?tipo=modalidad_facturacion_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_empresas}}
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ACTUALIZAR NIT
+# ==============================================================================
+
+### ACTUALIZAR RAZÓN SOCIAL (PATCH)
+PATCH {{baseUrl_empresas_nits}}/17
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "razon_social": "DROGUERIA INTI S.A. - ACTUALIZADA",
+    "etiqueta": "AGREGADOS_IIY"
+}
+
+### ACTUALIZAR FECHAS DE VIGENCIA
+PATCH {{baseUrl_empresas_nits}}/17
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "fecha_inicio_vigencia": "2026-03-01",
+    "fecha_fin_vigencia": "2026-06-30"
+}
+
+### ACTUALIZAR CERTIFICADO DIGITAL
+PATCH {{baseUrl_empresas_nits}}/10
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "certificado_digital": "certificado_nuevo.p12",
+    "certificado_password": "nuevo_password"
+}
+
+### ACTUALIZAR EMAIL FISCAL
+PATCH {{baseUrl_empresas_nits}}/10
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "email_fiscal": "nuevo_email@inti.com.bo"
+}
+
+# ==============================================================================
+# ELIMINAR (Borrado lógico)
+# ==============================================================================
+
+### ELIMINAR NIT (ACTIVO → BORRADO)
+DELETE {{baseUrl_empresas_nits}}/12
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR
+# ==============================================================================
+
+### ARCHIVAR NIT (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_empresas_nits}}/8/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR NIT (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_empresas_nits}}/11/desarchivar
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CASOS DE USO COMBINADOS (Escenarios reales)
+# ==============================================================================
+
+### 1. Obtener todos los NITs ACTIVOS de una empresa (ID 2)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1000&usuario_id=1
+Authorization: Bearer {{authToken}}
+
+### 1. Obtener todos los NITs ACTIVOS de una empresa (ID 2)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 2. Obtener NITs ACTIVOS con modalidad ELECTRÓNICA
+GET {{baseUrl_empresas_nits}}?empresa_id=2&modalidad_facturacion_id=3901&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 3. Obtener NITs en AMBIENTE PRODUCCIÓN
+GET {{baseUrl_empresas_nits}}?empresa_id=2&ambiente_id=2750&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 4. Obtener NITs por rango de vigencia
+GET {{baseUrl_empresas_nits}}?empresa_id=2&fecha_inicio_vigencia_desde=2026-01-01&fecha_fin_vigencia_hasta=2026-12-31&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 5. Obtener todos los NITs de empresa 2 (todos los estados)
+GET {{baseUrl_empresas_nits}}?empresa_id=2
+Authorization: Bearer {{authToken}}
+
+### 6. Buscar NIT por razón social (búsqueda flexible)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1000&sortField=razon_social&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 6. Buscar NIT por razón social (búsqueda flexible)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1000&sortField=empresa_nombre&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+
+### 7. Obtener NITs ACTIVOS con certificado digital asignado
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1000&q=.p12
+Authorization: Bearer {{authToken}}
+
+### 8. Obtener todos los NITs para una empresa (para combos)
+GET {{baseUrl_empresas_nits}}?empresa_id=2&estado_id=1000&limit=100&sortField=nit&sortOrder=1
+Authorization: Bearer {{authToken}}

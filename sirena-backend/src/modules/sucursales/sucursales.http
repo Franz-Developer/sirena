@@ -1,0 +1,325 @@
+﻿# C:\sirena\sirena-backend\src\modules\sucursales\sucursales.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_sucursales = {{baseUrl}}/sucursales
+@baseUrl_empresas = {{baseUrl}}/empresas
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automatico.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# ENDPOINT EXTRAS
+# ==============================================================================
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_empresas}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR SUCURSALES (GET)
+# ==============================================================================
+
+### LISTAR TODAS (Activos + Históricos por defecto)
+GET {{baseUrl_sucursales}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_sucursales}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO BORRADOS (1001)
+GET {{baseUrl_sucursales}}?estado_id=1001
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO HISTÓRICOS (1002)
+GET {{baseUrl_sucursales}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR EMPRESA
+GET {{baseUrl_sucursales}}?empresa_id=2
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR EMPRESA Y ESTADO ACTIVO
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BÚSQUEDA FLEXIBLE (contiene la palabra)
+GET {{baseUrl_sucursales}}?q=SOPOCACHI
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA EXACTA (palabra completa)
+GET {{baseUrl_sucursales}}?q=CASA MATRIZ&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda exacta por código
+GET {{baseUrl_sucursales}}?q=FSM&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR CAMPOS ESPECÍFICOS
+# ==============================================================================
+
+### FILTRAR POR EMPRESA
+GET {{baseUrl_sucursales}}?empresa_id=2
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR USUARIO QUE REGISTRÓ
+GET {{baseUrl_sucursales}}?usuario_id=2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 15
+GET {{baseUrl_sucursales}}?offset=0&limit=16
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 16 al 31
+GET {{baseUrl_sucursales}}?offset=16&limit=16
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de empresa
+GET {{baseUrl_sucursales}}?empresa_id=2&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### Paginación con búsqueda
+GET {{baseUrl_sucursales}}?empresa_id=2&offset=0&limit=2&q=SOPOCACHI
+Authorization: Bearer {{authToken}}
+
+### Últimos 10 registros
+GET {{baseUrl_sucursales}}?offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR NOMBRE (Ascendente)
+GET {{baseUrl_sucursales}}?sortField=nombre&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR NOMBRE (Descendente)
+GET {{baseUrl_sucursales}}?sortField=nombre&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_sucursales}}?sortField=sucursal_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CÓDIGO (Ascendente)
+GET {{baseUrl_sucursales}}?sortField=codigo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CÓDIGO SIN (Ascendente)
+GET {{baseUrl_sucursales}}?sortField=codigo_sin&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA REGISTRO (Más recientes primero)
+GET {{baseUrl_sucursales}}?sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FACTOR VENTA (Descendente)
+GET {{baseUrl_sucursales}}?sortField=factor_venta&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR + FILTRO + PAGINACIÓN
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000&sortField=nombre&sortOrder=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER SUCURSAL POR ID
+GET {{baseUrl_sucursales}}/2
+Authorization: Bearer {{authToken}}
+
+### Obtener sucursal específica (NINGUNO - Registro comodín)
+GET {{baseUrl_sucursales}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD SUCURSAL
+# ==============================================================================
+
+### CREAR NUEVA SUCURSAL
+POST {{baseUrl_sucursales}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "empresa_id": 2,
+    "sucursal": "CASA MATRIZ - SOPOCACHI1233",
+    "sucursal_largo": "3FARMACIA SALUD Y VIDA - CASA MATRIZ SOPOCACHI3",
+    "codigo": "FSM2333",
+    "codigo_sin": 5,
+    "telefono": "22441122",
+    "ubicacion": "AV. ARCE NRO. 2105, SOPOCACHI, LA PAZ",
+    "horario_atencion": "08:00 - 22:00",
+    "factor_venta": 1.50,
+    "factor_facturacion": 1.19
+}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### CREAR SUCURSAL CON FACTORES PERSONALIZADOS
+POST {{baseUrl_sucursales}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "empresa_id": 2,
+    "sucursal": "SUCURSAL ZONA SUR",
+    "sucursal_largo": "FARMACIA SALUD Y VIDA - SUCURSAL ZONA SUR CALACOTO",
+    "codigo": "FSZ",
+    "codigo_sin": 1,
+    "telefono": "22774433",
+    "ubicacion": "AV. BALLIVIAN NRO. 540, CALACOTO, LA PAZ",
+    "horario_atencion": "08:00 - 23:00",
+    "factor_venta": 1.60,
+    "factor_facturacion": 1.19
+}
+
+### CREAR SUCURSAL MÍNIMA (Solo campos obligatorios)
+POST {{baseUrl_sucursales}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "empresa_id": 2,
+    "sucursal": "SUCURSAL EL ALTO",
+    "sucursal_largo": "FARMACIA SALUD Y VIDA - SUCURSAL EL ALTO",
+    "codigo": "FEA",
+    "codigo_sin": 2
+}
+
+# ==============================================================================
+# ACTUALIZAR SUCURSAL
+# ==============================================================================
+
+### ACTUALIZAR TODOS LOS CAMPOS
+PATCH {{baseUrl_sucursales}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal": "CASA MA3TRIZ SOPOCACHI5",
+    "sucursal_largo": "3FARMACIA SALUD Y VIDA - CASA MATRIZ SOPOCACHI (ACTUALIZADA)",
+    "telefono": "22441122",
+    "ubicacion": "AV. ARCE NRO. 2105, SOPOCACHI, LA PAZ",
+    "horario_atencion": "08:00 - 22:00",
+    "factor_venta": 1.55,
+    "factor_facturacion": 1.19
+}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### ACTUALIZAR SOLO UN CAMPO
+PATCH {{baseUrl_sucursales}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "horario_atencion": "08:00 - 23:30"
+}
+
+### ACTUALIZAR EMPRESA (Cambiar de empresa)
+PATCH {{baseUrl_sucursales}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "empresa_id": 1
+}
+
+# ==============================================================================
+# ELIMINAR SUCURSAL (Soft Delete)
+# ==============================================================================
+
+### ELIMINAR SUCURSAL (ACTIVO → BORRADO)
+DELETE {{baseUrl_sucursales}}/2
+Authorization: Bearer {{authToken}}
+
+### ELIMINAR SUCURSAL CON DEPENDENCIAS (Debería dar error)
+DELETE {{baseUrl_sucursales}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de estado)
+# ==============================================================================
+
+### ARCHIVAR SUCURSAL (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_sucursales}}/2/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR SUCURSAL (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_sucursales}}/2/desarchivar
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CASOS DE USO COMBINADOS (Escenarios reales)
+# ==============================================================================
+
+### 1. Buscar sucursales activas de una empresa que contengan "CASA", ordenadas por nombre
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000&q=CASA&sortField=nombre&sortOrder=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 2. Buscar sucursales activas por código "FSM"
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000&q=FSM&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### 3. Listar todas las sucursales históricas de una empresa, ordenadas por fecha de registro descendente
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1002&sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 4. Buscar sucursales activas por ubicación "LA PAZ"
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000&ubicacion=LA PAZ&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 5. Listar sucursales activas ordenadas por nombre (para combos)
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000&sortField=nombre&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 6. Listar sucursales activas ordenadas por código (para combos)
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000&sortField=codigo&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 7. Listar sucursales activas de una empresa con factor_venta mayor a 1.50
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000&sortField=factor_venta&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 8. Listar sucursales con horario de atención "08:00 - 22:00"
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000&q=08:00&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### 9. Obtener sucursal con ID 1 (NINGUNO - Registro comodín)
+GET {{baseUrl_sucursales}}/1
+Authorization: Bearer {{authToken}}
+
+### 10. Listar todas las sucursales activas de todas las empresas
+GET {{baseUrl_sucursales}}?estado_id=1000&sortField=empresa_id&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}

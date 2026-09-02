@@ -1,0 +1,78 @@
+# C:\sirena\sirena-backend\src\modules\tablas\tablas.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_tablas = {{baseUrl}}/tablas
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automatico.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# LISTAR TABLAS (GET)
+# ==============================================================================
+
+### LISTAR TODAS LAS TABLAS
+GET {{baseUrl_tablas}}
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BÚSQUEDA FLEXIBLE (contiene la palabra)
+GET {{baseUrl_tablas}}?q=productos
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por nombre de tabla
+GET {{baseUrl_tablas}}?q=usuarios
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por nombre de tabla
+GET {{baseUrl_tablas}}?q=kardex
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por nombre de tabla
+GET {{baseUrl_tablas}}?q=pagos
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por nombre de tabla
+GET {{baseUrl_tablas}}?q=roles
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por nombre de tabla
+GET {{baseUrl_tablas}}?q=clientes
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por nombre de tabla
+GET {{baseUrl_tablas}}?q=almacen
+Authorization: Bearer {{authToken}}
+
+### Búsqueda con texto que no existe (resultado vacío)
+GET {{baseUrl_tablas}}?q=xyz123
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PRUEBAS
+# ==============================================================================
+
+###
+GET {{baseUrl_tablas}}
+Authorization: Bearer {{authToken}}
+
+###
+GET {{baseUrl_tablas}}?q=productos
+Authorization: Bearer {{authToken}}

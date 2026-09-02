@@ -1,0 +1,208 @@
+# C:\sirena\sirena-backend\src\modules\almacenes-puntos-venta\almacenes-puntos-venta.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_almacenes_puntos_venta = {{baseUrl}}/almacenes-puntos-venta
+@baseUrl_sucursales = {{baseUrl}}/sucursales
+@baseUrl_puntos_venta = {{baseUrl}}/puntos-venta
+@baseUrl_almacenes = {{baseUrl}}/almacenes
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automático.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# ENDPOINT EXTRAS (Dependencias maestras)
+# ==============================================================================
+
+### LISTAR SUCURSALES ACTIVAS
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR PUNTOS DE VENTA ACTIVOS
+GET {{baseUrl_puntos_venta}}?sucursal_id=4&estado_id=1000&tipo_punto_venta_id=3951
+Authorization: Bearer {{authToken}}
+
+### LISTAR ALMACENES VENTA_DIRECTA (Activos + Históricos por defecto)
+GET {{baseUrl_almacenes}}?sucursal_id=4&estado_id=1000&tipo_operacion_almacen_id=4051
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR ALMACENES-PUNTOS-VENTA (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_almacenes_puntos_venta}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_almacenes_puntos_venta}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO BORRADOS (1001)
+GET {{baseUrl_almacenes_puntos_venta}}?estado_id=1001
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO HISTÓRICOS (1002)
+GET {{baseUrl_almacenes_puntos_venta}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR SUCURSAL
+GET {{baseUrl_almacenes_puntos_venta}}?sucursal_id=2
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR PUNTO DE VENTA
+GET {{baseUrl_almacenes_puntos_venta}}?punto_venta_id=2
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ALMACÉN
+GET {{baseUrl_almacenes_puntos_venta}}?almacen_id=2
+Authorization: Bearer {{authToken}}
+
+### LISTAR SOLO PRINCIPALES (es_principal = 1)
+GET {{baseUrl_almacenes_puntos_venta}}?es_principal=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BÚSQUEDA FLEXIBLE
+GET {{baseUrl_almacenes_puntos_venta}}?q=Principal
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA EXACTA
+GET {{baseUrl_almacenes_puntos_venta}}?q=Almacen&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR CAMPOS ESPECÍFICOS
+# ==============================================================================
+
+### FILTRAR POR PRIORIDAD
+GET {{baseUrl_almacenes_puntos_venta}}?prioridad=1
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR USUARIO QUE REGISTRÓ
+GET {{baseUrl_almacenes_puntos_venta}}?usuario_id=2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 9
+GET {{baseUrl_almacenes_puntos_venta}}?offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 10 al 19
+GET {{baseUrl_almacenes_puntos_venta}}?offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR PRIORIDAD (Ascendente)
+GET {{baseUrl_almacenes_puntos_venta}}?sortField=prioridad&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_almacenes_puntos_venta}}?sortField=almacen_punto_venta_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER ASIGNACIÓN POR ID
+GET {{baseUrl_almacenes_puntos_venta}}/2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD ALMACENES-PUNTOS-VENTA
+# ==============================================================================
+
+### LISTAR SUCURSALES ACTIVAS
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR PUNTOS DE VENTA ACTIVOS
+GET {{baseUrl_puntos_venta}}?sucursal_id=4&estado_id=1000&tipo_punto_venta_id=3951
+Authorization: Bearer {{authToken}}
+
+### LISTAR ALMACENES VENTA_DIRECTA (Activos + Históricos por defecto)
+GET {{baseUrl_almacenes}}?sucursal_id=4&estado_id=1000&tipo_operacion_almacen_id=4051
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_almacenes_puntos_venta}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### CREAR NUEVA ASIGNACIÓN (Vincular Almacén a Punto de Venta)
+POST {{baseUrl_almacenes_puntos_venta}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal_id": 4,
+    "punto_venta_id": 5,
+    "almacen_id": 14,
+    "prioridad": 9,
+    "es_principal": 1
+}
+
+### ACTUALIZAR PARCIALMENTE (PATCH)
+PATCH {{baseUrl_almacenes_puntos_venta}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "prioridad": 2,
+    "es_principal": 0
+}
+
+# ==============================================================================
+# ELIMINAR (Soft Delete)
+# ==============================================================================
+
+### ELIMINAR ASIGNACIÓN (ACTIVO → BORRADO)
+DELETE {{baseUrl_almacenes_puntos_venta}}/2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de estado)
+# ==============================================================================
+
+### ARCHIVAR ASIGNACIÓN (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_almacenes_puntos_venta}}/3/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR ASIGNACIÓN (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_almacenes_puntos_venta}}/3/desarchivar
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CASOS DE USO COMBINADOS (Escenarios reales)
+# ==============================================================================
+
+### 1. Listar asignaciones activas de una sucursal y punto de venta ordenadas por prioridad
+GET {{baseUrl_almacenes_puntos_venta}}?sucursal_id=2&punto_venta_id=2&estado_id=1000&sortField=prioridad&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 2. Buscar almacén principal activo de un punto de venta específico
+GET {{baseUrl_almacenes_puntos_venta}}?punto_venta_id=2&es_principal=1&estado_id=1000
+Authorization: Bearer {{authToken}}

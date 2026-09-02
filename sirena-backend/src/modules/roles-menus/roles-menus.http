@@ -1,0 +1,138 @@
+# C:\sirena\sirena-backend\src\modules\roles-menus\roles-menus.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_roles_menus = {{baseUrl}}/roles-menus
+@baseUrl_roles = {{baseUrl}}/roles
+@baseUrl_menus = {{baseUrl}}/menus
+
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# EXTRAS
+# ==============================================================================
+
+### b. LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_roles}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### b. LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_menus}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR ASIGNACIONES ROL-MENÚ (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_roles_menus}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_roles_menus}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_roles_menus}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS ESPECÍFICOS
+# ==============================================================================
+
+### FILTRAR POR ROL ID
+GET {{baseUrl_roles_menus}}?rol_id=1
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR MENÚ ID
+GET {{baseUrl_roles_menus}}?menu_id=3
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 15
+GET {{baseUrl_roles_menus}}?offset=0&limit=16
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_roles_menus}}?sortField=rol_menu_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER ASIGNACIÓN POR ID
+GET {{baseUrl_roles_menus}}/10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD ASIGNACIÓN ROL-MENÚ
+# ==============================================================================
+
+### CREAR NUEVA ASIGNACIÓN ROL-MENÚ
+POST {{baseUrl_roles_menus}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "rol_id": 13,
+    "menu_id": 6
+}
+
+### b. LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_roles}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### b. LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_menus}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### b. LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_roles_menus}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### ACTUALIZAR ASIGNACIÓN ROL-MENÚ
+PATCH {{baseUrl_roles_menus}}/13
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "menu_id": 6
+}
+
+### ELIMINAR ASIGNACIÓN ROL-MENÚ (ACTIVO → BORRADO)
+DELETE {{baseUrl_roles_menus}}/10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de estado)
+# ==============================================================================
+
+### ARCHIVAR ASIGNACIÓN (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_roles_menus}}/9/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR ASIGNACIÓN (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_roles_menus}}/9/desarchivar
+Authorization: Bearer {{authToken}}

@@ -1,0 +1,204 @@
+# C:\sirena\sirena-backend\src\modules\trabajadores-cargos\trabajadores-cargos.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_trabajadores_cargos = {{baseUrl}}/trabajadores-cargos
+@baseUrl_trabajadores = {{baseUrl}}/trabajadores
+@baseUrl_cargos = {{baseUrl}}/cargos
+@baseUrl_constantes = {{baseUrl}}/constantes
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automático.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# ENDPOINT EXTRAS
+# ==============================================================================
+
+### LISTAR TRABAJADORES ACTIVOS
+GET {{baseUrl_trabajadores}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR CARGOS ACTIVOS
+GET {{baseUrl_cargos}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR TIPOS DE MONEDA
+GET {{baseUrl_constantes}}?tipo=tipo_moneda_id
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR TRABAJADORES CARGOS (GET)
+# ==============================================================================
+
+### LISTAR TODOS
+GET {{baseUrl_trabajadores_cargos}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_trabajadores_cargos}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_trabajadores_cargos}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR TRABAJADOR, CARGO Y MONEDA
+# ==============================================================================
+
+### FILTRAR POR TRABAJADOR_ID
+GET {{baseUrl_trabajadores_cargos}}?trabajador_id=3
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR CARGO_ID
+GET {{baseUrl_trabajadores_cargos}}?cargo_id=4
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR TIPO_MONEDA_ID
+GET {{baseUrl_trabajadores_cargos}}?tipo_moneda_id=2300
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BUSCAR POR TRABAJADOR O CARGO
+GET {{baseUrl_trabajadores_cargos}}?q=Juan
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 9
+GET {{baseUrl_trabajadores_cargos}}?offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 10 al 19
+GET {{baseUrl_trabajadores_cargos}}?offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de estado
+GET {{baseUrl_trabajadores_cargos}}?estado_id=1000&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR ID (Ascendente)
+GET {{baseUrl_trabajadores_cargos}}?sortField=trabajador_cargo_id&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_trabajadores_cargos}}?sortField=trabajador_cargo_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA REGISTRO (Más recientes primero)
+GET {{baseUrl_trabajadores_cargos}}?sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# COMBINACIÓN DE FILTROS + ORDENAMIENTO + PAGINACIÓN
+# ==============================================================================
+
+### ASIGNACIONES ACTIVAS, ordenadas por ID
+GET {{baseUrl_trabajadores_cargos}}?estado_id=1000&sortField=trabajador_cargo_id&sortOrder=1&offset=0&limit=100
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER ASIGNACIÓN POR ID
+GET {{baseUrl_trabajadores_cargos}}/17
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD TRABAJADORES CARGOS
+# ==============================================================================
+
+### CREAR NUEVA ASIGNACIÓN
+POST {{baseUrl_trabajadores_cargos}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "trabajador_id": 18,
+    "cargo_id": 9,
+    "sueldo_base": 3500.00,
+    "tipo_moneda_id": 2300,
+    "fecha_desde": "2026-01-01",
+    "fecha_hasta": null,
+    "es_activo": 1,
+    "observaciones": "Asignación inicial de cargo"
+}
+
+
+### OBTENER ASIGNACIÓN POR TRABAJADOR
+GET {{baseUrl_trabajadores_cargos}}?trabajador_id=18
+Authorization: Bearer {{authToken}}
+
+### OBTENER ASIGNACIÓN POR ID
+GET {{baseUrl_trabajadores_cargos}}/18
+Authorization: Bearer {{authToken}}
+
+### LISTAR TRABAJADORES ACTIVOS
+GET {{baseUrl_trabajadores}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR CARGOS ACTIVOS
+GET {{baseUrl_cargos}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR TIPOS DE MONEDA
+GET {{baseUrl_constantes}}?tipo=tipo_moneda_id
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ACTUALIZAR TRABAJADOR CARGO
+# ==============================================================================
+
+### ACTUALIZAR SUELDO Y OBSERVACIONES (PATCH)
+PATCH {{baseUrl_trabajadores_cargos}}/1
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sueldo_base": 3800.00,
+    "observaciones": "Ajuste salarial por evaluación"
+}
+
+# ==============================================================================
+# ELIMINAR (Borrado lógico)
+# ==============================================================================
+
+### ELIMINAR ASIGNACIÓN (ACTIVO → BORRADO)
+DELETE {{baseUrl_trabajadores_cargos}}/17
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR
+# ==============================================================================
+
+### ARCHIVAR ASIGNACIÓN (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_trabajadores_cargos}}/18/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR ASIGNACIÓN (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_trabajadores_cargos}}/18/desarchivar
+Authorization: Bearer {{authToken}}

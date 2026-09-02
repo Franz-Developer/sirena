@@ -1,0 +1,124 @@
+# C:\sirena\sirena-backend\src\modules\roles\roles.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_roles = {{baseUrl}}/roles
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# LISTAR ROLES (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_roles}}
+Authorization: Bearer {{authToken}}
+
+### b. LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_roles}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_roles}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BÚSQUEDA FLEXIBLE POR ROL
+GET {{baseUrl_roles}}?q=ADMIN
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por código
+GET {{baseUrl_roles}}?q=ADM
+Authorization: Bearer {{authToken}}
+
+### Búsqueda exacta
+GET {{baseUrl_roles}}?q=ADMINISTRADOR&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 15
+GET {{baseUrl_roles}}?offset=0&limit=16
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de estado
+GET {{baseUrl_roles}}?estado_id=1000&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR ROL (Ascendente)
+GET {{baseUrl_roles}}?sortField=rol&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_roles}}?sortField=rol_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER ROL POR ID
+GET {{baseUrl_roles}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD ROL
+# ==============================================================================
+
+### CREAR NUEVO ROL
+POST {{baseUrl_roles}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "rol": "SUPERVISOR DE VENTAS 5",
+    "codigo": "SUP_VENTAS5",
+    "descripcion": "Rol con permisos de supervisión para el módulo de ventas."
+}
+
+### ACTUALIZAR ROL
+PATCH {{baseUrl_roles}}/8
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "descripcion": "Descripción actualizada para el rol."
+}
+
+### ELIMINAR ROL (ACTIVO → BORRADO)
+DELETE {{baseUrl_roles}}/10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de estado)
+# ==============================================================================
+
+### ARCHIVAR ROL (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_roles}}/11/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR ROL (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_roles}}/11/desarchivar
+Authorization: Bearer {{authToken}}

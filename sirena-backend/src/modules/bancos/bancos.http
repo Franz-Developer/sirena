@@ -1,0 +1,306 @@
+# C:\sirena\sirena-backend\src\modules\bancos\bancos.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_bancos = {{baseUrl}}/bancos
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automatico.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# LISTAR BANCOS (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_bancos}}
+Authorization: Bearer {{authToken}}
+
+### b. LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_bancos}}?estado_id=1000&usuario_id=2
+Authorization: Bearer {{authToken}}
+
+### BORRADOS (1001)
+GET {{baseUrl_bancos}}?estado_id=1001
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_bancos}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### c. BÚSQUEDA FLEXIBLE (contiene la palabra)
+GET {{baseUrl_bancos}}?q=BANCO
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por código ASFI
+GET {{baseUrl_bancos}}?q=XXXX
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por abreviatura
+GET {{baseUrl_bancos}}?q=BNB
+Authorization: Bearer {{authToken}}
+
+### d. BÚSQUEDA EXACTA (palabra completa)
+GET {{baseUrl_bancos}}?q=NIÑÓ&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda exacta con acentos
+GET {{baseUrl_bancos}}?q=NIÑÓ&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+### Búsqueda con acentos (flexible)
+GET {{baseUrl_bancos}}?q=CANCÉR 70&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+### Búsqueda exacta con estado específico
+GET {{baseUrl_bancos}}?estado_id=1000&q=UNION&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### e. PÁGINA 1: Registros 0 al 15
+GET {{baseUrl_bancos}}?offset=0&limit=16
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 16 al 31
+GET {{baseUrl_bancos}}?offset=16&limit=16
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 3: Registros 32 al 47
+GET {{baseUrl_bancos}}?offset=32&limit=16
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 4: Registros 48 al 63
+GET {{baseUrl_bancos}}?offset=48&limit=16
+Authorization: Bearer {{authToken}}
+
+
+### Paginación con filtro de estado
+GET {{baseUrl_bancos}}?estado_id=1000&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### Paginación con búsqueda
+GET {{baseUrl_bancos}}?estado_id=1000&offset=0&limit=2&q=UNION
+Authorization: Bearer {{authToken}}
+
+### Últimos 10 registros
+GET {{baseUrl_bancos}}?offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### f. ORDENAR POR NOMBRE (Ascendente)
+GET {{baseUrl_bancos}}?sortField=banco&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR NOMBRE (Descendente)
+GET {{baseUrl_bancos}}?sortField=banco&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_bancos}}?sortField=banco_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA REGISTRO (Más recientes primero)
+GET {{baseUrl_bancos}}?sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CÓDIGO ASFI (Ascendente)
+GET {{baseUrl_bancos}}?sortField=codigo_asfi&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR + FILTRO + PAGINACIÓN
+GET {{baseUrl_bancos}}?estado_id=1000&sortField=banco&sortOrder=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### ORDENAR + FILTRO + PAGINACIÓN
+GET {{baseUrl_bancos}}?estado_id=1000&sortField=banco_id&sortOrder=1&offset=0&limit=2
+Authorization: Bearer {{authToken}}
+
+### 1. Solo Orden Descendente por ID (`sortOrder=-1`)
+GET {{baseUrl_bancos}}?sortField=banco_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 2. Solo Orden Ascendente por ID (`sortOrder=1`)
+GET {{baseUrl_bancos}}?sortField=banco_id&sortOrder=1
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### g. OBTENER BANCO POR ID
+GET {{baseUrl_bancos}}/10
+Authorization: Bearer {{authToken}}
+
+### g. OBTENER BANCO POR ID
+GET {{baseUrl_bancos}}/5
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD BANCO
+# ==============================================================================
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_bancos}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### CREAR NUEVO BANCO
+POST {{baseUrl_bancos}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "banco": "arbdomob Ba4 sse 8",
+    "codigo_asfi": "21",
+    "abreviatura": "Asss NíÑOsm BA3",
+    "descripcion": ""
+}
+
+### Búsqueda exacta con acentos
+GET {{baseUrl_bancos}}?q=NIñóS&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda exacta con acentos
+GET {{baseUrl_bancos}}?q=NIñóS&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+### Búsqueda exacta con acentos
+GET {{baseUrl_bancos}}?q=NIÑO&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+### Búsqueda exacta con acentos
+GET {{baseUrl_bancos}}?q=NIÑO&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda con acentos (flexible)
+GET {{baseUrl_bancos}}?q=NácIONAL&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_bancos}}
+Authorization: Bearer {{authToken}}
+
+### Obtener banco específico
+GET {{baseUrl_bancos}}/2
+Authorization: Bearer {{authToken}}
+
+### ACTUALIZAR TODOS LOS CAMPOS
+PATCH {{baseUrl_bancos}}/14
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "banco": "BAO4 CACkmESR DSWBOLIVI4A3",
+    "abreviatura": "Baional",
+    "descripcion": "Hola mundo a todos"
+}
+
+### g. OBTENER BANCO POR ID
+GET {{baseUrl_bancos}}/14
+Authorization: Bearer {{authToken}}
+
+
+### ACTUALIZAR TODOS LOS CAMPOS
+PATCH {{baseUrl_bancos}}/15
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "banco": "banco bovia mmm",
+    "abreviatura": "Bai4nnn",
+    "codigo_asfi": "24"
+}
+
+### g. OBTENER BANCO POR ID
+GET {{baseUrl_bancos}}/10
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_bancos}}
+Authorization: Bearer {{authToken}}
+
+### ACTUALIZAR TODOS LOS CAMPOS
+PATCH {{baseUrl_bancos}}/46
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "abreviatura": "ABAN1 arbolitos"
+}
+
+### ELIMINAR BANCO (ACTIVO → BORRADO)
+DELETE {{baseUrl_bancos}}/14
+Authorization: Bearer {{authToken}}
+
+### Obtener banco específico
+GET {{baseUrl_bancos}}/20
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de estado)
+# ==============================================================================
+
+### ARCHIVAR BANCO (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_bancos}}/52/archivar
+Authorization: Bearer {{authToken}}
+
+### k. DESARCHIVAR BANCO (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_bancos}}/52/desarchivar
+Authorization: Bearer {{authToken}}
+
+### 11.1 Buscar bancos activos que contengan "BANCO", ordenados por nombre, página 1
+GET {{baseUrl_bancos}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# 11. CASOS DE USO COMBINADOS (Escenarios reales)
+# ==============================================================================
+
+### 11.1 Buscar bancos activos que contengan "BANCO", ordenados por nombre, página 1
+GET {{baseUrl_bancos}}?estado_id=1000&q=BANCO&sortField=banco&sortOrder=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 11.2 Buscar bancos activos por código ASFI "01", ordenados por ID
+GET {{baseUrl_bancos}}?estado_id=1000&q=01&sortField=banco_id&sortOrder=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### 11.3 Listar todos los bancos históricos, ordenados por fecha de registro descendente
+GET {{baseUrl_bancos}}?estado_id=1000&sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 11.4 Buscar bancos activos con abreviatura que comience con "B", ordenados por abreviatura
+GET {{baseUrl_bancos}}?estado_id=1000&q=B&sortField=abreviatura&sortOrder=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 11.5 Listar bancos activos ordenados por código ASFI (para combos)
+GET {{baseUrl_bancos}}?estado_id=1000&sortField=codigo_asfi&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 11.6 Listar bancos activos ordenados por abreviatura (para combos)
+GET {{baseUrl_bancos}}?estado_id=1000&sortField=abreviatura&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 11.7 Listar bancos activos ordenados por nombre (para combos)
+GET {{baseUrl_bancos}}?estado_id=1000&sortField=banco_id&sortOrder=-1&limit=100
+Authorization: Bearer {{authToken}}

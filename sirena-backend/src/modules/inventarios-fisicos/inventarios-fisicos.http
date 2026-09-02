@@ -1,0 +1,153 @@
+# C:\sirena\sirena-backend\src\modules\inventarios-fisicos\inventarios-fisicos.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_inventarios = {{baseUrl}}/inventarios-fisicos
+@baseUrl_sucursales = {{baseUrl}}/sucursales
+@baseUrl_almacenes = {{baseUrl}}/almacenes
+@baseUrl_constantes = {{baseUrl}}/constantes
+@baseUrl_ubicaciones = {{baseUrl}}/ubicaciones
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# EXTRAS
+# ==============================================================================
+
+### LISTAR SUCURSALES ACTIVOS (1000)
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: TIPOS_ALMACEN
+GET {{baseUrl_constantes}}?tipo=tipo_almacen_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: TIPOS_ALMACEN VALIDOS
+GET {{baseUrl_constantes}}?tipo=tipo_almacen_validos_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: TIPOS_ALMACEN PROHIBIDOS
+GET {{baseUrl_constantes}}?tipo=tipo_almacen_prohibidos_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: OPERACION_ALMACEN
+GET {{baseUrl_constantes}}?tipo=tipo_operacion_almacen_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_almacenes}}?sucursal_id=2&estado_id=1000&tipo_operacion_almacen_id=4051
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR INVENTARIOS FÍSICOS (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_inventarios}}
+Authorization: Bearer {{authToken}}
+
+### b. LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_inventarios}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BÚSQUEDA FLEXIBLE POR OBSERVACIONES O NOMBRES
+GET {{baseUrl_inventarios}}?q=CONTEO
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por coincidencia exacta
+GET {{baseUrl_inventarios}}?q=CONTEO FÍSICO TRIMESTRAL DE ALMACÉN PRINCIPAL&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 15
+GET {{baseUrl_inventarios}}?offset=0&limit=16
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de estado
+GET {{baseUrl_inventarios}}?estado_id=1000&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR FECHA DE CONTEO (Ascendente)
+GET {{baseUrl_inventarios}}?sortField=fecha_conteo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_inventarios}}?sortField=inventario_fisico_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER INVENTARIO FÍSICO POR ID
+GET {{baseUrl_inventarios}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD INVENTARIO FÍSICO
+# ==============================================================================
+
+### CREAR NUEVO INVENTARIO FÍSICO
+POST {{baseUrl_inventarios}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal_id": 1,
+    "ubicacion_id": 1,
+    "fecha_conteo": "2026-04-15",
+    "fecha_inicio": "2026-04-15T08:00:00Z",
+    "fecha_fin": "2026-04-15T18:00:00Z",
+    "trabajador_responsable_id": 1,
+    "trabajador_supervisor_id": 2,
+    "observaciones": "CONTEO FÍSICO TRIMESTRAL DE ALMACÉN PRINCIPAL"
+}
+
+### ACTUALIZAR INVENTARIO FÍSICO
+PATCH {{baseUrl_inventarios}}/1
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "observaciones": "CONTEO FÍSICO TRIMESTRAL ACTUALIZADO"
+}
+
+### ELIMINAR INVENTARIO FÍSICO (ACTIVO → BORRADO)
+DELETE {{baseUrl_inventarios}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de estado)
+# ==============================================================================
+
+### ARCHIVAR INVENTARIO FÍSICO (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_inventarios}}/1/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR INVENTARIO FÍSICO (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_inventarios}}/1/desarchivar
+Authorization: Bearer {{authToken}}

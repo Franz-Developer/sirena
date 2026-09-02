@@ -1,0 +1,256 @@
+# C:\sirena\sirena-backend\src\modules\puntos-venta\puntos-venta.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_puntos_venta = {{baseUrl}}/puntos-venta
+@baseUrl_empresas = {{baseUrl}}/empresas
+@baseUrl_sucursales = {{baseUrl}}/sucursales
+@baseUrl_constantes = {{baseUrl}}/constantes
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automático.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# ENDPOINT EXTRAS
+# ==============================================================================
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_empresas}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR SUCURSALES
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: TIPOS_PUNTO_VENTA
+GET {{baseUrl_constantes}}?tipo=tipo_punto_venta_id
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR PUNTOS DE VENTA (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_puntos_venta}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### BORRADOS (1001)
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&estado_id=1001
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&estado_id=1002
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR SUCURSAL Y CÓDIGO
+# ==============================================================================
+
+### FILTRAR POR SUCURSAL_ID (Sucursal 2)
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&codigo=2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR TIPO DE PUNTO DE VENTA
+# ==============================================================================
+
+### FILTRAR POR TIPO PUNTO VENTA (CAJA - 3951)
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&tipo_punto_venta_id=3951
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR TIPO PUNTO VENTA (NINGUNO - 3950)
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&tipo_punto_venta_id=3950
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BUSCAR POR DESCRIPCIÓN
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&q=Principal
+Authorization: Bearer {{authToken}}
+
+### BUSCAR POR DESCRIPCIÓN PARCIAL
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&q=PRI&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 9
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 10 al 19
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de estado
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&estado_id=1000&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de sucursal
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR CÓDIGO DE PUNTO DE VENTA (Ascendente)
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&sortField=codigo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CÓDIGO DE PUNTO DE VENTA (Descendente)
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&sortField=codigo&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CÓDIGO DE PUNTO DE VENTA (Descendente)
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&sortField=codigo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# COMBINACIÓN DE FILTROS + ORDENAMIENTO + PAGINACIÓN
+# ==============================================================================
+
+### PUNTOS DE VENTA ACTIVOS, ordenados por código
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&estado_id=1000&sortField=codigo&sortOrder=1&offset=0&limit=100
+Authorization: Bearer {{authToken}}
+
+### Puntos de venta de sucursal 2, ACTIVOS, ordenados por descripción
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&estado_id=1000&sortField=descripcion&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### Puntos de venta tipo CAJA, ACTIVOS
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&tipo_punto_venta_id=3951&estado_id=1000&sortField=codigo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER PUNTO DE VENTA POR ID
+GET {{baseUrl_puntos_venta}}/1
+Authorization: Bearer {{authToken}}
+
+### Obtener punto de venta específico (ID = 2)
+GET {{baseUrl_puntos_venta}}/2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD PUNTOS DE VENTA
+# ==============================================================================
+
+### CREAR NUEVO PUNTO DE VENTA
+POST {{baseUrl_puntos_venta}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal_id": 4,
+    "codigo": 3,
+    "nombre": "Caja Principal 4-3 PRUEBA",
+    "tipo_punto_venta_id": 3951
+}
+
+### LISTAR POR TIPO: TIPOS_PUNTO_VENTA
+GET {{baseUrl_constantes}}?tipo=tipo_punto_venta_id
+Authorization: Bearer {{authToken}}
+
+### Obtener punto de venta específico (ID = 2)
+GET {{baseUrl_puntos_venta}}/5
+Authorization: Bearer {{authToken}}
+
+### LISTAR SUCURSALES
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: TIPOS_PUNTO_VENTA
+GET {{baseUrl_constantes}}?tipo=tipo_punto_venta_id
+Authorization: Bearer {{authToken}}
+
+
+### CREAR OTRO PUNTO DE VENTA
+POST {{baseUrl_puntos_venta}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal_id": 4,
+    "codigo": 9,
+    "nombre": "Caja Secundaria 4-2",
+    "tipo_punto_venta_id": 3951
+}
+
+# ==============================================================================
+# ACTUALIZAR PUNTO DE VENTA
+# ==============================================================================
+
+### ACTUALIZAR DESCRIPCIÓN (PATCH)
+PATCH {{baseUrl_puntos_venta}}/8
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "nombre": "Caja Principal - Renovada",
+    "codigo": "12",
+    "tipo_punto_venta_id": 3951
+}
+
+
+### Obtener punto de venta específico (ID = 2)
+GET {{baseUrl_puntos_venta}}/8
+Authorization: Bearer {{authToken}}
+
+### LISTAR
+GET {{baseUrl_puntos_venta}}?sucursal_id=3
+Authorization: Bearer {{authToken}}
+
+### ACTUALIZAR MÚLTIPLES CAMPOS
+PATCH {{baseUrl_puntos_venta}}/6
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "nombre": "Caja Principal 2 Actualizada",
+    "tipo_punto_venta_id": 3951
+}
+
+# ==============================================================================
+# ELIMINAR (Borrado lógico)
+# ==============================================================================
+
+### ELIMINAR PUNTO DE VENTA (ACTIVO → BORRADO)
+DELETE {{baseUrl_puntos_venta}}/6
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR
+# ==============================================================================
+
+### ARCHIVAR PUNTO DE VENTA (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_puntos_venta}}/7/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR PUNTO DE VENTA (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_puntos_venta}}/7/desarchivar
+Authorization: Bearer {{authToken}}

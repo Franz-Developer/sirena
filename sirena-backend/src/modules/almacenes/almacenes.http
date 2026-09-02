@@ -1,0 +1,324 @@
+# C:\sirena\sirena-backend\src\modules\almacenes\almacenes.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_almacenes = {{baseUrl}}/almacenes
+@baseUrl_sucursales = {{baseUrl}}/sucursales
+@baseUrl_constantes = {{baseUrl}}/constantes
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automático.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# ENDPOINT EXTRAS
+# ==============================================================================
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: TIPOS_ALMACEN
+GET {{baseUrl_constantes}}?tipo=tipo_almacen_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: TIPOS_ALMACEN VALIDOS
+GET {{baseUrl_constantes}}?tipo=tipo_almacen_validos_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: TIPOS_ALMACEN PROHIBIDOS
+GET {{baseUrl_constantes}}?tipo=tipo_almacen_prohibidos_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: OPERACION_ALMACEN
+GET {{baseUrl_constantes}}?tipo=tipo_operacion_almacen_id
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR ALMACENES (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_almacenes}}?sucursal_id=4&tipo_operacion_almacen_id=4051
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_almacenes}}?sucursal_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_almacenes}}?sucursal_id=2&estado_id=1002
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR SUCURSAL Y CÓDIGO
+# ==============================================================================
+
+### FILTRAR POR SUCURSAL_ID
+GET {{baseUrl_almacenes}}?sucursal_id=4
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR TIPO DE ALMACÉN (REFRIGERADO - 1701)
+GET {{baseUrl_almacenes}}?sucursal_id=2&tipo_almacen_id=1701
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR TIPO OPERACIÓN (VENTA_DIRECTA - 4051)
+GET {{baseUrl_almacenes}}?sucursal_id=2&tipo_operacion_almacen_id=4051
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR TIPO OPERACIÓN (LOGISTICA_INTERNA - 4050)
+GET {{baseUrl_almacenes}}?sucursal_id=2&tipo_operacion_almacen_id=4050
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BUSCAR POR NOMBRE DE ALMACÉN
+GET {{baseUrl_almacenes}}?sucursal_id=2&q=Refrigerado
+Authorization: Bearer {{authToken}}
+
+### BUSCAR POR CÓDIGO
+GET {{baseUrl_almacenes}}?sucursal_id=2&q=ALM-001
+Authorization: Bearer {{authToken}}
+
+### BUSCAR POR DESCRIPCIÓN PARCIAL
+GET {{baseUrl_almacenes}}?sucursal_id=2&q=Principal
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 9
+GET {{baseUrl_almacenes}}?sucursal_id=2&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 10 al 19
+GET {{baseUrl_almacenes}}?sucursal_id=2&offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de estado
+GET {{baseUrl_almacenes}}?sucursal_id=2&estado_id=1000&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de sucursal
+GET {{baseUrl_almacenes}}?sucursal_id=2&sucursal_id=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR NOMBRE (Ascendente)
+GET {{baseUrl_almacenes}}?sucursal_id=2&sortField=almacen&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR NOMBRE (Descendente)
+GET {{baseUrl_almacenes}}?sucursal_id=2&sortField=almacen&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CÓDIGO (Ascendente)
+GET {{baseUrl_almacenes}}?sucursal_id=2&sortField=codigo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR TIPO DE ALMACÉN (Ascendente)
+GET {{baseUrl_almacenes}}?sucursal_id=2&sortField=tipo_almacen_id&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA REGISTRO (Más recientes primero)
+GET {{baseUrl_almacenes}}?sucursal_id=2&sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# COMBINACIÓN DE FILTROS + ORDENAMIENTO + PAGINACIÓN
+# ==============================================================================
+
+### ALMACENES ACTIVOS, ordenados por nombre
+GET {{baseUrl_almacenes}}?sucursal_id=2&estado_id=1000&sortField=almacen&sortOrder=1&offset=0&limit=100
+Authorization: Bearer {{authToken}}
+
+### Almacenes de sucursal 1, ACTIVOS, ordenados por código
+GET {{baseUrl_almacenes}}?sucursal_id=2&estado_id=1000&sortField=codigo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### Almacenes REFRIGERADOS, ACTIVOS
+GET {{baseUrl_almacenes}}?sucursal_id=2&tipo_almacen_id=1701&estado_id=1000&sortField=almacen&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### Almacenes VENTA_DIRECTA, ACTIVOS, con rango de temperatura
+GET {{baseUrl_almacenes}}?sucursal_id=2&tipo_operacion_almacen_id=4051&estado_id=1000&sortField=almacen&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER ALMACÉN POR ID
+GET {{baseUrl_almacenes}}/1
+Authorization: Bearer {{authToken}}
+
+### Obtener almacén específico (ID = 2)
+GET {{baseUrl_almacenes}}/2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD ALMACENES
+# ==============================================================================
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: TIPOS_ALMACEN VALIDOS
+GET {{baseUrl_constantes}}?tipo=tipo_almacen_validos_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: TIPOS_ALMACEN PROHIBIDOS
+GET {{baseUrl_constantes}}?tipo=tipo_almacen_prohibidos_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: OPERACION_ALMACEN
+GET {{baseUrl_constantes}}?tipo=tipo_operacion_almacen_id
+Authorization: Bearer {{authToken}}
+
+### CREAR NUEVO ALMACÉN (NORMAL)
+POST {{baseUrl_almacenes}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal_id": 3,
+    "almacen": "ALMACEN PRINCIPAL 5",
+    "codigo": "ALM-005",
+    "tipo_almacen_id": 1703,
+    "tipo_operacion_almacen_id": 4051,
+    "descripcion": "Almacén principal de la sucursal 23"
+}
+
+### CREAR ALMACÉN REFRIGERADO
+POST {{baseUrl_almacenes}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal_id": 2,
+    "almacen": "ALMACEN REFRIGERADO",
+    "codigo": "ALM-REF-001",
+    "tipo_almacen_id": 1701,
+    "tipo_operacion_almacen_id": 4051,
+    "descripcion": "Almacén refrigerado para vacunas e insulinas"
+}
+
+### CREAR ALMACÉN CONGELADO
+POST {{baseUrl_almacenes}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal_id": 2,
+    "almacen": "ALMACEN CONGELADO 2",
+    "codigo": "ALM-CON-002",
+    "tipo_almacen_id": 1702,
+    "tipo_operacion_almacen_id": 4051,
+    "descripcion": "Almacén congelado para hemoderivados"
+}
+
+### CREAR ALMACÉN ESPECIAL (Controlados)
+POST {{baseUrl_almacenes}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal_id": 3,
+    "almacen": "ALMACEN CONTROLADOS 2",
+    "codigo": "ALM-ESP-003",
+    "tipo_almacen_id": 1703,
+    "tipo_operacion_almacen_id": 4051,
+    "descripcion": "Almacén de alta seguridad para psicotrópicos"
+}
+
+### CREAR ALMACÉN LOGÍSTICA INTERNA
+POST {{baseUrl_almacenes}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal_id": 1,
+    "almacen": "ALMACEN RECEPCION",
+    "codigo": "ALM-REC-001",
+    "tipo_almacen_id": 1709,
+    "tipo_operacion_almacen_id": 4050,
+    "descripcion": "Área de recepción de mercadería"
+}
+
+# ==============================================================================
+# ACTUALIZAR ALMACÉN
+# ==============================================================================
+
+### Obtener almacén específico
+GET {{baseUrl_almacenes}}/15
+Authorization: Bearer {{authToken}}
+
+###
+GET {{baseUrl_almacenes}}?sucursal_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### ACTUALIZAR DESCRIPCIÓN (PATCH)
+PATCH {{baseUrl_almacenes}}/8
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "descripcion": "Almacén Refrigerado - Actualizado"
+}
+
+### ACTUALIZAR TIPO DE ALMACÉN (Solo si no tiene dependencias)
+PATCH {{baseUrl_almacenes}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "tipo_almacen_id": 1701
+}
+
+# ==============================================================================
+# ELIMINAR (Borrado lógico)
+# ==============================================================================
+
+### ELIMINAR ALMACÉN (ACTIVO → BORRADO)
+DELETE {{baseUrl_almacenes}}/8
+Authorization: Bearer {{authToken}}
+
+###
+GET {{baseUrl_almacenes}}?sucursal_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_almacenes}}?sucursal_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR
+# ==============================================================================
+
+### ARCHIVAR ALMACÉN (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_almacenes}}/13/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR ALMACÉN (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_almacenes}}/13/desarchivar
+Authorization: Bearer {{authToken}}

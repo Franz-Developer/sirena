@@ -1,0 +1,362 @@
+# C:\sirena\sirena-backend\src\modules\trabajadores\trabajadores.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_trabajadores = {{baseUrl}}/trabajadores
+@baseUrl_constantes = {{baseUrl}}/constantes
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automatico.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# EXTRAS
+# ==============================================================================
+
+### LISTAR POR TIPO: ESTADOS
+GET {{baseUrl_constantes}}?tipo=genero_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO
+GET {{baseUrl_constantes}}?tipo=estado_civil_masculino_id&sortField=abreviatura&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO
+GET {{baseUrl_constantes}}?tipo=estado_civil_femenino_id
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR TRABAJADORES (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_trabajadores}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_trabajadores}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO BORRADOS (1001)
+GET {{baseUrl_trabajadores}}?estado_id=1001
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO HISTÓRICOS (1002)
+GET {{baseUrl_trabajadores}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR GÉNERO (MASCULINO)
+GET {{baseUrl_trabajadores}}?estado_id=1000&genero_id=1200
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR GÉNERO (FEMENINO)
+GET {{baseUrl_trabajadores}}?estado_id=1000&genero_id=1201
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BÚSQUEDA FLEXIBLE (contiene la palabra)
+GET {{baseUrl_trabajadores}}?q=JUAN
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA POR DNI
+GET {{baseUrl_trabajadores}}?q=1234567
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA EXACTA (palabra completa)
+GET {{baseUrl_trabajadores}}?q=JUAN&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA CON ACENTOS (flexible)
+GET {{baseUrl_trabajadores}}?q=JOSÉ&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 15
+GET {{baseUrl_trabajadores}}?offset=0&limit=16
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 16 al 31
+GET {{baseUrl_trabajadores}}?offset=16&limit=16
+Authorization: Bearer {{authToken}}
+
+### PAGINACIÓN CON FILTRO DE ESTADO
+GET {{baseUrl_trabajadores}}?estado_id=1000&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### PAGINACIÓN CON BÚSQUEDA
+GET {{baseUrl_trabajadores}}?estado_id=1000&offset=0&limit=2&q=JUAN
+Authorization: Bearer {{authToken}}
+
+### ÚLTIMOS 10 REGISTROS
+GET {{baseUrl_trabajadores}}?offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR NOMBRES (Ascendente)
+GET {{baseUrl_trabajadores}}?sortField=nombres&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR NOMBRES (Descendente)
+GET {{baseUrl_trabajadores}}?sortField=nombres&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_trabajadores}}?sortField=trabajador_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR DNI (Ascendente)
+GET {{baseUrl_trabajadores}}?sortField=dni&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA REGISTRO (Más recientes primero)
+GET {{baseUrl_trabajadores}}?sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR + FILTRO + PAGINACIÓN
+GET {{baseUrl_trabajadores}}?estado_id=1000&sortField=nombres&sortOrder=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER TRABAJADOR POR ID
+GET {{baseUrl_trabajadores}}/2
+Authorization: Bearer {{authToken}}
+
+### Obtener trabajador comodín (NINGUNO)
+GET {{baseUrl_trabajadores}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD TRABAJADOR
+# ==============================================================================
+
+### DEFINIR VARIABLE PARA FOTO
+@foto_path = C:/sirena/sirena-backend/uploads/persons/foto-trabajador.jpg
+
+### 1. SUBIR FOTO (opcional - se puede hacer en el create)
+POST {{baseUrl_trabajadores}}/upload-foto
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="foto-trabajador.jpg"
+Content-Type: image/jpeg
+
+< {{foto_path}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### 2. CREAR TRABAJADOR (con foto)
+POST {{baseUrl_trabajadores}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "genero_id": 1200,
+    "estado_civil_id": 1250,
+    "nombres": "JUAN PABLO",
+    "paterno": "RODRIGUES",
+    "materno": "CANAVIRI",
+    "dni": "26301145",
+    "telefono": "78945612",
+    "direccion": "AV. PRINCIPAL 123",
+    "email": "juan@example.com",
+    "fecha_nacimiento": "1990-01-15",
+    "fecha_contratacion": "2020-03-01",
+    "foto": "foto.jpg"
+}
+
+### ÚLTIMOS 10 REGISTROS
+GET {{baseUrl_trabajadores}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: ESTADOS
+GET {{baseUrl_constantes}}?tipo=genero_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO
+GET {{baseUrl_constantes}}?tipo=estado_civil_masculino_id&sortField=abreviatura&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO
+GET {{baseUrl_constantes}}?tipo=estado_civil_femenino_id
+Authorization: Bearer {{authToken}}
+
+
+### CREAR TRABAJADOR (sin foto - usa default-person.png)
+POST {{baseUrl_trabajadores}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "genero_id": 1201,
+    "estado_civil_id": 1300,
+    "nombres": "MARIA FERNANDA MARTITA",
+    "paterno": "RODRIGUEZ",
+    "materno": "MAMANI LOPEZ",
+    "dni": "7654352",
+    "telefono": "78945612",
+    "direccion": "AV. SECUNDARIA 456",
+    "email": "maria@example.com",
+    "fecha_nacimiento": "1988-05-20",
+    "fecha_contratacion": "2019-06-15",
+    "foto": "foto.jpg"
+}
+
+### LISTAR TRABAJADORES ACTIVOS
+GET {{baseUrl_trabajadores}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### OBTENER TRABAJADOR POR ID
+GET {{baseUrl_trabajadores}}/2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ACTUALIZAR TRABAJADOR
+# ==============================================================================
+
+### ACTUALIZAR TODOS LOS CAMPOS
+PATCH {{baseUrl_trabajadores}}/23
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "genero_id": 1200,
+    "estado_civil_id": 1251,
+    "nombres": "JUAN CARLOS MODIFICADO",
+    "paterno": "PEREZ MODIFICADO",
+    "materno": "GONZALEZ MODIFICADO",
+    "dni": "1234567",
+    "telefono": "78945613",
+    "direccion": "AV. PRINCIPAL 456",
+    "email": "juan.modificado@example.com",
+    "fecha_nacimiento": "1990-01-15",
+    "fecha_contratacion": "2020-03-01",
+    "foto": "foto.jpg"
+}
+
+### ACTUALIZAR SOLO UN CAMPO
+PATCH {{baseUrl_trabajadores}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "telefono": "78945699"
+}
+
+### ACTUALIZAR SOLO ESTADO CIVIL (según género)
+PATCH {{baseUrl_trabajadores}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "estado_civil_id": 1252
+}
+
+### ACTUALIZAR FOTO (Cambiar imagen)
+PATCH {{baseUrl_trabajadores}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "foto": "nueva-foto.jpg"
+}
+
+### REGENERAR QR DE UN TRABAJADOR
+PATCH {{baseUrl_trabajadores}}/2/regenerar-qr
+Authorization: Bearer {{authToken}}
+
+### REGENERAR QR DE UN TRABAJADOR (con force)
+PATCH {{baseUrl_trabajadores}}/2/regenerar-qr?force=true
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ELIMINAR TRABAJADOR (Soft Delete)
+# ==============================================================================
+
+### ELIMINAR TRABAJADOR (ACTIVO → BORRADO)
+DELETE {{baseUrl_trabajadores}}/8
+Authorization: Bearer {{authToken}}
+
+### ELIMINAR TRABAJADOR CON DEPENDENCIAS (Debería dar error)
+DELETE {{baseUrl_trabajadores}}/2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de estado)
+# ==============================================================================
+
+### ARCHIVAR TRABAJADOR (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_trabajadores}}/6/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR TRABAJADOR (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_trabajadores}}/6/desarchivar
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CASOS DE USO COMBINADOS (Escenarios reales)
+# ==============================================================================
+
+### 1. Buscar trabajadores activos que contengan "JUAN", ordenados por nombre
+GET {{baseUrl_trabajadores}}?estado_id=1000&q=JUAN&sortField=nombres&sortOrder=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 2. Buscar trabajadores activos por DNI "1234567"
+GET {{baseUrl_trabajadores}}?estado_id=1000&dni=1234567&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### 3. Listar todos los trabajadores históricos, ordenados por fecha de registro descendente
+GET {{baseUrl_trabajadores}}?estado_id=1002&sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 4. Buscar trabajadores activos por género MASCULINO
+GET {{baseUrl_trabajadores}}?estado_id=1000&genero_id=1200&sortField=nombres&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 5. Buscar trabajadores activos por género FEMENINO
+GET {{baseUrl_trabajadores}}?estado_id=1000&genero_id=1201&sortField=nombres&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 6. Listar trabajadores activos ordenados por nombre (para combos)
+GET {{baseUrl_trabajadores}}?estado_id=1000&sortField=nombres&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 7. Listar trabajadores activos ordenados por DNI (para combos)
+GET {{baseUrl_trabajadores}}?estado_id=1000&sortField=dni&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 8. Buscar trabajadores por apellido paterno
+GET {{baseUrl_trabajadores}}?estado_id=1000&q=PEREZ&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 9. Buscar trabajadores por teléfono
+GET {{baseUrl_trabajadores}}?estado_id=1000&q=78945612
+Authorization: Bearer {{authToken}}
+
+### 10. Obtener trabajador con ID 1 (NINGUNO - Registro comodín)
+GET {{baseUrl_trabajadores}}/1
+Authorization: Bearer {{authToken}}

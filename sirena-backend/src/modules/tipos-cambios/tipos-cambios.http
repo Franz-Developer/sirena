@@ -1,0 +1,404 @@
+# C:\sirena\sirena-backend\src\modules\tipos-cambios\tipos-cambios.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_tipos_cambios = {{baseUrl}}/tipos-cambios
+@baseUrl_constantes = {{baseUrl}}/constantes
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automatico.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# ENDPOINT EXTRAS
+# ==============================================================================
+
+### LISTAR POR TIPO: TIPOS DE MONEDA
+GET {{baseUrl_constantes}}?tipo=tipo_moneda_id
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR TIPOS DE CAMBIO (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_tipos_cambios}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_tipos_cambios}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_tipos_cambios}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR MONEDA
+# ==============================================================================
+
+### FILTRAR POR MONEDA DE ORIGEN (BOLIVIANO = 2300)
+GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2300
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR MONEDA DE ORIGEN (DOLAR = 2301)
+GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2300
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR MONEDA DE DESTINO (BOLIVIANO = 2300)
+GET {{baseUrl_tipos_cambios}}?destino_moneda_id=2300
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR MONEDA DE DESTINO (DOLAR = 2301)
+GET {{baseUrl_tipos_cambios}}?destino_moneda_id=2301
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR PAR DE MONEDAS (BOLIVIANO → DOLAR)
+GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2300&destino_moneda_id=2301
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR RANGO DE FECHAS
+# ==============================================================================
+
+### FILTRAR POR FECHA DE COTIZACIÓN (2026-08-20)
+GET {{baseUrl_tipos_cambios}}?fecha_cotizacion_inicio=2026-08-20&fecha_cotizacion_fin=2026-08-20
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR RANGO DE FECHAS (Agosto 2026)
+GET {{baseUrl_tipos_cambios}}?fecha_cotizacion_inicio=2026-08-01&fecha_cotizacion_fin=2026-08-31
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR RANGO DE FECHAS + MONEDA ORIGEN
+GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2301&fecha_cotizacion_inicio=2026-08-01&fecha_cotizacion_fin=2026-08-31
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR RANGO DE FECHAS (Agosto 2026)
+GET {{baseUrl_tipos_cambios}}?fecha_cotizacion_inicio=2026-08-03
+Authorization: Bearer {{authToken}}
+# ==============================================================================
+# USUARIO
+# ==============================================================================
+
+### BÚSQUEDA POR USUARIO QUE REGISTRÓ
+GET {{baseUrl_tipos_cambios}}?usuario_id=2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 9
+GET {{baseUrl_tipos_cambios}}?offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 10 al 19
+GET {{baseUrl_tipos_cambios}}?offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de estado
+GET {{baseUrl_tipos_cambios}}?estado_id=1000&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de moneda
+GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2300&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### Últimos 5 registros
+GET {{baseUrl_tipos_cambios}}?offset=28&limit=5
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR FECHA COTIZACIÓN (Ascendente)
+GET {{baseUrl_tipos_cambios}}?sortField=fecha_cotizacion&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA COTIZACIÓN (Descendente - Más recientes primero)
+GET {{baseUrl_tipos_cambios}}?sortField=fecha_cotizacion&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_tipos_cambios}}?sortField=tipo_cambio_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR MONEDA ORIGEN (Ascendente)
+GET {{baseUrl_tipos_cambios}}?sortField=origen_moneda_id&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FACTOR COMPRA (Descendente)
+GET {{baseUrl_tipos_cambios}}?sortField=factor_compra&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FACTOR VENTA (Descendente)
+GET {{baseUrl_tipos_cambios}}?sortField=factor_venta&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA REGISTRO (Más recientes primero)
+GET {{baseUrl_tipos_cambios}}?sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER TIPO DE CAMBIO POR ID
+GET {{baseUrl_tipos_cambios}}/1
+Authorization: Bearer {{authToken}}
+
+### Obtener tipo de cambio más reciente (ID mayor)
+GET {{baseUrl_tipos_cambios}}/188
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD TIPOS DE CAMBIO
+# ==============================================================================
+
+### CREAR NUEVO TIPO DE CAMBIO (Dólar → Boliviano)
+POST {{baseUrl_tipos_cambios}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "origen_moneda_id": 2301,
+    "destino_moneda_id": 2302,
+    "factor_compra": 1.9201,
+    "factor_venta": 1.9801,
+    "fecha_cotizacion": "2026-08-21"
+}
+
+### CREAR NUEVO TIPO DE CAMBIO (Dólar → Boliviano)
+POST {{baseUrl_tipos_cambios}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "origen_moneda_id": 2301,
+    "destino_moneda_id": 2302,
+    "factor_compra": 1.9201,
+    "factor_venta": 1.9801,
+    "fecha_cotizacion": "2026-08-20"
+}
+
+### LISTAR POR TIPO: TIPOS DE MONEDA
+GET {{baseUrl_constantes}}?tipo=tipo_moneda_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_tipos_cambios}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### Obtener tipo de cambio más reciente (ID mayor)
+GET {{baseUrl_tipos_cambios}}?fecha_cotizacion_desde=2026-08-15&fecha_cotizacion_hasta=2026-08-26&origen_moneda_id=2301&destino_moneda_id=2302
+Authorization: Bearer {{authToken}}
+
+### Obtener tipo de cambio más reciente (ID mayor)
+GET {{baseUrl_tipos_cambios}}/190
+Authorization: Bearer {{authToken}}
+
+### CREAR TIPO DE CAMBIO (Boliviano → Dólar)
+POST {{baseUrl_tipos_cambios}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "origen_moneda_id": 2300,
+    "destino_moneda_id": 2301,
+    "factor_compra": 0.1437,
+    "factor_venta": 0.1447,
+    "fecha_cotizacion": "2026-08-20"
+}
+
+### CREAR TIPO DE CAMBIO (Euro → Boliviano)
+POST {{baseUrl_tipos_cambios}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "origen_moneda_id": 2302,
+    "destino_moneda_id": 2300,
+    "factor_compra": 7.50,
+    "factor_venta": 7.60,
+    "fecha_cotizacion": "2026-08-20"
+}
+
+### CREAR TIPO DE CAMBIO (UFV → Boliviano)
+POST {{baseUrl_tipos_cambios}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "origen_moneda_id": 2303,
+    "destino_moneda_id": 2300,
+    "factor_compra": 2.50,
+    "factor_venta": 2.55,
+    "fecha_cotizacion": "2026-08-20"
+}
+
+# ==============================================================================
+# ACTUALIZAR TIPO DE CAMBIO
+# ==============================================================================
+
+### ACTUALIZAR AMBOS FACTORES
+PATCH {{baseUrl_tipos_cambios}}/370
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "factor_compra": 1.9200,
+    "factor_venta": 1.9802
+}
+
+### Obtener tipo de cambio más reciente (ID mayor)
+GET {{baseUrl_tipos_cambios}}/370
+Authorization: Bearer {{authToken}}
+
+
+### ACTUALIZAR FECHA DE COTIZACIÓN
+PATCH {{baseUrl_tipos_cambios}}/208
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "fecha_cotizacion": "2026-04-21"
+}
+
+### ACTUALIZAR MONEDA DE ORIGEN
+PATCH {{baseUrl_tipos_cambios}}/1
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "origen_moneda_id": 2302
+}
+
+### ACTUALIZAR MONEDA DE DESTINO
+PATCH {{baseUrl_tipos_cambios}}/1
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "destino_moneda_id": 2301
+}
+
+### INTENTAR ACTUALIZAR CON MISMA MONEDA (Debería dar error 400)
+PATCH {{baseUrl_tipos_cambios}}/1
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "origen_moneda_id": 2300,
+    "destino_moneda_id": 2300
+}
+
+### INTENTAR ACTUALIZAR CON DUPLICADO (Debería dar error 409)
+PATCH {{baseUrl_tipos_cambios}}/1
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "origen_moneda_id": 2301,
+    "destino_moneda_id": 2300,
+    "fecha_cotizacion": "2026-08-20"
+}
+
+# ==============================================================================
+# ELIMINAR (Borrado lógico)
+# ==============================================================================
+
+### ELIMINAR TIPO DE CAMBIO (ACTIVO → BORRADO)
+DELETE {{baseUrl_tipos_cambios}}/190
+Authorization: Bearer {{authToken}}
+
+### LISTAR BORRADOS (1001)
+GET {{baseUrl_tipos_cambios}}?estado_id=1001
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR
+# ==============================================================================
+
+### ARCHIVAR TIPO DE CAMBIO (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_tipos_cambios}}/206/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR TIPO DE CAMBIO (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_tipos_cambios}}/207/desarchivar
+Authorization: Bearer {{authToken}}
+
+### LISTAR
+GET {{baseUrl_tipos_cambios}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### Obtener tipo de cambio más reciente (ID mayor)
+GET {{baseUrl_tipos_cambios}}/189
+Authorization: Bearer {{authToken}}
+
+### 1. Obtener todos los tipos de cambio de Dólar → Boliviano activos
+GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2301&destino_moneda_id=2300&estado_id=1000&sortField=fecha_cotizacion&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 2. Obtener histórico de tipos de cambio de Boliviano → Dólar
+GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2300&destino_moneda_id=2301&estado_id=1002&sortField=fecha_cotizacion&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 3. Obtener tipos de cambio del mes actual (Dólar → Boliviano)
+GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2301&destino_moneda_id=2300&fecha_cotizacion_inicio=2026-08-01&fecha_cotizacion_fin=2026-08-31&sortField=fecha_cotizacion&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 4. Obtener el tipo de cambio más reciente (Dólar → Boliviano)
+GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2301&destino_moneda_id=2300&estado_id=1000&sortField=fecha_cotizacion&sortOrder=-1&limit=1
+Authorization: Bearer {{authToken}}
+
+### 5. Obtener todos los tipos de cambio registrados por un usuario
+GET {{baseUrl_tipos_cambios}}?usuario_id=2&sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 6. Obtener tipos de cambio con factor de compra > 6.00
+GET {{baseUrl_tipos_cambios}}?q=6&origen_moneda_id=2301&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 7. Obtener todos los tipos de cambio activos (para combos de reportes)
+GET {{baseUrl_tipos_cambios}}?estado_id=1000&sortField=fecha_cotizacion&sortOrder=-1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 8. Obtener tipos de cambio de Euro → Boliviano activos
+GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2302&destino_moneda_id=2300&estado_id=1000&sortField=fecha_cotizacion&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 9. Obtener tipos de cambio de UFV → Boliviano activos
+GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2303&destino_moneda_id=2300&estado_id=1000&sortField=fecha_cotizacion&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 10. Obtener todos los tipos de cambio (para exportación)
+GET {{baseUrl_tipos_cambios}}?estado_id=1000&sortField=fecha_cotizacion&sortOrder=-1&limit=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ENDPOINTS PERSONALIZADOS (Métodos extra)
+# ==============================================================================
+
+### CONVERTIR BOLIVIANOS A DÓLARES (BOB → USD)
+POST {{baseUrl_tipos_cambios}}/convertir/bolivianos-a-dolares
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "monto_bolivianos": 750.00,
+    "fecha_cotizacion": "2026-08-25"
+}

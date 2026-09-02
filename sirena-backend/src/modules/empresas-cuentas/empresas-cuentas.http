@@ -1,0 +1,340 @@
+# C:\sirena\sirena-backend\src\modules\empresas-cuentas\empresas-cuentas.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_empresas_cuentas = {{baseUrl}}/empresas-cuentas
+@baseUrl_empresas = {{baseUrl}}/empresas
+@baseUrl_bancos = {{baseUrl}}/bancos
+@baseUrl_constantes = {{baseUrl}}/constantes
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automático.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# ENDPOINT EXTRAS
+# ==============================================================================
+
+### LISTAR TODAS (Activos + Históricos por defecto)
+GET {{baseUrl_empresas}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR BANCOS
+GET {{baseUrl_bancos}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: MONEDAS
+GET {{baseUrl_constantes}}?tipo=tipo_moneda_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: TIPOS_CUENTA
+GET {{baseUrl_constantes}}?tipo=tipo_cuenta_id
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR CUENTAS BANCARIAS DE EMPRESAS (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_empresas_cuentas}}?empresa_id=2&banco_id=2&tipo_moneda_id=2300&tipo_cuenta_id=1750
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_empresas_cuentas}}?empresa_id=2&estado_id=1000&tipo_moneda_id=2301
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&estado_id=1000&q=05&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&estado_id=1000&q=05&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+### BORRADOS (1001)
+GET {{baseUrl_empresas_cuentas}}?empresa_id=2
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_empresas_cuentas}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR EMPRESA Y BANCO
+# ==============================================================================
+
+### FILTRAR POR EMPRESA_ID (Empresa 2)
+GET {{baseUrl_empresas_cuentas}}?empresa_id=2
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR BANCO_ID (Banco 1)
+GET {{baseUrl_empresas_cuentas}}?banco_id=4
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR TIPO DE MONEDA Y TIPO DE CUENTA
+# ==============================================================================
+
+### FILTRAR POR TIPO DE MONEDA (Ej: Bolivianos)
+GET {{baseUrl_empresas_cuentas}}?tipo_moneda_id=2301
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR TIPO DE CUENTA (Ej: Corriente / Ahorros)
+GET {{baseUrl_empresas_cuentas}}?tipo_cuenta_id=1750
+Authorization: Bearer {{authToken}}
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_empresas_cuentas}}
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BUSCAR POR NÚMERO DE CUENTA
+GET {{baseUrl_empresas_cuentas}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### BUSCAR POR TITULAR
+GET {{baseUrl_empresas_cuentas}}?empresa_id=2&q=SALUD
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### e. PÁGINA 1: Registros 0 al 15
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&offset=0&limit=16
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 16 al 31
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&offset=16&limit=16
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 3: Registros 32 al 47
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&offset=32&limit=16
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 4: Registros 48 al 63
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&offset=48&limit=16
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 5: Registros 64 al 79
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&offset=64&limit=16
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# COMBINACIONES: FILTROS + ORDENAMIENTO + PAGINACIÓN
+# ==============================================================================
+
+### EMPRESA 3, ACTIVOS, ORDENADO POR NRO_CUENTA ASC, PÁGINA 1
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&estado_id=1000&sortField=nro_cuenta&sortOrder=1&offset=0&limit=4
+Authorization: Bearer {{authToken}}
+
+### EMPRESA 3, ACTIVOS, ORDENADO POR NRO_CUENTA DESC, PÁGINA 1
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&estado_id=1000&sortField=nro_cuenta&sortOrder=-1&offset=0&limit=4
+Authorization: Bearer {{authToken}}
+
+### EMPRESA 3, ACTIVOS, ORDENADO POR TITULAR ASC, PÁGINA 1
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&estado_id=1000&sortField=titular&sortOrder=1&offset=0&limit=4
+Authorization: Bearer {{authToken}}
+
+### EMPRESA 3, ACTIVOS, ORDENADO POR TITULAR DESC, PÁGINA 1
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&estado_id=1000&sortField=titular&sortOrder=-1&offset=0&limit=4
+Authorization: Bearer {{authToken}}
+
+### Ordenar por nombre de banco
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&sortField=banco_nombre&sortOrder=-1&offset=0&limit=4
+Authorization: Bearer {{authToken}}
+
+### Ordenar por nombre de banco
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&sortField=banco_nombre&sortOrder=1&offset=0&limit=4
+Authorization: Bearer {{authToken}}
+
+### EMPRESA 3, ACTIVOS, ORDENADO POR NRO_CUENTA ASC, PÁGINA 1
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&estado_id=1000&sortField=nro_cuenta&sortOrder=1&limit=3&offset=0
+Authorization: Bearer {{authToken}}
+
+### EMPRESA 2, ACTIVOS, ORDENADO POR TITULAR DESC, PÁGINA 2
+GET {{baseUrl_empresas_cuentas}}?empresa_id=2&estado_id=1000&sortField=titular&sortOrder=-1&limit=10&offset=10
+Authorization: Bearer {{authToken}}
+
+### EMPRESA 2, ACTIVOS, BUSQUEDA q=BISA, ORDENADO POR NRO_CUENTA ASC
+GET {{baseUrl_empresas_cuentas}}?empresa_id=2&estado_id=1000&q=BISA&sortField=nro_cuenta&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### EMPRESA 2, ACTIVOS, BUSQUEDA q=BISA, ORDENADO POR TITULAR ASC
+GET {{baseUrl_empresas_cuentas}}?empresa_id=2&estado_id=1000&q=BISA&sortField=titular&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### EMPRESA 3, ACTIVOS, ORDENADO POR EMPRESA_CUENTA_ID DESC, PÁGINA 1
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&estado_id=1000&sortField=empresa_cuenta_id&sortOrder=-1&limit=16&offset=0
+Authorization: Bearer {{authToken}}
+
+### EMPRESA 3, ACTIVOS, ORDENADO POR EMPRESA_CUENTA_ID DESC, PÁGINA 2
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&estado_id=1000&sortField=empresa_cuenta_id&sortOrder=-1&limit=16&offset=16
+Authorization: Bearer {{authToken}}
+
+### EMPRESA 3, ACTIVOS, ORDENADO POR TIPO_MONEDA_ID ASC, PÁGINA 1
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&estado_id=1000&sortField=tipo_moneda_id&sortOrder=1&limit=16&offset=0
+Authorization: Bearer {{authToken}}
+
+### EMPRESA 3, ACTIVOS, ORDENADO POR TIPO_CUENTA_ID DESC, PÁGINA 1
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&estado_id=1000&sortField=tipo_cuenta_id&sortOrder=-1&limit=16&offset=0
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR NÚMERO DE CUENTA (Ascendente)
+GET {{baseUrl_empresas_cuentas}}?empresa_id=2&sortField=nro_cuenta&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR NÚMERO DE CUENTA (Descendente)
+GET {{baseUrl_empresas_cuentas}}?empresa_id=2&sortField=nro_cuenta&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR TITULAR (Ascendente)
+GET {{baseUrl_empresas_cuentas}}?empresa_id=2&sortField=titular&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_empresas_cuentas}}?empresa_id=2&sortField=empresa_cuenta_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# COMBINACIÓN DE FILTROS + ORDENAMIENTO + PAGINACIÓN
+# ==============================================================================
+
+###
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3
+Authorization: Bearer {{authToken}}
+
+### Cuentas de empresa 2, ACTIVAS, ordenadas por número de cuenta
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&estado_id=1000&sortField=banco_nombre&sortOrder=1&offset=0&limit=4
+Authorization: Bearer {{authToken}}
+
+### Cuentas de empresa 2, ACTIVAS, ordenadas por número de cuenta
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&estado_id=1000&sortField=banco_nombre&sortOrder=-1&offset=0&limit=4
+Authorization: Bearer {{authToken}}
+
+
+### Cuentas de empresa 2
+GET {{baseUrl_empresas_cuentas}}?empresa_id=2&estado_id=1000&banco_abreviatura=BISA
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER CUENTA BANCARIA POR ID
+GET {{baseUrl_empresas_cuentas}}/1
+Authorization: Bearer {{authToken}}
+
+### Obtener cuenta específica (ID = 2)
+GET {{baseUrl_empresas_cuentas}}/5
+Authorization: Bearer {{authToken}}
+
+### Cuentas de empresa 2
+GET {{baseUrl_empresas_cuentas}}?empresa_id=3&estado_id=1000&tipo_moneda_id=2301
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD CUENTAS BANCARIAS DE EMPRESA
+# ==============================================================================
+
+### CREAR NUEVA CUENTA BANCARIA DE EMPRESA
+POST {{baseUrl_empresas_cuentas}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "empresa_id": 2,
+    "banco_id": 13,
+    "tipo_moneda_id": 2303,
+    "nro_cuenta": "9010878",
+    "tipo_cuenta_id": 1753,
+    "titular": "DROGUERIA INTI S.A. E"
+}
+
+### LISTAR TODAS (Activos + Históricos por defecto)
+GET {{baseUrl_empresas}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR BANCOS
+GET {{baseUrl_bancos}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: MONEDAS
+GET {{baseUrl_constantes}}?tipo=tipo_moneda_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: TIPOS_CUENTA
+GET {{baseUrl_constantes}}?tipo=tipo_cuenta_id
+Authorization: Bearer {{authToken}}
+
+### Cuentas de empresa
+GET {{baseUrl_empresas_cuentas}}/5
+Authorization: Bearer {{authToken}}
+
+
+# ==============================================================================
+# ACTUALIZAR CUENTA BANCARIA
+# ==============================================================================
+
+### ACTUALIZAR TITULAR (PATCH)
+PATCH {{baseUrl_empresas_cuentas}}/3
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "titular": "DROGUERIA INTI S.A. - NUEVO TITULAR77",
+    "nro_cuenta": "10500987"
+}
+
+
+### Obtener cuenta específica (ID = 2)
+GET {{baseUrl_empresas_cuentas}}/27
+Authorization: Bearer {{authToken}}
+
+
+### ACTUALIZAR BANCO O TIPO DE MONEDA
+PATCH {{baseUrl_empresas_cuentas}}/70
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "nro_cuenta": "10508988",
+    "banco_id": 3,
+    "tipo_moneda_id": 2301
+}
+
+# ==============================================================================
+# ELIMINAR (Borrado lógico)
+# ==============================================================================
+
+### ELIMINAR CUENTA BANCARIA (ACTIVO → BORRADO)
+DELETE {{baseUrl_empresas_cuentas}}/84
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR
+# ==============================================================================
+
+### ARCHIVAR CUENTA BANCARIA (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_empresas_cuentas}}/50/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR CUENTA BANCARIA (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_empresas_cuentas}}/82/desarchivar
+Authorization: Bearer {{authToken}}

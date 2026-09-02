@@ -1,0 +1,307 @@
+# C:\sirena\sirena-backend\src\modules\cuis\cuis.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_cuis = {{baseUrl}}/cuis
+@baseUrl_sucursales = {{baseUrl}}/sucursales
+@baseUrl_puntos_venta = {{baseUrl}}/puntos-venta
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automático.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# ENDPOINT EXTRAS
+# ==============================================================================
+
+### LISTAR SUCURSALES ACTIVAS
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR PUNTOS DE VENTA ACTIVOS
+GET {{baseUrl_puntos_venta}}?sucursal_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR CUIS (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_cuis}}?sucursal_id=2
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_cuis}}?sucursal_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO BORRADOS (1001)
+GET {{baseUrl_cuis}}?sucursal_id=2&estado_id=1001
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO HISTÓRICOS (1002)
+GET {{baseUrl_cuis}}?sucursal_id=2&estado_id=1002
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR SUCURSAL
+GET {{baseUrl_cuis}}?sucursal_id=2
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR PUNTO DE VENTA
+GET {{baseUrl_cuis}}?punto_venta_id=2
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR SUCURSAL Y PUNTO DE VENTA
+GET {{baseUrl_cuis}}?sucursal_id=2&punto_venta_id=1
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR SUCURSAL Y ESTADO ACTIVO
+GET {{baseUrl_cuis}}?sucursal_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BÚSQUEDA FLEXIBLE (contiene la palabra)
+GET {{baseUrl_cuis}}?sucursal_id=2&q=CUIS
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA EXACTA (palabra completa)
+GET {{baseUrl_cuis}}?sucursal_id=2&q=001&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+### Búsqueda flexible por código parcial
+GET {{baseUrl_cuis}}?sucursal_id=2&q=001&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTROS POR CAMPOS ESPECÍFICOS
+# ==============================================================================
+
+### FILTRAR POR SUCURSAL
+GET {{baseUrl_cuis}}?sucursal_id=2
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR PUNTO DE VENTA
+GET {{baseUrl_cuis}}?sucursal_id=2&punto_venta_id=2
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR USUARIO QUE REGISTRÓ
+GET {{baseUrl_cuis}}?sucursal_id=2&usuario_id=2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 9
+GET {{baseUrl_cuis}}?sucursal_id=2&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 10 al 19
+GET {{baseUrl_cuis}}?sucursal_id=2&offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de sucursal
+GET {{baseUrl_cuis}}?sucursal_id=2&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### Paginación con búsqueda
+GET {{baseUrl_cuis}}?sucursal_id=2&offset=0&limit=5&q=CUIS
+Authorization: Bearer {{authToken}}
+
+### Últimos 10 registros
+GET {{baseUrl_cuis}}?sucursal_id=2&offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR CÓDIGO CUIS (Ascendente)
+GET {{baseUrl_cuis}}?sucursal_id=2&sortField=codigo_cuis&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CÓDIGO CUIS (Ascendente)
+GET {{baseUrl_cuis}}?sucursal_id=2&sortField=codigo_cuis&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER CUIS POR ID
+GET {{baseUrl_cuis}}/2
+Authorization: Bearer {{authToken}}
+
+### Obtener CUIS específico (NINGUNO - Registro comodín)
+GET {{baseUrl_cuis}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD CUIS
+# ==============================================================================
+
+### CREAR NUEVO CUIS
+POST {{baseUrl_cuis}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "sucursal_id": 3,
+    "punto_venta_id": 7,
+    "codigo_cuis": "CUIS006",
+    "fecha_vigencia": "2027-01-01T14:30:45.123-04:00"
+}
+
+### LISTAR SUCURSALES ACTIVAS
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR PUNTOS DE VENTA ACTIVOS
+GET {{baseUrl_puntos_venta}}?sucursal_id=3&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR
+GET {{baseUrl_cuis}}?sucursal_id=3
+Authorization: Bearer {{authToken}}
+
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_cuis}}?sucursal_id=2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ACTUALIZAR CUIS
+# ==============================================================================
+
+### ACTUALIZAR CÓDIGO CUIS
+PATCH {{baseUrl_cuis}}/8
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "codigo_cuis": "CUIS001-UPDATED",
+    "fecha_vigencia": "2027-01-01T14:30:45.123-04:00"
+}
+
+
+### ACTUALIZAR FECHA VIGENCIA
+PATCH {{baseUrl_cuis}}/8
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "fecha_vigencia": "2027-01-15T14:30:45.123-04:00"
+}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_cuis}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ELIMINAR CUIS (Soft Delete)
+# ==============================================================================
+
+### ELIMINAR CUIS (ACTIVO → BORRADO)
+DELETE {{baseUrl_cuis}}/7
+Authorization: Bearer {{authToken}}
+
+### ELIMINAR CUIS CON ID 1 (Debería dar error - Registro comodín)
+DELETE {{baseUrl_cuis}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de estado)
+# ==============================================================================
+
+### ARCHIVAR CUIS (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_cuis}}/6/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR CUIS (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_cuis}}/6/desarchivar
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CASOS DE USO COMBINADOS (Escenarios reales)
+# ==============================================================================
+
+### 1. Buscar CUIS activos de una sucursal que contengan "CUIS", ordenados por código
+GET {{baseUrl_cuis}}?sucursal_id=1&estado_id=1000&q=CUIS&sortField=codigo&sortOrder=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 2. Buscar CUIS activos por código exacto
+GET {{baseUrl_cuis}}?estado_id=1000&q=CUIS001&exactMatch=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### 3. Listar todos los CUIS históricos de una sucursal, ordenados por fecha de registro descendente
+GET {{baseUrl_cuis}}?sucursal_id=1&estado_id=1002&sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 4. Listar CUIS activos con fecha de vigencia más reciente
+GET {{baseUrl_cuis}}?estado_id=1000&sortField=fecha_vigencia&sortOrder=-1&limit=10
+Authorization: Bearer {{authToken}}
+
+### 5. Listar CUIS activos ordenados por código (para combos)
+GET {{baseUrl_cuis}}?estado_id=1000&sortField=codigo&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 6. Listar CUIS activos de una sucursal y punto de venta específicos
+GET {{baseUrl_cuis}}?sucursal_id=1&punto_venta_id=1&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 7. Listar CUIS activos de una sucursal con punto de venta
+GET {{baseUrl_cuis}}?sucursal_id=1&estado_id=1000&sortField=punto_venta&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 8. Buscar CUIS por código parcial "001" (búsqueda flexible)
+GET {{baseUrl_cuis}}?q=001&exactMatch=0&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 9. Obtener CUIS con ID 1 (NINGUNO - Registro comodín)
+GET {{baseUrl_cuis}}/1
+Authorization: Bearer {{authToken}}
+
+### 10. Listar todos los CUIS activos de todas las sucursales
+GET {{baseUrl_cuis}}?estado_id=1000&sortField=sucursal_id&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 10. Listar todos los CUIS activos de todas las sucursales
+GET {{baseUrl_cuis}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### CUIS con fecha de vigencia entre dos fechas
+GET {{baseUrl_cuis}}?fecha_vigencia_inicio=2026-01-01&fecha_vigencia_fin=2028-01-01
+Authorization: Bearer {{authToken}}
+
+# &fecha_vigencia_fin=2028-01-01
+
+### CUIS con fecha de vigencia a partir de una fecha específica
+GET {{baseUrl_cuis}}?fecha_vigencia_inicio=2027-12-31&fecha_vigencia_fin=2028-01-01
+Authorization: Bearer {{authToken}}
+
+### CUIS con fecha de vigencia hasta una fecha específica
+GET {{baseUrl_cuis}}?fecha_vigencia_fin=2028-01-01
+Authorization: Bearer {{authToken}}
+
+### Combinación de filtros: sucursal + fechas de vigencia
+GET {{baseUrl_cuis}}?sucursal_id=1&fecha_vigencia_inicio=2026-01-01&fecha_vigencia_fin=2026-12-31
+Authorization: Bearer {{authToken}}
+
+### CUIS activos con vigencia futura
+GET {{baseUrl_cuis}}?estado_id=1000&fecha_vigencia_inicio=2026-08-18
+Authorization: Bearer {{authToken}}

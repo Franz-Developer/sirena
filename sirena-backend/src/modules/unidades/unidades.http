@@ -1,0 +1,323 @@
+# C:\sirena\sirena-backend\src\modules\unidades\unidades.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_unidades = {{baseUrl}}/unidades
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automatico.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# LISTAR UNIDADES (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_unidades}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_unidades}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### BORRADOS (1001)
+GET {{baseUrl_unidades}}?estado_id=1001
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_unidades}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR USUARIO QUE REGISTRÓ
+GET {{baseUrl_unidades}}?usuario_id=2
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BÚSQUEDA FLEXIBLE (contiene la palabra)
+GET {{baseUrl_unidades}}?q=UNIDAD
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por código
+GET {{baseUrl_unidades}}?codigo_sin=2
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por código SIN
+GET {{baseUrl_unidades}}?q=01
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA EXACTA (palabra completa)
+GET {{baseUrl_unidades}}?q=UNIDAD&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda exacta por código
+GET {{baseUrl_unidades}}?q=UND&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda exacta con acentos
+GET {{baseUrl_unidades}}?q=UNIDAD&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### Búsqueda con acentos (flexible)
+GET {{baseUrl_unidades}}?q=UNIDAD&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+### Búsqueda exacta con estado específico
+GET {{baseUrl_unidades}}?estado_id=1000&q=UND&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 10
+GET {{baseUrl_unidades}}?offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 10 al 19
+GET {{baseUrl_unidades}}?offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 3: Registros 20 al 29
+GET {{baseUrl_unidades}}?offset=20&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de estado
+GET {{baseUrl_unidades}}?estado_id=1000&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### Paginación con búsqueda
+GET {{baseUrl_unidades}}?estado_id=1000&offset=0&limit=5&q=UNIDAD
+Authorization: Bearer {{authToken}}
+
+### Últimos 10 registros
+GET {{baseUrl_unidades}}?offset=20&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR CÓDIGO (Ascendente)
+GET {{baseUrl_unidades}}?sortField=codigo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CÓDIGO (Descendente)
+GET {{baseUrl_unidades}}?sortField=codigo&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR UNIDAD (Ascendente)
+GET {{baseUrl_unidades}}?sortField=unidad&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR UNIDAD (Descendente)
+GET {{baseUrl_unidades}}?sortField=unidad&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_unidades}}?sortField=unidad_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CÓDIGO SIN (Ascendente)
+GET {{baseUrl_unidades}}?sortField=codigosin&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA REGISTRO (Más recientes primero)
+GET {{baseUrl_unidades}}?sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR + FILTRO + PAGINACIÓN
+GET {{baseUrl_unidades}}?estado_id=1000&sortField=unidad&sortOrder=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### Solo Orden Descendente por ID
+GET {{baseUrl_unidades}}?sortField=unidad_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### Solo Orden Ascendente por ID
+GET {{baseUrl_unidades}}?sortField=unidad_id&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER UNIDAD POR ID
+GET {{baseUrl_unidades}}/2
+Authorization: Bearer {{authToken}}
+
+### Obtener unidad específica (NINGUNO - Registro comodín)
+GET {{baseUrl_unidades}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD UNIDAD
+# ==============================================================================
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_unidades}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### CREAR NUEVA UNIDAD
+POST {{baseUrl_unidades}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "codigo": "UND2",
+    "codigo_sin": 58,
+    "unidad": "UNIDAD2"
+}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_unidades}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ACTUALIZAR UNIDAD
+# ==============================================================================
+
+### ACTUALIZAR CÓDIGO
+PATCH {{baseUrl_unidades}}/44
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "codigo": "UND5"
+}
+
+### ACTUALIZAR UNIDAD
+PATCH {{baseUrl_unidades}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "unidad": "UNIDAD ACTUALIZADA"
+}
+
+### ACTUALIZAR CÓDIGO SIN
+PATCH {{baseUrl_unidades}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "codigo_sin": 10
+}
+
+### ACTUALIZAR MÚLTIPLES CAMPOS
+PATCH {{baseUrl_unidades}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "codigo": "UPD",
+    "codigo_sin": 20,
+    "unidad": "UNIDAD MODIFICADA"
+}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_unidades}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ELIMINAR UNIDAD (Soft Delete)
+# ==============================================================================
+
+### ELIMINAR UNIDAD (ACTIVO → BORRADO)
+DELETE {{baseUrl_unidades}}/44
+Authorization: Bearer {{authToken}}
+
+### ELIMINAR UNIDAD CON ID 1 (Debería dar error - Registro comodín)
+DELETE {{baseUrl_unidades}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de estado)
+# ==============================================================================
+
+### ARCHIVAR UNIDAD (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_unidades}}/42/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR UNIDAD (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_unidades}}/43/desarchivar
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CASOS DE USO COMBINADOS (Escenarios reales)
+# ==============================================================================
+
+### 1. Buscar unidades activas que contengan "UNIDAD", ordenadas por nombre, página 1
+GET {{baseUrl_unidades}}?estado_id=1000&q=UNIDAD&sortField=unidad&sortOrder=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 2. Buscar unidades activas por código exacto
+GET {{baseUrl_unidades}}?estado_id=1000&q=UND&exactMatch=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### 3. Buscar unidades activas por código SIN
+GET {{baseUrl_unidades}}?estado_id=1000&q=01&sortField=unidad_id&sortOrder=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### 4. Listar todas las unidades históricas, ordenadas por fecha de registro descendente
+GET {{baseUrl_unidades}}?estado_id=1002&sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 5. Listar unidades activas ordenadas por código (para combos)
+GET {{baseUrl_unidades}}?estado_id=1000&sortField=codigo&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 6. Listar unidades activas ordenadas por unidad (para combos)
+GET {{baseUrl_unidades}}?estado_id=1000&sortField=unidad&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 7. Listar unidades activas ordenadas por código SIN (para combos)
+GET {{baseUrl_unidades}}?estado_id=1000&sortField=codigosin&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 8. Buscar unidades por código parcial "UNI" (búsqueda flexible)
+GET {{baseUrl_unidades}}?q=UNI&exactMatch=0&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### 9. Obtener unidad con ID 1 (NINGUNO - Registro comodín)
+GET {{baseUrl_unidades}}/1
+Authorization: Bearer {{authToken}}
+
+### 10. Listar todas las unidades activas
+GET {{baseUrl_unidades}}?estado_id=1000&sortField=unidad_id&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 11. Buscar unidades con código que comience con "K"
+GET {{baseUrl_unidades}}?estado_id=1000&q=K&sortField=codigo&sortOrder=1&limit=10
+Authorization: Bearer {{authToken}}
+
+### 12. Buscar unidades activas con unidad que contenga "LITRO"
+GET {{baseUrl_unidades}}?estado_id=1000&q=LITRO&exactMatch=0
+Authorization: Bearer {{authToken}}
+
+### 13. Listar unidades activas con paginación y orden por unidad
+GET {{baseUrl_unidades}}?estado_id=1000&sortField=unidad&sortOrder=1&offset=0&limit=20
+Authorization: Bearer {{authToken}}
+
+### 14. Buscar unidades por código SIN exacto
+GET {{baseUrl_unidades}}?estado_id=1000&q=01&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+### 15. Listar todas las unidades (incluyendo eliminadas)
+GET {{baseUrl_unidades}}?estado_id=1001
+Authorization: Bearer {{authToken}}

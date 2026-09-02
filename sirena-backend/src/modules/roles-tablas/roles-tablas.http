@@ -1,0 +1,145 @@
+// C:\sirena\sirena-backend\src\modules\roles-tablas\roles-tablas.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_roles_tablas = {{baseUrl}}/roles-tablas
+@baseUrl_roles = {{baseUrl}}/roles
+@baseUrl_tablas = {{baseUrl}}/tablas
+@baseUrl_constantes = {{baseUrl}}/constantes
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automatico.
+@authToken = {{login.response.body.token}}
+
+# ----------------------------------------------------------------------
+# ENDPOINTS DE ROLES-TABLAS
+# ----------------------------------------------------------------------
+
+### b. LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_roles}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR TODAS LAS TABLAS
+GET {{baseUrl_tablas}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR EVENTOS
+GET {{baseUrl_constantes}}?tipo=evento_id
+Authorization: Bearer {{authToken}}
+
+# ----------------------------------------------------------------------
+# ENDPOINTS DE ROLES-TABLAS
+# ----------------------------------------------------------------------
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_roles_tablas}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_roles_tablas}}?estado_id=1000&usuario_id=2
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_roles_tablas}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+# ----------------------------------------------------------------------
+# BUSCAR
+# ----------------------------------------------------------------------
+
+### BÚSQUEDA GLOBAL (Por tabla, rol o código de rol)
+GET {{baseUrl_roles_tablas}}?estado_id=1000&q=usuarios
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA GLOBAL (Por tabla, rol o código de rol)
+GET {{baseUrl_roles_tablas}}?estado_id=1000&usuario_id=2
+Authorization: Bearer {{authToken}}
+
+# ----------------------------------------------------------------------
+# PAGINACION
+# ----------------------------------------------------------------------
+
+### LISTAR CON PAGINACIÓN Y FILTRO POR ROL
+GET {{baseUrl_roles_tablas}}?estado_id=1000&rol_id=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### LISTAR CON ORDENAMIENTO (Ascendente por tabla)
+GET {{baseUrl_roles_tablas}}?estado_id=1000&offset=0&limit=5&sortField=tabla&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### OBTENER UN PERMISO POR ID
+GET {{baseUrl_roles_tablas}}/2
+Authorization: Bearer {{authToken}}
+
+
+### b. LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_roles}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR TODAS LAS TABLAS
+GET {{baseUrl_tablas}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR CON ORDENAMIENTO (Ascendente por tabla)
+GET {{baseUrl_roles_tablas}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### CREAR UN NUEVO PERMISO DE ROL POR TABLA
+POST {{baseUrl_roles_tablas}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "rol_id": 13,
+    "tabla": "kardex",
+    "leer": 1,
+    "crear": 1,
+    "editar": 1,
+    "eliminar": 0,
+    "anular": 1,
+    "archivar": 0,
+    "desarchivar": 0,
+    "eventos_permitidos": {
+        "crear": [1050, 1051, 1052],
+        "editar": [1050, 1051],
+        "anular": [10554]
+    }
+}
+
+### ACTUALIZAR UN PERMISO DE ROL POR TABLA
+PATCH {{baseUrl_roles_tablas}}/12
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "eliminar": 1,
+    "eventos_permitidos": {
+        "crear": [1050, 1051, 1052],
+        "anular": [1055]
+    }
+}
+
+### ARCHIVAR UN PERMISO (Cambiar a estado HISTÓRICO)
+PATCH {{baseUrl_roles_tablas}}/1/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR UN PERMISO (Cambiar a estado ACTIVO)
+PATCH {{baseUrl_roles_tablas}}/1/desarchivar
+Authorization: Bearer {{authToken}}
+
+### ELIMINAR UN PERMISO (Cambiar a estado BORRADO)
+DELETE {{baseUrl_roles_tablas}}/325
+Authorization: Bearer {{authToken}}
+

@@ -1,0 +1,315 @@
+# C:\sirena\sirena-backend\src\modules\empresas\empresas.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_empresas = {{baseUrl}}/empresas
+@baseUrl_parametros = {{baseUrl}}/parametros-globales
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automatico.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# ENDPOINT EXTRAS
+# ==============================================================================
+
+### OBTENER PARÁMETRO POR ID
+GET {{baseUrl_parametros}}/33
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR EMPRESAS (GET)
+# ==============================================================================
+
+### LISTAR TODAS (Activos + Históricos por defecto)
+GET {{baseUrl_empresas}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_empresas}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO BORRADOS (1001)
+GET {{baseUrl_empresas}}?estado_id=1001
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO HISTÓRICOS (1002)
+GET {{baseUrl_empresas}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BÚSQUEDA FLEXIBLE (contiene la palabra)
+GET {{baseUrl_empresas}}?q=SALUD
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 15
+GET {{baseUrl_empresas}}?offset=0&limit=16
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 16 al 31
+GET {{baseUrl_empresas}}?offset=16&limit=16
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de estado
+GET {{baseUrl_empresas}}?estado_id=1000&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### Paginación con búsqueda
+GET {{baseUrl_empresas}}?estado_id=1000&offset=0&limit=2&q=SALUD
+Authorization: Bearer {{authToken}}
+
+### Últimos 10 registros
+GET {{baseUrl_empresas}}?offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR NOMBRE (Ascendente)
+GET {{baseUrl_empresas}}?sortField=empresa&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR NOMBRE (Descendente)
+GET {{baseUrl_empresas}}?sortField=nombre&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_empresas}}?sortField=empresa_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR CÓDIGO (Ascendente)
+GET {{baseUrl_empresas}}?sortField=codigo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR REPRESENTANTE (Ascendente)
+GET {{baseUrl_empresas}}?sortField=representante&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA REGISTRO (Más recientes primero)
+GET {{baseUrl_empresas}}?sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR LUGAR (Ascendente)
+GET {{baseUrl_empresas}}?sortField=ubicacion&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR + FILTRO + PAGINACIÓN
+GET {{baseUrl_empresas}}?estado_id=1000&sortField=nombre&sortOrder=1&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER EMPRESA POR ID
+GET {{baseUrl_empresas}}/2
+Authorization: Bearer {{authToken}}
+
+### Obtener empresa específica (NINGUNA)
+GET {{baseUrl_empresas}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD EMPRESA
+# ==============================================================================
+
+# Definir variable al inicio del archivo
+@logo_path = C:/sirena/sirena-backend/uploads/logos/logo-empresa1.png
+
+### 1. SUBIR LOGO
+POST {{baseUrl_empresas}}/upload-logo
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="logo-empresa1.png"
+Content-Type: image/png
+
+< {{logo_path}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### 2. CREAR EMPRESA CON EL FILENAME DEVUELTO
+POST {{baseUrl_empresas}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "empresa": "DROGUERIA INTI S.A. No. 35",
+    "codigo": "8201",
+    "logo": "logo1.png",
+    "eslogan": "CALIDAD Y CONFIANZA TODOS",
+    "descripcion": "Distribución de medicamentos",
+    "lugar": "EL ALTO - BOLIVIA",
+    "representante": "CARLOS MAMANI QUISPE",
+    "direccion": "AV. JUAN PABLO II NRO. 1500",
+    "telefono": "2255414",
+    "email": "contacto@inti.com.bo",
+    "matricula_comercio": "M-7909011"
+}
+
+### 10. Obtener empresa con ID 1 (NINGUNA - Registro comodín)
+GET {{baseUrl_empresas}}/3
+Authorization: Bearer {{authToken}}
+
+
+### LISTAR TODAS (Activos + Históricos por defecto)
+GET {{baseUrl_empresas}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ACTUALIZAR EMPRESA
+# ==============================================================================
+
+### ACTUALIZAR TODOS LOS CAMPOS
+PATCH {{baseUrl_empresas}}/3
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "empresa": "FARMACIA SALUD Y VIDA S.A. B",
+    "codigo": "321",
+    "eslogan": "SALUD PARA TODOS BUENOS",
+    "descripcion": "Cadena de farmacias",
+    "lugar": "ORURO - BOLIVIA",
+    "representante": "JUAN PEREZ GARCIA",
+    "direccion": "AV. ARCE NRO. 2105, SOPOCACHI, BENI",
+    "telefono": "22441122",
+    "email": "info@saludyvida.com.bo",
+    "matricula_comercio": "M-356992"
+}
+
+### ACTUALIZAR TODOS LOS CAMPOS
+PATCH {{baseUrl_empresas}}/3
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "telefono": "22441122",
+    "email": "info@saludyvida.com.bo",
+    "matricula_comercio": "M-35698222"
+}
+
+### LISTAR TODAS (Activos + Históricos por defecto)
+GET {{baseUrl_empresas}}/2
+Authorization: Bearer {{authToken}}
+
+### ACTUALIZAR SOLO UN CAMPO
+PATCH {{baseUrl_empresas}}/2
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "empresa": "FARMACIA SALUD Y VIDA S.A. A",
+    "codigo": "320",
+    "eslogan": "TU SALUD ES NUESTRA PRIORIDAD PARA TODOS",
+    "descripcion": "Cadena de farmacias",
+    "lugar": "BENI - BOLIVIA"
+}
+
+### ACTUALIZAR LOGO (Cambiar imagen)
+PATCH {{baseUrl_empresas}}/19
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "codigo": "6662",
+    "eslogan": "MENTE2"
+}
+
+### ACTUALIZAR LOGO (Cambiar imagen)
+PATCH {{baseUrl_empresas}}/19
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "logo": "logo1.png"
+}
+
+# ==============================================================================
+# ELIMINAR EMPRESA (Soft Delete)
+# ==============================================================================
+
+### ELIMINAR EMPRESA (ACTIVO → BORRADO)
+DELETE {{baseUrl_empresas}}/8
+Authorization: Bearer {{authToken}}
+
+### ELIMINAR EMPRESA CON DEPENDENCIAS (Debería dar error)
+DELETE {{baseUrl_empresas}}/6
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de estado)
+# ==============================================================================
+
+### ARCHIVAR EMPRESA (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_empresas}}/6/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR EMPRESA (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_empresas}}/6/desarchivar
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CASOS DE USO COMBINADOS (Escenarios reales)
+# ==============================================================================
+
+### 1. Buscar empresas activas que contengan "FARMACIA", ordenadas por nombre
+GET {{baseUrl_empresas}}?estado_id=1000&q=FARMACIA&sortField=nombre&sortOrder=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 2. Buscar empresas activas por código "309"
+GET {{baseUrl_empresas}}?estado_id=1000&codigo=309&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### 3. Listar todas las empresas históricas, ordenadas por fecha de registro descendente
+GET {{baseUrl_empresas}}?estado_id=1002&sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### 4. Buscar empresas activas por representante "JUAN"
+GET {{baseUrl_empresas}}?estado_id=1000&q=JUAN&sortField=representante&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 5. Listar empresas activas ordenadas por nombre (para combos)
+GET {{baseUrl_empresas}}?estado_id=1000&sortField=empresa_id&sortOrder=-1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 6. Listar empresas activas ordenadas por código (para combos)
+GET {{baseUrl_empresas}}?estado_id=1000&sortField=codigo&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+### 7. Buscar empresas por ubicación (La Paz)
+GET {{baseUrl_empresas}}?estado_id=1000&lugar=LA PAZ&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### 8. Buscar empresas por email
+GET {{baseUrl_empresas}}?estado_id=1000&email=central@saludyvida.com.bo
+Authorization: Bearer {{authToken}}
+
+### 9. Listar empresas con matrícula de comercio
+GET {{baseUrl_empresas}}?estado_id=1000&matricula_comercio=M-356981
+Authorization: Bearer {{authToken}}
+
+### 10. Obtener empresa con ID 1 (NINGUNA - Registro comodín)
+GET {{baseUrl_empresas}}/10
+Authorization: Bearer {{authToken}}

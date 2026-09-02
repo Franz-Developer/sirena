@@ -1,0 +1,237 @@
+# C:\sirena\sirena-backend\src\modules\constantes\constantes.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_constantes = {{baseUrl}}/constantes
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# Se debe presionar primero.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+# No se debe presionar es automatico.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# LISTAR CONSTANTES (GET)
+# ==============================================================================
+
+### LISTAR TODAS LAS CONSTANTES (Todos los tipos)
+GET {{baseUrl_constantes}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: ESTADOS
+GET {{baseUrl_constantes}}?tipo=estado_id
+Authorization: Bearer {{authToken}}
+
+### &sortField=abreviatura&sortOrder=1
+
+### LISTAR POR TIPO
+GET {{baseUrl_constantes}}?tipo=estado_id&sortField=abreviatura&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+
+### LISTAR POR TIPO
+GET {{baseUrl_constantes}}?tipo=tipo_moneda_id&sortField=abreviatura&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO
+GET {{baseUrl_constantes}}?tipo=genero_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO
+GET {{baseUrl_constantes}}?tipo=estado_civil_masculino_id&sortField=abreviatura&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO
+GET {{baseUrl_constantes}}?tipo=estado_civil_femenino_id
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BÚSQUEDA FLEXIBLE (contiene la palabra)
+GET {{baseUrl_constantes}}?q=ACTIVO
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por abreviatura
+GET {{baseUrl_constantes}}?q=BOB
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por descripción
+GET {{baseUrl_constantes}}?q=venta
+Authorization: Bearer {{authToken}}
+
+### Búsqueda exacta (palabra completa)
+GET {{baseUrl_constantes}}?q=BOLIVIANO
+Authorization: Bearer {{authToken}}
+
+### Búsqueda con estado específico
+GET {{baseUrl_constantes}}?q=ACTIVO
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTRO POR ID
+# ==============================================================================
+
+### OBTENER CONSTANTE POR ID (Estado ACTIVO = 1000)
+GET {{baseUrl_constantes}}?id=1000
+Authorization: Bearer {{authToken}}
+
+### OBTENER CONSTANTE POR ID (Moneda BOLIVIANO = 2300)
+GET {{baseUrl_constantes}}?id=2300
+Authorization: Bearer {{authToken}}
+
+### OBTENER CONSTANTE POR ID (Género MASCULINO = 1200)
+GET {{baseUrl_constantes}}?id=1200
+Authorization: Bearer {{authToken}}
+
+### OBTENER CONSTANTE POR ID (Tipo Pago EFECTIVO = 1401)
+GET {{baseUrl_constantes}}?id=1401
+Authorization: Bearer {{authToken}}
+
+### OBTENER CONSTANTE POR ID (Evento COMPRA = 1050)
+GET {{baseUrl_constantes}}?id=1050
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 15
+GET {{baseUrl_constantes}}?offset=0&limit=16
+Authorization: Bearer {{authToken}}
+
+### PÁGINA 2: Registros 16 al 31
+GET {{baseUrl_constantes}}?offset=16&limit=16
+Authorization: Bearer {{authToken}}
+
+### Paginación con filtro de tipo
+GET {{baseUrl_constantes}}?tipo=estado_id&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+### Paginación con búsqueda
+GET {{baseUrl_constantes}}?q=ACTIVO&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+### Últimos 10 registros
+GET {{baseUrl_constantes}}?offset=10&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR ID (Ascendente)
+GET {{baseUrl_constantes}}?sortField=id&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_constantes}}?sortField=id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ABREVIATURA (Ascendente)
+GET {{baseUrl_constantes}}?sortField=abreviatura&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ABREVIATURA (Descendente)
+GET {{baseUrl_constantes}}?sortField=abreviatura&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR DESCRIPCIÓN (Ascendente)
+GET {{baseUrl_constantes}}?sortField=descripcion&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR VALOR (Ascendente)
+GET {{baseUrl_constantes}}?sortField=valor&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR + FILTRO + PAGINACIÓN
+GET {{baseUrl_constantes}}?tipo=estados&sortField=id&sortOrder=1&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ENDPOINTS HELPER (Ata jos para el frontend)
+# ==============================================================================
+
+### OBTENER TIPOS DE CONSTANTES DISPONIBLES
+GET {{baseUrl_constantes}}/tipos
+Authorization: Bearer {{authToken}}
+
+### OBTENER TODOS LOS ESTADOS
+GET {{baseUrl_constantes}}/estados
+Authorization: Bearer {{authToken}}
+
+### OBTENER TODAS LAS MONEDAS
+GET {{baseUrl_constantes}}/monedas
+Authorization: Bearer {{authToken}}
+
+### OBTENER TODOS LOS GÉNEROS
+GET {{baseUrl_constantes}}/generos
+Authorization: Bearer {{authToken}}
+
+### OBTENER TODOS LOS TIPOS DE PAGO
+GET {{baseUrl_constantes}}/tipos-pago
+Authorization: Bearer {{authToken}}
+
+### OBTENER TODOS LOS TIPOS DE VENTA
+GET {{baseUrl_constantes}}/tipos-venta
+Authorization: Bearer {{authToken}}
+
+### OBTENER TODOS LOS TIPOS DE DOCUMENTO
+GET {{baseUrl_constantes}}/tipos-documento
+Authorization: Bearer {{authToken}}
+
+### OBTENER TODOS LOS EVENTOS
+GET {{baseUrl_constantes}}/eventos
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CASOS DE USO COMBINADOS (Escenarios reales)
+# ==============================================================================
+
+### 1. Obtener todos los estados ACTIVOS (para combos)
+GET {{baseUrl_constantes}}?tipo=estado_id&sortField=id&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 2. Obtener todas las monedas ACTIVAS (para combos)
+GET {{baseUrl_constantes}}?tipo=monedas&sortField=id&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 3. Obtener todos los tipos de pago ACTIVOS (para combos)
+GET {{baseUrl_constantes}}?tipo=tipos_pago&sortField=id&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 4. Obtener todos los eventos (para combos)
+GET {{baseUrl_constantes}}?tipo=eventos&sortField=abreviatura&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 5. Buscar constantes que contengan "ACTIVO" en abreviatura o descripción
+GET {{baseUrl_constantes}}?q=ACTIVO&sortField=id&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 6. Obtener los 10 primeros estados
+GET {{baseUrl_constantes}}?tipo=estado_id&offset=0&limit=10&sortField=id&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### 7. Obtener todas las constantes ordenadas por abreviatura (para búsquedas)
+GET {{baseUrl_constantes}}?sortField=abreviatura&sortOrder=1&limit=100
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# TIPOS DE UBICACION
+# ==============================================================================
+
+### UBICACIONES
+GET {{baseUrl_constantes}}/tipos-ubicacion
+Authorization: Bearer {{authToken}}

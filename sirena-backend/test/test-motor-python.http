@@ -1,0 +1,64 @@
+﻿### Health Check - verifica el estado del motor Python (FastAPI) que ejecuta los modelos ARIMA/SARIMA.
+GET http://localhost:8000/health
+
+### Predecir demanda
+POST http://localhost:8000/predict
+Content-Type: application/json
+
+{
+  "producto_id": 2,
+  "sucursal_id": 2,
+  "horizonte_dias": 7
+}
+
+### Entrenar modelo
+POST http://localhost:8000/train
+Content-Type: application/json
+
+{
+  "producto_id": 2,
+  "sucursal_id": 2
+}
+
+### Predecir con ARIMA/SARIMA
+POST http://localhost:8000/predict
+Content-Type: application/json
+
+{
+  "producto_id": 2,
+  "sucursal_id": 2,
+  "horizonte_dias": 7
+}
+
+### Predecir con ARIMA/SARIMA
+POST http://localhost:8000/predict
+Content-Type: application/json
+
+{
+  "producto_id": 2,
+  "sucursal_id": 2,
+  "horizonte_dias": 7,
+  "nivel_confianza": 95
+}
+
+### Validar predicciones
+POST http://localhost:8000/validate
+Content-Type: application/json
+
+{
+  "producto_id": 2,
+  "sucursal_id": 2,
+  "dias": 30
+}
+
+
+### Validar todos los productos pendientes
+POST http://localhost:8000/validate/all?dias=30
+
+### Actualizar alertas de inventario
+POST http://localhost:8000/validate/alerts
+
+### Limpiar alertas resueltas
+POST http://localhost:8000/validate/clean
+
+
