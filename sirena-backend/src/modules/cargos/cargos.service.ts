@@ -132,21 +132,15 @@ export class CargosService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dto = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dto,
                 FindCargosQueryDto.getDependencias(),
-                this.campoPK
+                FindCargosQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindCargosQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dto) {
-                        delete (dto as any)[campo];
-                    }
-                });
-            }
 
             const validaciones: Promise<any>[] = [];
 

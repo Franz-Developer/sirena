@@ -9,9 +9,8 @@
 	R.G.5: Documentación de Reglas Particulares: Toda tabla debe documentar sus reglas particulares empezando en R.1, evitando duplicar reglas generales, omitiendo redundancias de restricciones CHECK autoexplicativas y detallando la diferencia entre códigos, ambigüedades lógicas y contenidos de códigos QR o archivos.
 	R.G.6: Archivos dependientes por defecto: El backend valida obligatoriamente la existencia física de archivos dependientes asociados al registro con pk_id = 1 o valores por defecto. Si faltan, el frontend emite una alarma e impide el acceso al módulo correspondiente.
 	R.G.8: Nomenclatura de Archivos Dependientes: Los campos que almacenan nombres de archivos adjuntos o avatares deben tipificarse como VARCHAR(255) y su nomenclatura se genera estrictamente en el backend bajo el patrón: {timestamp}-{random}.{extension}.';
-	R.G.9: Todas las tablas deben tener FULL-TEXT SEARCH para todos los campos que sean texto 
-
-		
+	
+	
 	SELECT
 		datname AS base_datos,
 		description AS reglas_generales_arquitectura
@@ -79,7 +78,7 @@ BEGIN
         p_tabla, p_pk_campo
     );
 
-    EXECUTE v_sql INTO v_login USING p_pk_id;
+EXECUTE v_sql INTO v_login USING p_pk_id;
     
     RETURN v_login;
 END;
@@ -819,14 +818,15 @@ CREATE TABLE roles (
     rol VARCHAR(60) NOT NULL,
     codigo VARCHAR(60) NOT NULL,
 	descripcion VARCHAR(500) NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	es_admin SMALLINT NOT NULL DEFAULT 0,
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
     fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMPTZ NULL,
     fecha_baja TIMESTAMPTZ NULL,
-    CONSTRAINT chk_roles_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_roles_estadoid CHECK (estado_id IN (1000, 1001)),
     CONSTRAINT chk_roles_codigo_notempty CHECK (TRIM(codigo) <> ''),
     CONSTRAINT chk_roles_codigo_minlength CHECK (LENGTH(TRIM(codigo)) >= 3),
     CONSTRAINT chk_roles_codigo_mayusculas CHECK (codigo = UPPER(codigo)),
@@ -836,8 +836,9 @@ CREATE TABLE roles (
     CONSTRAINT chk_roles_rol_mayusculas CHECK (rol = UPPER(rol)),
     CONSTRAINT chk_roles_descripcion_notempty CHECK (descripcion IS NULL OR TRIM(descripcion) <> '')
 );
-CREATE UNIQUE INDEX uix_roles_codigo_unique ON roles (codigo) WHERE estado_id IN (1000, 1002);
-CREATE UNIQUE INDEX uix_roles_rol_unique ON roles (rol) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_roles_unico_admin ON roles (es_admin) WHERE es_admin = 1 AND estado_id = 1000;
+CREATE UNIQUE INDEX uix_roles_codigo_unique ON roles (codigo) WHERE estado_id = 1000;
+CREATE UNIQUE INDEX uix_roles_rol_unique ON roles (rol) WHERE estado_id = 1000;
 
 COMMENT ON TABLE roles IS 'Reglas de la tabla - roles
 R.0: La tabla roles define los perfiles de acceso y autorización dentro del sistema, estableciendo las categorías jerárquicas de usuarios (Administrador, Gerente, Vendedor). Su propósito es estructurar el modelo de seguridad y control de acceso basado en roles (RBAC), simplificando la gestión de permisos al agrupar operaciones y menús bajo un único perfil que se asigna a los usuarios, garantizando que cada operador tenga acceso únicamente a las funcionalidades pertinentes a su función.
@@ -892,10 +893,64 @@ R.6: Un usuario no se puede BORRAR solo se cambia a HISTORICO';
 
 -- ================================================================================================
 
-CREATE TABLE roles_tablas (
-    rol_tabla_id BIGSERIAL PRIMARY KEY,
-    rol_id BIGINT NOT NULL DEFAULT 1,
-    tabla VARCHAR(100) NOT NULL DEFAULT '',
+CREATE TABLE tablas (
+    tabla_id BIGSERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO
+    usuario_id_registro BIGINT NOT NULL DEFAULT 1,
+    usuario_id_actualizacion BIGINT NULL,
+    usuario_id_baja BIGINT NULL,
+    fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMPTZ NULL,
+    fecha_baja TIMESTAMPTZ NULL,
+    CONSTRAINT chk_tablas_estadoid CHECK (estado_id IN (1000, 1001)),
+    CONSTRAINT chk_tablas_nombre_notempty CHECK (TRIM(nombre) <> ''),
+    CONSTRAINT chk_tablas_nombre_formato CHECK (nombre = LOWER(TRIM(nombre)) AND nombre ~ '^[a-z][a-z0-9_]*$')
+);
+CREATE UNIQUE INDEX uix_tablas_nombre_unique ON tablas (nombre) WHERE estado_id = 1000;
+CREATE INDEX idx_tablas_estado ON tablas (estado_id) WHERE estado_id = 1000;
+
+COMMENT ON TABLE tablas IS 'Reglas de la tabla - tablas
+R.0: La tabla tablas define los nombres de las tablas que pertenecen a la base de datos del sistema.';
+
+-- ================================================================================================
+
+CREATE TABLE sucesos (
+    suceso_id INT PRIMARY KEY,
+    tabla_id BIGINT NOT NULL,
+    codigo VARCHAR(15) NOT NULL,
+    suceso VARCHAR(30) NOT NULL,
+    descripcion VARCHAR(200) NOT NULL,
+    estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO
+    usuario_id_registro BIGINT NOT NULL DEFAULT 1,
+    usuario_id_actualizacion BIGINT NULL,
+    usuario_id_baja BIGINT NULL,
+    fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMPTZ NULL,
+    fecha_baja TIMESTAMPTZ NULL,
+    CONSTRAINT fk_sucesos_tabla FOREIGN KEY (tabla_id) REFERENCES tablas(tabla_id),
+    CONSTRAINT chk_suceso_estadoid CHECK (estado_id IN (1000, 1001)),
+    CONSTRAINT chk_sucesos_codigo_notempty CHECK (TRIM(codigo) <> ''),
+    CONSTRAINT chk_sucesos_codigo_minlength CHECK (LENGTH(TRIM(codigo)) >= 3),
+    CONSTRAINT chk_sucesos_codigo_mayusculas CHECK (codigo = UPPER(codigo)),
+    CONSTRAINT chk_sucesos_codigo_formato CHECK (codigo ~ '^[A-Z0-9_-]+$'),
+    CONSTRAINT chk_sucesos_suceso_not_empty CHECK (TRIM(suceso) <> ''),
+    CONSTRAINT chk_sucesos_suceso_minlength CHECK (LENGTH(TRIM(suceso)) >= 3),
+    CONSTRAINT chk_sucesos_suceso_mayusculas CHECK (suceso = UPPER(suceso)),
+    CONSTRAINT chk_sucesos_descripcion_notempty CHECK (TRIM(descripcion) <> '')
+);
+CREATE UNIQUE INDEX uix_sucesos_codigo_unique ON sucesos (codigo) WHERE estado_id = 1000;
+CREATE UNIQUE INDEX uix_sucesos_suceso_unique ON sucesos (suceso) WHERE estado_id = 1000;
+
+COMMENT ON TABLE sucesos IS 'Reglas de la tabla - sucesos
+R.0: La tabla sucesos define los nombres de los eventos.';
+
+-- ================================================================================================
+
+CREATE TABLE roles_permisos_tablas (
+    rol_permiso_tabla_id BIGSERIAL PRIMARY KEY,
+    rol_id BIGINT NOT NULL,
+    tabla_id BIGINT NOT NULL,
     leer SMALLINT NOT NULL DEFAULT 0,
     crear SMALLINT NOT NULL DEFAULT 0,
     editar SMALLINT NOT NULL DEFAULT 0,
@@ -903,39 +958,51 @@ CREATE TABLE roles_tablas (
     anular SMALLINT NOT NULL DEFAULT 0,
     archivar SMALLINT NOT NULL DEFAULT 0,
     desarchivar SMALLINT NOT NULL DEFAULT 0,
-    eventos_permitidos JSONB NOT NULL DEFAULT '{}'::jsonb,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO
+    estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
     fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMPTZ NULL,
     fecha_baja TIMESTAMPTZ NULL,
-    CONSTRAINT fk_rolestablas_rol_id FOREIGN KEY (rol_id) REFERENCES roles(rol_id),
-    CONSTRAINT chk_rolestablas_estadoid CHECK (estado_id IN (1000, 1001)),
-    CONSTRAINT chk_rolestablas_leer CHECK (leer IN (0, 1)),
-    CONSTRAINT chk_rolestablas_crear CHECK (crear IN (0, 1)),
-    CONSTRAINT chk_rolestablas_editar CHECK (editar IN (0, 1)),
-    CONSTRAINT chk_rolestablas_eliminar CHECK (eliminar IN (0, 1)),
-    CONSTRAINT chk_rolestablas_anular CHECK (anular IN (0, 1)),
-    CONSTRAINT chk_rolestablas_archivar CHECK (archivar IN (0, 1)),
-    CONSTRAINT chk_rolestablas_desarchivar CHECK (desarchivar IN (0, 1)),
-    CONSTRAINT chk_rolestablas_tabla_notempty CHECK (TRIM(tabla) <> ''),
-    CONSTRAINT chk_rolestablas_tabla_formato CHECK (tabla = LOWER(TRIM(tabla))AND tabla ~ '^[a-z][a-z0-9_]*$'),
-    CONSTRAINT chk_rolestablas_eventos_objeto CHECK (jsonb_typeof(eventos_permitidos) = 'object')
+    CONSTRAINT fk_rpt_rol FOREIGN KEY (rol_id) REFERENCES roles(rol_id),
+    CONSTRAINT fk_rpt_tabla FOREIGN KEY (tabla_id) REFERENCES tablas(tabla_id),
+    CONSTRAINT chk_rpt_estado CHECK (estado_id IN (1000, 1001)),
+    CONSTRAINT chk_rpt_leer CHECK (leer IN (0, 1)),
+    CONSTRAINT chk_rpt_crear CHECK (crear IN (0, 1)),
+    CONSTRAINT chk_rpt_editar CHECK (editar IN (0, 1)),
+    CONSTRAINT chk_rpt_eliminar CHECK (eliminar IN (0, 1)),
+    CONSTRAINT chk_rpt_anular CHECK (anular IN (0, 1)),
+    CONSTRAINT chk_rpt_archivar CHECK (archivar IN (0, 1)),
+    CONSTRAINT chk_rpt_desarchivar CHECK (desarchivar IN (0, 1)),
+    CONSTRAINT chk_rpt_no_vacio CHECK (
+        leer = 1 OR crear = 1 OR editar = 1 OR
+        eliminar = 1 OR anular = 1 OR archivar = 1 OR
+        desarchivar = 1
+    )
 );
-CREATE UNIQUE INDEX uix_rolestablas_activo ON roles_tablas (rol_id, tabla) WHERE estado_id = 1000;
-CREATE INDEX idx_rolestablas_rol ON roles_tablas (rol_id) WHERE estado_id = 1000;
-
-COMMENT ON TABLE roles_tablas IS 'Reglas de la tabla - roles_tablas
-R.0: La tabla roles_tablas define los permisos granulares que cada rol tiene sobre cada tabla del sistema.
-R.1: Los permisos operativos generales son leer, crear, editar y eliminar sobre las tablas asignadas.
-R.2: El rol ADMINISTRADOR (rol_id=2) tiene todos los permisos operativos generales sobre todas las tablas. Las acciones críticas de anular, archivar y desarchivar se restringen estrictamente a kardex, ordenes_compra y control_facturas, y ÚNICAMENTE pueden ser ejecutadas por los roles ADMINISTRADOR (2) y ENCARGADO DE SUCURSAL (4).
-R.3: El rol GERENTE (rol_id=3) solo tiene permisos de lectura (leer=1) sobre todas las tablas.
-R.4: El rol ENCARGADO DE SUCURSAL (rol_id=4) posee esquema operativo completo, con anulación, archivo y desarchivo restringidos exclusivamente a kardex, ordenes_compra y control_facturas (compartiendo exclusividad con el Administrador). El acotamiento por sucursal se valida en la lógica de negocio.
-R.5: La tabla kardex maneja múltiples eventos de negocio cuya autorización fina se valida en JSONB mediante eventos_permitidos.';
+CREATE UNIQUE INDEX uix_rpt_unique ON roles_permisos_tablas (rol_id, tabla_id) WHERE estado_id = 1000;
 
 -- ================================================================================================
+ 
+CREATE TABLE roles_permisos_sucesos (
+    rol_permiso_suceso_id BIGSERIAL PRIMARY KEY,
+    rol_permiso_tabla_id BIGINT NOT NULL DEFAULT 1,
+    suceso_id INT NOT NULL DEFAULT 1,
+    estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO
+    usuario_id_registro BIGINT NOT NULL DEFAULT 1,
+    usuario_id_actualizacion BIGINT NULL,
+    usuario_id_baja BIGINT NULL,
+    fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMPTZ NULL,
+    fecha_baja TIMESTAMPTZ NULL,
+    CONSTRAINT fk_rps_permiso_id FOREIGN KEY (rol_permiso_tabla_id) REFERENCES roles_permisos_tablas(rol_permiso_tabla_id),
+    CONSTRAINT fk_rps_suceso_id FOREIGN KEY (suceso_id) REFERENCES sucesos(suceso_id),
+    CONSTRAINT chk_rps_estado CHECK (estado_id IN (1000, 1001))
+);
+CREATE UNIQUE INDEX uix_rps_unique ON roles_permisos_sucesos (rol_permiso_tabla_id, suceso_id) WHERE estado_id = 1000;
+
+ -- ================================================================================================
  
 CREATE TABLE menus (
     menu_id BIGSERIAL PRIMARY KEY,
@@ -1014,9 +1081,6 @@ CREATE TABLE inventarios_fisicos (
     CONSTRAINT fk_inventariosfisicos_ubicacion_id FOREIGN KEY (ubicacion_id) REFERENCES ubicaciones(ubicacion_id),
     CONSTRAINT fk_inventariosfisicos_trabajador_resp FOREIGN KEY (trabajador_responsable_id) REFERENCES trabajadores(trabajador_id),
     CONSTRAINT fk_inventariosfisicos_trabajador_sup FOREIGN KEY (trabajador_supervisor_id) REFERENCES trabajadores(trabajador_id),
-    CONSTRAINT fk_inventariosfisicos_usuarioregistro_id FOREIGN KEY (usuario_id_registro) REFERENCES usuarios(usuario_id),
-    CONSTRAINT fk_inventariosfisicos_usuarioactualizacion_id FOREIGN KEY (usuario_id_actualizacion) REFERENCES usuarios(usuario_id),
-    CONSTRAINT fk_inventariosfisicos_usuariobaja_id FOREIGN KEY (usuario_id_baja) REFERENCES usuarios(usuario_id),
     CONSTRAINT chk_inventariosfisicos_estadoid CHECK (estado_id IN (1000, 1001)),
     CONSTRAINT chk_inventariosfisicos_observaciones_notempty CHECK (observaciones IS NULL OR TRIM(observaciones) <> ''),
     CONSTRAINT chk_inventariosfisicos_fechas CHECK (fecha_fin IS NULL OR fecha_fin >= fecha_inicio),
@@ -1495,6 +1559,7 @@ CREATE TABLE productos_vias (
     CONSTRAINT chk_productosvias_observaciones_notempty CHECK (observaciones IS NULL OR TRIM(observaciones) <> '')
 );
 CREATE UNIQUE INDEX uix_productosvias_varios_unique ON productos_vias (producto_id, via_id) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_productosvias_principal_unique ON productos_vias (producto_id) WHERE es_principal = 1 AND estado_id = 1000;
 CREATE INDEX idx_productosvias_viaid ON productos_vias (via_id) WHERE estado_id IN (1000, 1002);
 
 COMMENT ON TABLE productos_vias IS 'Reglas de la tabla - productos_vias
@@ -1573,10 +1638,9 @@ R.0: La tabla productos_rangos_edad es una relación polimórfica que asigna a u
 R.1: Esta tabla establece la relación entre productos y rangos de edad, permitiendo definir si un producto está contraindicado para un grupo etario específico, así como la dosis recomendada y observaciones particulares.
 R.2: El campo contraindicado con valor 1 (Sí) indica que el producto no debe ser dispensado a pacientes en ese rango de edad. Valor 0 (No) indica que el producto es seguro para ese rango etario.
 R.3: La combinación de producto_id y rango_edad_id debe ser única para registros activos o históricos, garantizando que no existan duplicados en las relaciones.
-R.4: El registro con producto_rango_edad_id = 1 actúa como registro comodín que relaciona el producto por defecto (producto_id = 1) con el rango de edad por defecto (rango_edad_id = 1), ambos en estado HISTORICO.
-R.5: El frontend debe consultar esta tabla para determinar si un producto puede ser dispensado a un paciente según su edad, mostrando advertencias visuales si el producto está contraindicado para ese rango etario.
-R.6: El campo dosis_recomendada almacena la dosis específica recomendada para el rango de edad, permitiendo personalizar la posología según el grupo etario del paciente.
-R.7: Al asociar un rango de edad a un producto, el sistema debe validar que tanto el producto como el rango de edad estén en estado ACTIVO (estado_id = 1000) y que no exista una relación previa duplicada.';
+R.4: El frontend debe consultar esta tabla para determinar si un producto puede ser dispensado a un paciente según su edad, mostrando advertencias visuales si el producto está contraindicado para ese rango etario.
+R.5: El campo dosis_recomendada almacena la dosis específica recomendada para el rango de edad, permitiendo personalizar la posología según el grupo etario del paciente.
+R.6: Al asociar un rango de edad a un producto, el sistema debe validar que tanto el producto como el rango de edad estén en estado ACTIVO (estado_id = 1000) y que no exista una relación previa duplicada.';
 
 -- ================================================================================================
 
@@ -1605,9 +1669,9 @@ CREATE INDEX idx_productosubicaciones_ubicacionid ON productos_ubicaciones (ubic
 COMMENT ON TABLE productos_ubicaciones IS 'Reglas de la tabla - productos_ubicaciones
 R.0: La tabla productos_ubicaciones mapea la ubicación física exacta de un producto dentro del almacén, definiendo la relación entre un producto y una coordenada espacial específica. Su propósito es habilitar una logística interna eficiente, optimizando las rutas de "picking" (prioridad) y controlando la capacidad máxima de almacenamiento por ubicación, lo que es esencial para la organización y el rápido despacho de mercadería.
 R.1: Separación Estricta de Responsabilidades: La tabla productos_ubicaciones delega la totalidad de la información geométrica y topológica del layout físico del almacén a la entidad ubicaciones, actuando únicamente como un nodo relacional que asocia existencias con coordenadas preestablecidas.
-R.2: Integridad Espacial Unívoca: Se implementa una restricción de unicidad mediante el índice uix_pru_producto_posicion_unica, impidiendo de forma categórica que un mismo producto posea múltiples asignaciones logísticas concurrentes hacia la misma llave física espacial en estado operacional activo.
+R.2: Integridad Espacial Unívoca: Se implementa una restricción de unicidad mediante el índice uix_productosubicaciones_varios_unique, impidiendo de forma categórica que un mismo producto posea múltiples asignaciones logísticas concurrentes hacia la misma llave física espacial en estado operacional activo e histórico.
 R.3: Optimización Algorítmica de Picking: El campo prioridad_picking rige de manera obligatoria el ordenamiento secuencial de las rutas automáticas de extracción generadas por el sistema (WMS), donde valores numéricos inferiores representan mayor prioridad de visitación o despacho inmediato.
-R.4: Registro Comodín de Consistencia Mínima: La tupla inicial con ID igual a 1 vincula de manera explícita el producto por defecto al registro comodín de ubicaciones en estado ''HISTORICO'', garantizando la resolución exitosa de operaciones previas a la diagramación oficial de los centros de distribución.';
+R.4: Registro Comodín de Consistencia Mínima: La tupla inicial con ID igual a 1 vincula de manera explícita el producto por defecto al registro comodín de ubicaciones en estado ACTIVO (estado_id = 1000), garantizando la resolución exitosa de operaciones previas a la diagramación oficial de los centros de distribución.';
 
 -- ================================================================================================
 
@@ -1631,7 +1695,8 @@ CREATE TABLE principios_activos (
     CONSTRAINT chk_principiosactivos_codigo_formato CHECK (codigo ~ '^[A-Z0-9_-]+$'),
     CONSTRAINT chk_principiosactivos_nombre_notempty CHECK (TRIM(nombre) <> ''),
     CONSTRAINT chk_principiosactivos_nombre_mayusculas CHECK (nombre = UPPER(nombre)),
-    CONSTRAINT chk_principiosactivos_escontrolado CHECK (es_controlado IN (0, 1))
+    CONSTRAINT chk_principiosactivos_escontrolado CHECK (es_controlado IN (0, 1)),
+	CONSTRAINT chk_principiosactivos_descripcion_notempty CHECK (descripcion IS NULL OR TRIM(descripcion) <> '')
 );
 CREATE UNIQUE INDEX uix_principiosactivos_codigo_unique ON principios_activos (codigo) WHERE estado_id IN (1000, 1002);
 CREATE UNIQUE INDEX uix_principiosactivos_nombre_unique ON principios_activos (nombre) WHERE estado_id IN (1000, 1002);
@@ -1662,15 +1727,14 @@ CREATE TABLE productos_principios (
     CONSTRAINT chk_productosprincipios_concentracion_notempty CHECK (TRIM(concentracion) <> ''),
     CONSTRAINT chk_productosprincipios_esprincipal CHECK (es_principal IN (0, 1))
 );
-CREATE UNIQUE INDEX uix_productosprincipios_varios_unique ON productos_principios (producto_id, principio_activo_id) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_productosprincipios_principal_unique ON productos_principios (producto_id) WHERE es_principal = 1 AND estado_id = 1000;
 CREATE INDEX idx_productosprincipios_principioactivoid ON productos_principios (principio_activo_id) WHERE estado_id IN (1000, 1002);
 
 COMMENT ON TABLE productos_principios IS 'Reglas de la tabla - productos_principios
 R.0: La tabla productos_principios es una relación polimórfica que asocia principios activos a un producto, permitiendo que un medicamento compuesto tenga múltiples sustancias activas. Su propósito es modelar la composición química de los productos, identificando el principio activo principal para su categorización médica y control, lo cual es fundamental para el cumplimiento regulatorio y la prescripción.
 R.1: es_principal (1 = Sí, 0 = No) identifica al principio activo principal de la fórmula. El backend valida que exista exactamente un registro con es_principal = 1 por producto en estado ACTIVO.
 R.2: Múltiples Principios Activos por Medicamento: La interfaz de usuario debe permitir asociar más de un principio activo a un mismo producto_id para dar soporte a medicamentos compuestos (multicomponentes o combinados), asegurando que el frontend obligue a marcar exactamente uno de ellos como el componente principal.
-R.3: Validación de Principio Activo Principal: Al insertar o actualizar registros en la tabla productos_principios, el backend debe validar que para cada producto_id exista exactamente uno y solo un registro con es_principal = 1 en estado ACTIVO. Si no existe ningún registro con es_principal = 1, el sistema debe rechazar la operación con el mensaje: "El producto debe tener al menos un principio activo marcado como principal (es_principal = 1)". Si existe más de un registro con es_principal = 1, el sistema debe rechazar la operación con el mensaje: "Un producto no puede tener más de un principio activo principal (es_principal = 1)". Esta validación aplica tanto para inserciones como para actualizaciones, incluyendo cambios de estado.
-R.4: Los campos ``foto1``, ``foto2`` y ``foto3`` almacenan las rutas de las imágenes del producto. Son opcionales y permiten hasta tres imágenes por producto. El backend controla la creación y el reemplazo de los archivos según la R.G.4.';
+R.3: Validación de Principio Activo Principal: Al insertar o actualizar registros en la tabla productos_principios, el backend debe validar que para cada producto_id exista exactamente uno y solo un registro con es_principal = 1 en estado ACTIVO. Si no existe ningún registro con es_principal = 1, el sistema debe rechazar la operación con el mensaje: "El producto debe tener al menos un principio activo marcado como principal (es_principal = 1)". Si existe más de un registro con es_principal = 1, el sistema debe rechazar la operación con el mensaje: "Un producto no puede tener más de un principio activo principal (es_principal = 1)". Esta validación aplica tanto para inserciones como para actualizaciones, incluyendo cambios de estado.';
 
 -- ================================================================================================
 
@@ -1697,6 +1761,7 @@ CREATE TABLE registros_sanitarios (
     CONSTRAINT chk_registrossanitarios_fechas CHECK (fecha_vencimiento > fecha_emision)
 );
 CREATE UNIQUE INDEX uix_registrossanitarios_productoid_unique ON registros_sanitarios (producto_id) WHERE estado_id = 1000;
+CREATE INDEX idx_registrossanitarios_codigoregistro ON registros_sanitarios (codigo_registro) WHERE estado_id IN (1000, 1002);
 
 COMMENT ON TABLE registros_sanitarios IS 'Reglas de la tabla - registros_sanitarios
 R.0: La tabla registros_sanitarios gestiona la información legal de los productos, almacenando el código de registro sanitario, su fecha de emisión y vencimiento. Su propósito es controlar la vigencia de la autorización de comercialización de cada producto, bloqueando su venta si el registro sanitario está caducado, lo que asegura el cumplimiento de la normativa sanitaria.
@@ -1726,10 +1791,10 @@ CREATE TABLE productos_controlados (
     CONSTRAINT chk_productoscontrolados_observacionescontrol_notempty CHECK (observaciones_control IS NULL OR TRIM(observaciones_control) <> '')
 );
 CREATE UNIQUE INDEX uix_productoscontrolados_productoid_unique ON productos_controlados (producto_id) WHERE estado_id = 1000;
-CREATE UNIQUE INDEX uix_productoscontrolados_numeroautorizacion_unique ON productos_controlados (numero_autorizacion) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_productoscontrolados_numeroautorizacion_unique ON productos_controlados (numero_autorizacion) WHERE estado_id IN (1000, 1002) AND numero_autorizacion <> 'NINGUNO';
 
 COMMENT ON TABLE productos_controlados IS 'Reglas de la tabla - productos_controlados
-R.0: La tabla productos_controlados extiende la información de gestión para aquellos productos sujetos a fiscalización especial, como psicotrópicos o estupefacientes. Su propósito es imponer controles adicionales como la autorización específica, el stock máximo permitido y la retención obligatoria de recetas, para cumplir con las estrictas regulaciones de sustancias controladas.
+R.0: La tabla productos_controlados extiende la información de gestión para aquellos productos sujetos a fiscalización especial, como psicotrópicos o estupefacientes. Su propósito es imponer controles adicionales como la autorización específica y la retención obligatoria de recetas, para cumplir con las estrictas regulaciones de sustancias controladas.
 R.1: Control de Retención de Recetas: Cuando la bandera requiere_receta_retenida es igual a 1 (Sí), el formulario de facturación del frontend debe bloquear la confirmación de la venta hasta que el operario registre el número de receta médica y los datos del médico colegiado. Un valor de 0 (No) exime de esta restricción.';
 
 -- ================================================================================================
@@ -1762,7 +1827,7 @@ CREATE TABLE promociones (
     CONSTRAINT chk_promociones_nombre_mayusculas CHECK (nombre = UPPER(nombre)),
     CONSTRAINT chk_promociones_descripcion_notempty CHECK (descripcion IS NULL OR TRIM(descripcion) <> ''),
     CONSTRAINT chk_promociones_valorbeneficio CHECK (valor_beneficio >= 0.00),
-    CONSTRAINT chk_promociones_fechas CHECK (fecha_fin > fecha_inicio),
+    CONSTRAINT chk_promociones_fechas CHECK (fecha_fin >= fecha_inicio),
     CONSTRAINT chk_promociones_cantidades CHECK (cantidad_requerida >= 0 AND cantidad_beneficio >= 0)
 );
 CREATE UNIQUE INDEX uix_promociones_codigo_unique ON promociones (codigo) WHERE estado_id IN (1000, 1002);
@@ -1796,9 +1861,9 @@ CREATE TABLE promociones_productos (
 CREATE UNIQUE INDEX uix_promocionesproductos_productoid_unique ON promociones_productos (producto_id) WHERE estado_id = 1000;
 
 COMMENT ON TABLE promociones_productos IS 'Reglas de la tabla - promociones_productos
-R.0: La tabla promociones_productos es una relación polimórfica que vincula promociones con productos específicos, estableciendo límites por transacción. Su propósito es permitir que una promoción se aplique a un subconjunto de productos y controlar la cantidad de unidades que pueden ser beneficiadas, asegurando que la lógica de descuento sea transparente y no genere pérdidas.
+R.0: La tabla promociones_productos es una relación intermedia (N:M) que vincula promociones con productos específicos, estableciendo límites por transacción.
 R.1: Control de Racionamiento de Descuentos: El campo limite_por_transaccion restringe el número máximo de unidades de un mismo producto que pueden beneficiarse de la campaña en una única operación de venta. Un valor superior a 0 activa la validación en el punto de facturación; si el cliente excede dicha cantidad, las unidades adicionales se liquidarán automáticamente a la tarifa estándar de la lista de precios vigente. Un valor de 0 anula esta restricción, permitiendo unidades ilimitadas por ticket.
-R.2: Exclusividad de Campaña Activa: Para prevenir conflictos de cálculo en cascada o márgenes negativos por doble descuento, un producto_id específico sólo puede estar asociado a una única relación de promoción en estado ''ACTIVO'' a través de esta tabla intermedia. El índice único compuesto restringe la duplicidad operativa.';
+R.2: Exclusividad de Campaña Activa: Para prevenir conflictos de cálculo en cascada o márgenes negativos por doble descuento, un producto_id específico sólo puede estar asociado a una única relación de promoción en estado ''ACTIVO'' a través de esta tabla intermedia. El índice único parcial restringe la duplicidad operativa.';
 
 -- ================================================================================================
 
@@ -1823,13 +1888,12 @@ CREATE TABLE conversiones_unidad (
     CONSTRAINT chk_conversionesunidad_varios CHECK (unidad_origen_id <> unidad_destino_id OR conversion_id = 1)
 );
 CREATE UNIQUE INDEX uix_conversionesunidad_varios_unique ON conversiones_unidad (producto_id, unidad_origen_id, unidad_destino_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_conversionesunidad_productoid ON conversiones_unidad (producto_id) WHERE estado_id IN (1000, 1002);
 
 COMMENT ON TABLE conversiones_unidad IS 'Reglas de la tabla - conversiones_unidad
 R.0: La tabla conversiones_unidad define los factores de conversión entre diferentes unidades de medida para un mismo producto, como de caja a unidad. Su propósito es resolver la equivalencia entre unidades (factores de empaque), lo que es fundamental para operaciones de compra, venta y gestión de inventario, permitiendo registrar, por ejemplo, una compra en cajas pero vender en unidades.
 R.1: El campo factor_conversion representa cuántas unidades de destino equivalen a una unidad de origen (ej. 1 Caja = 24 Tabletas). El motor de inventario utiliza este factor para fraccionar o agrupar unidades en transacciones de venta y compra.
 R.2: La combinación de producto_id, unidad_origen_id y unidad_destino_id debe ser única para registros activos o históricos, evitando factores de conversión redundantes.
-R.3: Las unidades de origen y destino deben ser diferentes (chk_cv_unidades_diferentes) menos pk_id=1. El sistema no permite conversiones de una unidad consigo misma para evitar bucles infinitos en el cálculo de equivalencias.';
+R.3: Las unidades de origen y destino deben ser diferentes (chk_conversionesunidad_varios) menos conversion_id=1. El sistema no permite conversiones de una unidad consigo misma para evitar bucles infinitos en el cálculo de equivalencias.';
 
 -- ================================================================================================
 
@@ -1877,9 +1941,9 @@ CREATE UNIQUE INDEX uix_proveedores_nit_unique ON proveedores (nit) WHERE estado
 COMMENT ON TABLE proveedores IS 'Reglas de la tabla - proveedores
 R.0: La tabla proveedores es el registro maestro de los suministradores de productos, almacenando su información de contacto y un rating de calidad. Su propósito es gestionar las relaciones comerciales con los laboratorios y distribuidores, sirviendo como el referente para los procesos de compras, la evaluación de desempeño de proveedores y la planificación de inventario.
 R.1: El Número de Identificación Tributaria (nit) es opcional para dar soporte a proveedores extranjeros o laboratorios internacionales. Cuando se registra un valor, el índice único impide duplicados en registros activos o históricos.
-R.2: El registro con proveedor_id = 1 y nombre ''NINGUNO'' representa el proveedor comodín para compras directas o donaciones; permanece en estado HISTORICO para garantizar la integridad referencial.
+R.2: El registro con proveedor_id = 1 y nombre ''NINGUNO'' representa el proveedor comodín para compras directas o donaciones; permanece en estado ACTIVO para garantizar la integridad referencial.
 R.3: Los campos codigo y nombre deben almacenarse en mayúsculas y ser únicos para registros activos o históricos.
-R.4: Rating de Calidad. rating_calidad_id utiliza los valores (2050-2054) para calificar el desempeño del proveedor en aspectos como cumplimiento de plazos, calidad del producto, precios, etc. El valor por defecto es REGULAR (2052). Este campo es opcional y puede ser NULL si aún no se ha evaluado al proveedor.
+R.4: Rating de Calidad. rating_calidad_id utiliza los valores (2050-2055) para calificar el desempeño del proveedor en aspectos como cumplimiento de plazos, calidad del producto, precios, etc. El valor por defecto es REGULAR (2052). Este campo es opcional y puede ser NULL si aún no se ha evaluado al proveedor.
 R.5: Suficiencia del Modelo de Proveedores. Se ratifica que la estructura actual de la tabla proveedores, complementada por el campo rating_calidad_id (referenciado a los valores 2050-2055) y la integración transversal con el kardex de compras y los módulos estratégicos del sistema, cumple de manera óptima con la evaluación de desempeño y la gestión comercial, sin requerir tablas adicionales de scoring AHP que contravengan la filosofía de simplicidad y velocidad de la arquitectura AK-47.
 R.6: Control de Rating de Calidad. rating_calidad_id utiliza los valores (2050-2054).
 - Si rating_calidad_id = 2050 (PESIMO), el sistema debe bloquear nuevas compras a este proveedor.
@@ -1888,13 +1952,13 @@ R.7: Validación de Unicidad de NIT. El nit debe ser único para registros ACTIV
 R.8: Límite de Crédito por Proveedor. El sistema debe validar que el monto total de compras a crédito pendientes (estado_financiero_id IN (2401, 2402)) no exceda el límite de crédito configurado en parametros_globales (proveedor_limite_credito_default).
 R.9: Valor Mínimo de Compra. Cada proveedor debe tener un monto mínimo de compra configurado (campo monto_minimo_compra DECIMAL(12,2) DEFAULT 0.00). El sistema debe validar que total_compra >= monto_minimo_compra.
 R.10: Control de Plazos de Entrega. El campo plazo_entrega_dias define el lead time estándar del proveedor. El sistema utiliza este valor para calcular puntos de reorden y fechas estimadas de recepción.
-R.11: Historial de Calificación. La tabla debe mantener un historial de calificaciones en proveedores_rating (RELACIÓN FALTANTE - VER SECCIÓN 6) para trazabilidad de evaluaciones.';
+R.11: Historial de Calificación. La tabla mantiene el historial de evaluaciones en la tabla asociada proveedores_rating para garantizar la trazabilidad del desempeño.';
 
 -- ================================================================================================
 
 CREATE TABLE proveedores_contactos (
     proveedor_contacto_id BIGSERIAL PRIMARY KEY,
-    proveedor_id BIGINT NOT NULL,
+    proveedor_id BIGINT NOT NULL DEFAULT 1,
     nombre VARCHAR(100) NOT NULL,
     cargo VARCHAR(100) NULL,
     telefono VARCHAR(100) NULL,
@@ -1927,7 +1991,7 @@ R.3: Cada contacto está vinculado obligatoriamente a un proveedor mediante la l
 
 CREATE TABLE proveedores_rating_historico (
     rating_historico_id BIGSERIAL PRIMARY KEY,
-    proveedor_id BIGINT NOT NULL,
+    proveedor_id BIGINT NOT NULL DEFAULT 1,
     rating_calidad_id SMALLINT NOT NULL,				-- 2050=PESIMO, 2051=DEFICIENTE, 2052=REGULAR, 2053=BUENO, 2054=EXCELENTE, 2055=NINGUNO
     motivo VARCHAR(255) NOT NULL,
     fecha_evaluacion DATE NOT NULL,
@@ -1946,8 +2010,7 @@ CREATE TABLE proveedores_rating_historico (
 CREATE INDEX idx_proveedoresratinghistorico_varios ON proveedores_rating_historico (proveedor_id, fecha_evaluacion DESC);
 
 COMMENT ON TABLE proveedores_rating_historico IS 'Reglas de la tabla - proveedores_rating_historico
-R.0: La tabla proveedores_rating_historico almacena el historial de calificaciones de calidad asignadas a cada proveedor a lo largo del tiempo. Su propósito es mantener la trazabilidad y auditoría de las evaluaciones de desempeño (vinculadas a la regla R.11 de la tabla proveedores), permitiendo analizar el comportamiento del suministrador ante incidencias.
-R.2: Se incluye un índice compuesto (idx_rh_proveedor_fecha) sobre proveedor_id y fecha_evaluacion en orden descendente para optimizar las consultas del historial más reciente por cada proveedor.';
+R.0: La tabla proveedores_rating_historico almacena el historial de calificaciones de calidad asignadas a cada proveedor a lo largo del tiempo. Su propósito es mantener la trazabilidad y auditoría de las evaluaciones de desempeño (vinculadas a la regla R.11 de la tabla proveedores), permitiendo analizar el comportamiento del suministrador ante incidencias.';
 
 -- ================================================================================================
 
@@ -2055,10 +2118,10 @@ CREATE TABLE control_facturas (
     numero_final INTEGER NOT NULL DEFAULT 999999,
     autorizacion VARCHAR(50) NOT NULL,
     cuf VARCHAR(100) NULL,
-    cufd VARCHAR(100) NULL,
-    cuis VARCHAR(50) NULL,
+    cufd VARCHAR(500) NULL,
+    cuis VARCHAR(100) NULL,
     codigo_control VARCHAR(60) NULL,
-    codigo_qr VARCHAR(100) NULL,
+    codigo_qr VARCHAR(500) NULL,
     fecha_autorizacion DATE NOT NULL,
     fecha_vencimiento DATE NOT NULL,
     gestion SMALLINT NOT NULL,
@@ -2090,7 +2153,7 @@ COMMENT ON TABLE control_facturas IS 'Reglas de la tabla - control_facturas
 R.0: La tabla control_facturas gestiona los talonarios de facturación y la numeración fiscal, controlando el rango de números y las credenciales (CUF, CUIS) emitidas por el SIN. Su propósito es generar el número de factura de manera atómica y concurrente para cada transacción de venta, garantizando que el correlativo no se repita y se mantenga la integridad fiscal de la empresa.
 R.1: El campo estado_operativo_id rige la disponibilidad de la dosificación. Los valores posibles son: 3300=EMITIDO (activo), 3301=ANULADO, 3302=ANULADO_PARCIAL. El sistema cambia automáticamente a ANULADO cuando numero_actual alcanza numero_final o cuando fecha_vencimiento es superada.
 R.2: Los campos cuf, cufd, cuis, codigo_control y codigo_qr almacenan credenciales emitidas por el SIN. Ninguno se captura manualmente; la aplicación actúa como visor de los parámetros provistos por los middlewares de facturación.
-R.3: Cada sucursal solo puede tener un registro ACTIVO por tipo de comprobante y gestión. El índice uix_cf_sucursal_tipo_gestion garantiza esta unicidad.
+R.3: Cada sucursal solo puede tener un registro ACTIVO por tipo de comprobante y gestión. El índice uix_controlfacturas_varios_unique garantiza esta unicidad.
 R.4: Generación de Número de Factura en el Backend: El sistema genera números de factura de forma atómica y concurrente en el backend, aplicando bloqueo pesimista mediante SELECT ... FOR UPDATE y formateándolos según parámetros corporativos.';
 
 -- ================================================================================================
@@ -2099,13 +2162,13 @@ CREATE TABLE kardex (
     kardex_id BIGSERIAL PRIMARY KEY,
     tipo_comprobante_id SMALLINT NOT NULL DEFAULT 1103,  -- 1100=FACTURA, 1101=RECIBO, 1102=OTRO, 1103=NINGUNO
     motivo_anulacion_id SMALLINT NOT NULL DEFAULT 2455,  -- 2450=FACTURA_MAL_EMITIDA, 2451=ERROR_DATOS_CLIENTE, 2452=DEVOLUCION_MERCADERIA, 2453=CONTINGENCIA, 2454=OPERACION_NO_CONCRETADA, 2455=NINGUNO
-    motivo_devolucion_id SMALLINT NULL DEFAULT 3506,  	-- 3500=PRODUCTO_VENCIDO, 3501=PRODUCTO_DAÑADO, 3502=ERROR_PEDIDO, 3503=EXCESO_STOCK, 3504=DESCONTINUADO, 3505=DEVOLUCION_CLIENTE, 3506=NINGUNO, 3507=PRODUCTO_NO_SOLICITADO
+    motivo_devolucion_id SMALLINT NULL DEFAULT 3506,  	 -- 3500=PRODUCTO_VENCIDO, 3501=PRODUCTO_DAÑADO, 3502=ERROR_PEDIDO, 3503=EXCESO_STOCK, 3504=DESCONTINUADO, 3505=DEVOLUCION_CLIENTE, 3506=NINGUNO, 3507=PRODUCTO_NO_SOLICITADO
 	cliente_id BIGINT NOT NULL DEFAULT 1,
     proveedor_id BIGINT NOT NULL DEFAULT 1,
     sucursal_id BIGINT NOT NULL DEFAULT 1,
-    sucursal_destino_id BIGINT NOT NULL DEFAULT 1,
-    kardex_origen_id BIGINT NOT NULL DEFAULT 1,
-	kardex_pedido_compra_id BIGINT NOT NULL DEFAULT 1,
+    sucursal_destino_id BIGINT NULL,
+	kardex_origen_id BIGINT NULL,
+	kardex_pedido_compra_id BIGINT NULL,
     evento_id SMALLINT NOT NULL DEFAULT 1052,            -- 1050=COMPRA, 1051=VENTA, 1052=PROFORMA, 1053=EGR_TRASPASO, 1054=ING_TRASPASO, 1055=ANULACION, 1056=AJUSTE_INGRESO, 1057=AJUSTE_EGRESO, 1058=SOLICITUD_COMPRA, 1059=VENTA_RESERVA, 1060=DEV_CLIENTE, 1061=DEV_PROVEEDOR, 1062=ROBO, 1063=PERDIDA_CADUCIDAD, 1064=MERMA_ROTURA, 1065=INVENTARIO_FISICO_SOBRANTE, 1066=INVENTARIO_FISICO_FALTANTE, 1067=CONVERSION_UNIDADES, 1068=SALIDA_MUESTRA_MEDICA, 1069=INGRESO_DONACION, 1070=RETIRO_CUARENTENA
     codigo VARCHAR(60) NOT NULL,
     comprobante VARCHAR(100) NULL,
@@ -2124,12 +2187,13 @@ CREATE TABLE kardex (
     validez_dias SMALLINT NULL,
     fecha_expiracion TIMESTAMPTZ NULL,
 	estado_proforma_id SMALLINT NOT NULL DEFAULT 4000,		-- 4000=NO_APLICA, 4001=PENDIENTE, 4002=CONVERTIDA, 4003=EXPIRADA, 4004=ANULADA
+	estado_reserva_id SMALLINT NOT NULL DEFAULT 4850, 		-- 4850=NO_APLICA, 4851=PENDIENTE, 4852=CONFIRMADA, 4853=CANCELADA, 4854=EXPIRADA
 	tipo_factura_id SMALLINT NULL DEFAULT 2353,          	-- 2350=CON_FACTURA, 2351=SIN_FACTURA, 2352=NOTA_CREDITO_DEBITO, 2353=NINGUNO
     estado_traspaso_id SMALLINT NOT NULL DEFAULT 2103,   	-- 2100=EN_TRANSITO, 2101=RECIBIDO, 2102=RECHAZADO, 2103=NO_APLICA
     estado_financiero_id SMALLINT NOT NULL DEFAULT 2403,	-- 2400=CANCELADO, 2401=PENDIENTE, 2402=PARCIAL, 2403=NINGUNO
-	estado_pedido_id SMALLINT NULL DEFAULT 2250,  			-- 2250=COTIZADO, 2251=APROBADO, 2252=EN_RUTA, 2253=RECIBIDO, 2254=PARCIAL, 2255=RECHAZADO, 2256=CANCELADO
+	estado_pedido_id SMALLINT NULL DEFAULT 2257,  			-- 2250=COTIZADO, 2251=APROBADO, 2252=EN_RUTA, 2253=RECIBIDO, 2254=PARCIAL, 2255=RECHAZADO, 2256=CANCELADO, 2257=NINGUNO
 	tipo_despacho_id SMALLINT NOT NULL DEFAULT 3554,  		-- 3550=VENTA_MOSTRADOR, 3551=DOMICILIO, 3552=RETIRO, 3553=TRANSFERENCIA, 3554=NINGUNO
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO, 1003=ANULADO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -2148,12 +2212,13 @@ CREATE TABLE kardex (
     CONSTRAINT chk_kardex_motivodevolucionid CHECK (motivo_devolucion_id IN (3500, 3501, 3502, 3503, 3504, 3505, 3506, 3507)),
     CONSTRAINT chk_kardex_eventoid CHECK (evento_id IN (1050, 1051, 1052, 1053, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070)),
     CONSTRAINT chk_kardex_estadoproformaid CHECK (estado_proforma_id IN (4000, 4001, 4002, 4003, 4004)),
-    CONSTRAINT chk_kardex_tipofacturaid CHECK (tipo_factura_id IN (2350, 2351, 2352, 2353)),
+    CONSTRAINT chk_kardex_estadoreservaid CHECK (estado_reserva_id IN (4850, 4851, 4852, 4853, 4854)),
+	CONSTRAINT chk_kardex_tipofacturaid CHECK (tipo_factura_id IN (2350, 2351, 2352, 2353)),
     CONSTRAINT chk_kardex_estadotraspasoid CHECK (estado_traspaso_id IN (2100, 2101, 2102, 2103)),
     CONSTRAINT chk_kardex_estadofinancieroid CHECK (estado_financiero_id IN (2400, 2401, 2402, 2403)),
-    CONSTRAINT chk_kardex_estadopedidoid CHECK (estado_pedido_id IN (2250, 2251, 2252, 2253, 2254, 2255, 2256)),
+    CONSTRAINT chk_kardex_estadopedidoid CHECK (estado_pedido_id IN (2250, 2251, 2252, 2253, 2254, 2255, 2256, 2257)),
     CONSTRAINT chk_kardex_tipodespachoid CHECK (tipo_despacho_id IN (3550, 3551, 3552, 3553, 3554)),
-    CONSTRAINT chk_kardex_estadoid CHECK (estado_id IN (1000, 1001, 1002, 1003)),
+    CONSTRAINT chk_kardex_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_kardex_codigo_notempty CHECK (TRIM(codigo) <> ''),
     CONSTRAINT chk_kardex_codigo_minlength CHECK (LENGTH(TRIM(codigo)) >= 3),
     CONSTRAINT chk_kardex_codigo_mayusculas CHECK (codigo = UPPER(codigo)),
@@ -2161,12 +2226,12 @@ CREATE TABLE kardex (
 	CONSTRAINT chk_kardex_totales_positivos CHECK (total_compra >= 0 AND total_venta >= 0 AND total_venta_factura >= 0 AND total_pagado >= 0 AND total_cambio >= 0 AND saldo_pendiente >= 0),
     CONSTRAINT chk_kardex_validez_dias CHECK (validez_dias >= 0)
 );
-CREATE UNIQUE INDEX uix_kardex_codigo_unique ON kardex (codigo) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_kardex_clienteid ON kardex (cliente_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_kardex_proveedorid ON kardex (proveedor_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_kardex_numerofactura ON kardex (numero_factura) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_kardex_varios ON kardex (sucursal_id, fecha_kardex DESC, evento_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_kardex_estadofinancieroid_sucursalid ON kardex (estado_financiero_id, sucursal_id) WHERE estado_id IN (1000, 1002) AND estado_financiero_id IN (3501, 3502);
+CREATE UNIQUE INDEX uix_kardex_codigo_unique ON kardex (codigo) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_kardex_clienteid ON kardex (cliente_id) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_kardex_proveedorid ON kardex (proveedor_id) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_kardex_numerofactura ON kardex (numero_factura) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_kardex_varios ON kardex (sucursal_id, fecha_kardex DESC, evento_id) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_kardex_estadofinancieroid_sucursalid ON kardex (estado_financiero_id, sucursal_id) WHERE estado_id IN (1000, 1003) AND estado_financiero_id IN (2401, 2402);
 CREATE INDEX idx_kardex_sucursaldestinoid_estadotraspasoid ON kardex (sucursal_destino_id, estado_traspaso_id) WHERE evento_id IN (1053, 1054) AND estado_traspaso_id = 2100;
 CREATE INDEX idx_kardex_actividad_estadoid ON kardex (COALESCE(fecha_actualizacion, fecha_registro), estado_id);
 
@@ -2178,7 +2243,7 @@ R.3: Gestión y Control del Correlativo Único (codigo). El campo codigo es inmu
 R.4: Reglas Fiscales y de Facturación. numero_factura se genera automáticamente SOLO para los eventos VENTA (1051) y DEVOLUCION_VENTA que tengan al menos un detalle con tipo_venta = ''CON_FACTURA'' en kardex_productos. Se toma de control_facturas incrementando numero_actual de forma atómica.
 R.5: Automatización de Proformas y Temporalidad. Una tarea programada evalúa diariamente los registros. Si fecha_kardex + validez_dias es superada, el estado_id muta a HISTORICO. El frontend provee un botón "Transformar en Venta" que hereda los datos de la proforma vigente.
 R.6: Logística de Entregas y Ajustes Internos. Para eventos VENTA (1051) y PROFORMA (1052), lugar_entrega es obligatorio si se activa el indicador de despacho a domicilio. Mermas y Ajustes restringen cliente_id = 1 y proveedor_id = 1, y exigen justificación en comprobante.
-R.7: Gestión Inter-Sucursales y Recepción Física. Al emitir una TRANSFERENCIA_SUCURSAL, el registro destino nace con estado_id = 1000 (ACTIVO) pero el stock en destino solo se incrementa al presionar "Confirmar Recepción".
+R.7: Gestión Inter-Sucursales y Recepción Física. Al emitir una TRANSFERENCIA_SUCURSAL (evento_id = 1053 EGR_TRASPASO o 1054 ING_TRASPASO), el registro destino nace con estado_id = 1000 (ACTIVO) y estado_traspaso_id = 2100 (EN_TRANSITO), pero el stock en destino solo se incrementa al presionar "Confirmar Recepción" (estado_traspaso_id = 2101 RECIBIDO).
 R.8: Automatización de Expiración de Reservas (TTL). El sistema ejecuta de forma periódica (mediante la función liberar_reservas_expiradas() o tareas en el backend) la revisión de los registros con evento_id = 1059 (VENTA_RESERVA) y estado_proforma_id = 4001 (PENDIENTE) cuya fecha_expiracion sea menor a la fecha actual. Al cumplirse, la función muta el estado a 4003 (EXPIRADA) y genera un movimiento compensatorio de tipo LIBERACION_RESERVA (1070) para reintegrar de forma transparente el inventario al stock disponible, evitando bloqueos indefinidos.
 R.9: Validación de Crédito a Proveedores. Al registrar una COMPRA (1050) con estado_financiero_id = 2401 (PENDIENTE) o 2402 (PARCIAL), el backend debe validar que el proveedor tenga registros activos y que la empresa cuente con la capacidad crediticia configurada en parametros_globales.
 R.10: Validación del Formato del Número de Factura. numero_factura debe contener solo dígitos numéricos (0-9). La longitud debe coincidir con el parámetro global ''longitud_numero_factura'' (por defecto 7 dígitos).
@@ -2193,7 +2258,7 @@ R.18: Copia del límite de crédito del cliente al momento de la venta.
 R.19: El campo comprobante_referencia hace referencia al comprobante en devoluciones. Mismo caso para kardex_referencia_id hace referencia a kardex_id.
 R.20: Trazabilidad y Conversión de Solicitudes de Compra. Cuando una solicitud de compra (evento_id = 1058 SOLICITUD_COMPRA) con estado_pedido_id = 2251 (APROBADO) es procesada y transformada en una transacción de compra formal (evento_id = 1050 COMPRA), el backend debe establecer obligatoriamente la relación cruzada asignando el ID de la compra en el campo kardex_pedido_compra_id del registro de origen. Una solicitud aprobada que ya posea una referencia de compra vinculada no podrá ser utilizada nuevamente para generar otra compra, previniendo duplicidades y asegurando la auditoría de extremo a extremo entre el requerimiento y la adquisición.
 R.21: nota_credito_debito se usa solo en DEVOLUCION_CLIENTE (evento_id = 1060). Almacena el número secuencial o código de autorización de la Nota de Crédito (o Nota de Débito) generada electrónicamente para respaldar la devolución ante el cliente y ante el ente regulador de impuestos (como el SIN). Diferencia clave: Mientras que el campo comprobante_referencia o kardex_referencia_id apunta al documento o movimiento original (la factura o venta vieja que le dio vida a la operación), el campo nota_credito_debito almacena el número del nuevo documento legal que formaliza la devolución.
-R.22: fecha_expiracion Fecha y hora exacta de expiración (calculada a partir de fecha_kardex + validez_dias. Permite que el job diario o el backend evalúe de forma precisa el TTL de la reserva sin depender solo de días enteros.
+R.22: fecha_expiracion Fecha y hora exacta de expiración (calculada a partir de fecha_kardex + validez_dias). Permite que el job diario o el backend evalúe de forma precisa el TTL de la reserva sin depender solo de días enteros.
 R.23: Comportamiento Transaccional del Evento PROFORMA (1052). Al registrar una proforma, se genera la cabecera y el detalle en kardex_productos con fines estrictamente informativos, de impresión y de análisis estadístico. El backend NO debe alterar las columnas de stock real ni el stock disponible de los lotes afectados. Requiere obligatoriamente un valor en validez_dias para calcular la fecha_expiracion y establece estado_proforma_id = 4001 (PENDIENTE).
 R.24: Comportamiento Transaccional del Evento VENTA_RESERVA (1059). Al registrar una reserva, el sistema aparta temporalmente el inventario disminuyendo el stock disponible de los lotes afectados (stock_disponible = stock_actual - cantidad_reservada), pero NO descarga el stock físico definitivo de la bodega. Su vigencia está gobernada por fecha_expiracion. Si transcurre el TTL sin conversión, un proceso automático ejecuta un evento de LIBERACION_RESERVA (1070) para reintegrar el stock al saldo disponible y muta el estado_proforma_id a 4003 (EXPIRADA).
 R.25: Regla de Conversión de Proforma/Reserva a VENTA (1051). El backend provee un servicio atómico de transformación que ejecuta las siguientes acciones en una sola transacción:
@@ -2221,7 +2286,99 @@ R.35: Validación de Devolución a Proveedor (1061):
 - motivo_devolucion_id debe ser distinto de 3506 (NINGUNO).
 - total_compra de la devolución debe ser <= total_compra de la compra original.
 - El sistema debe generar una nota de crédito si aplica.
-R.36: Generación de Número de Solicitud. Para SOLICITUD_COMPRA (1058), el backend debe generar un número de solicitud con formato: SOL-[SUCURSAL_ID]-[GESTION]-[CORRELATIVO].';
+R.36: Generación de Número de Solicitud. Para SOLICITUD_COMPRA (1058), el backend debe generar un número de solicitud con formato: SOL-[SUCURSAL_ID]-[GESTION]-[CORRELATIVO].
+R.37: Estado de Reserva. estado_reserva_id utiliza los valores (4850-4854) exclusivamente para el evento VENTA_RESERVA (1059): NO_APLICA (4850), PENDIENTE (4851), CONFIRMADA (4852), CANCELADA (4853), EXPIRADA (4854). Para cualquier otro evento debe ser 4850 (NO_APLICA).
+R.38: Validación de Campo Obligatorio - fecha_expiracion.
+Para los eventos PROFORMA (1052) y VENTA_RESERVA (1059), el campo fecha_expiracion es OBLIGATORIO. El backend debe validar que no sea NULL.
+if (evento_id IN (1052, 1059) && fecha_expiracion === null) {
+	throw new Error(fecha_expiracion es obligatoria para PROFORMA y VENTA_RESERVA);
+}
+Adicionalmente, debe validar que fecha_expiracion sea una fecha futura y mayor a fecha_kardex.
+
+R.39: Validación de Campo Obligatorio - sucursal_destino_id. Para los eventos EGR_TRASPASO (1053) e ING_TRASPASO (1054), el campo sucursal_destino_id es OBLIGATORIO. El backend debe validar que no sea NULL.
+if (evento_id IN (1053, 1054) && sucursal_destino_id === null) {
+	throw new Error(sucursal_destino_id es obligatoria para traspasos);
+}
+Adicionalmente, debe validar que sucursal_destino_id sea diferente de sucursal_id y que la sucursal destino exista y esté ACTIVA.
+
+R.40: Validación de Campo Obligatorio - estado_pedido_id.
+Para el evento SOLICITUD_COMPRA (1058), el campo estado_pedido_id es OBLIGATORIO y debe iniciar en COTIZADO (2250) o APROBADO (2251).
+if (evento_id === 1058 && estado_pedido_id === null) {
+	throw new Error(estado_pedido_id es obligatorio para SOLICITUD_COMPRA);
+}
+if (evento_id === 1058 && estado_pedido_id NOT IN (2250, 2251)) {
+	throw new Error(El estado inicial debe ser COTIZADO (2250) o APROBADO (2251));
+}
+
+R.41: Validación de Campo Obligatorio - estado_financiero_id.
+Para el evento COMPRA (1050), el campo estado_financiero_id es OBLIGATORIO y debe ser CANCELADO (2400), PENDIENTE (2401) o PARCIAL (2402).
+if (evento_id === 1050 && estado_financiero_id === null) {
+	throw new Error(estado_financiero_id es obligatorio para COMPRA);
+}
+if (evento_id === 1050 && estado_financiero_id NOT IN (2400, 2401, 2402)) {
+	throw new Error(Estado financiero inválido para compra);
+}
+Adicionalmente, debe validar coherencia con total_pagado según R.33.
+
+R.42: Validación de Fecha de Expiración para PROFORMA y VENTA_RESERVA. El backend debe validar que fecha_expiracion sea mayor a fecha_kardex y que sea una fecha futura.
+if (evento_id IN (1052, 1059) && fecha_expiracion <= fecha_kardex) {
+	throw new Error(fecha_expiracion debe ser posterior a fecha_kardex);
+}
+if (evento_id IN (1052, 1059) && fecha_expiracion <= CURRENT_DATE) {
+	throw new Error(fecha_expiracion debe ser una fecha futura);
+}
+
+R.43: Validación de Destino de Traspaso. El backend debe validar que la sucursal destino exista, esté ACTIVA y sea diferente de la sucursal origen.
+const sucursalDestino = await sucursalRepository.findOne({
+	where: { sucursal_id: sucursal_destino_id, estado_id: 1000 }
+});
+if (!sucursalDestino) {
+	throw new Error(La sucursal destino no existe o no está activa);
+}
+if (sucursal_destino_id === sucursal_id) {
+	throw new Error(La sucursal origen y destino no pueden ser la misma);
+}
+
+R.44: Validación de validez_dias para PROFORMA y VENTA_RESERVA. Para los eventos PROFORMA (1052) y VENTA_RESERVA (1059), validez_dias es OBLIGATORIO.
+if (evento_id IN (1052, 1059) && validez_dias === null) {
+	throw new Error(validez_dias es obligatorio para PROFORMA y VENTA_RESERVA);
+}
+if (evento_id IN (1052, 1059) && validez_dias <= 0) {
+	throw new Error(validez_dias debe ser mayor a 0);
+}
+
+R.45: Validación de Coherencia entre fecha_expiracion y validez_dias. Para PROFORMA (1052) y VENTA_RESERVA (1059), fecha_expiracion debe ser igual a fecha_kardex + validez_dias.
+const fechaCalculada = new Date(fecha_kardex);
+fechaCalculada.setDate(fechaCalculada.getDate() + validez_dias);
+if (fecha_expiracion.getTime() !== fechaCalculada.getTime()) {
+	throw new Error(fecha_expiracion no coincide con fecha_kardex + validez_dias);
+}
+
+R.46: Validación de Estados Iniciales para Solicitud de Compra. Al crear una SOLICITUD_COMPRA (1058), estado_pedido_id no puede ser un estado final.
+const ESTADOS_FINALES = [2253, 2255, 2256]; -- RECIBIDO, RECHAZADO, CANCELADO
+if (evento_id === 1058 && estado_pedido_id IN (2253, 2255, 2256)) {
+	throw new Error(No se puede crear una solicitud en estado final);
+}
+
+R.47: Validación de Límite de Crédito para Compras. Para COMPRA (1050) con estado_financiero_id IN (2401, 2402), validar que el saldo pendiente total no exceda el límite de crédito del proveedor.
+const saldoTotal = await kardexRepository.sum(saldo_pendiente, {
+	proveedor_id: proveedor_id,
+	estado_financiero_id: In([2401, 2402]),
+	estado_id: In([1000, 1002])
+});
+if (saldoTotal > proveedor.limite_credito) {
+throw new Error(El saldo pendiente excede el límite de crédito del proveedor);
+}
+
+R.48: Validación de Monto Mínimo de Compra. Para COMPRA (1050), validar que total_compra >= proveedores.monto_minimo_compra.
+if (total_compra < proveedor.monto_minimo_compra) {
+	throw new Error(El monto de compra no alcanza el monto mínimo requerido por el proveedor);
+}
+
+R.49: Validación de Estado Financiero para Compras a Crédito. Para COMPRA (1050) con estado_financiero_id IN (2401, 2402), validar que el proveedor tenga rating_calidad_id diferente de PESIMO (2050).
+if (proveedor.rating_calidad_id === 2050) {
+	throw new Error(El proveedor tiene rating PÉSIMO. Se requiere autorización especial para compras a crédito);
+}';
 
 -- ================================================================================================
 
@@ -2235,7 +2392,7 @@ CREATE TABLE ordenes_compra (
     fecha_entrega_real DATE NULL,
     estado_pedido_id SMALLINT NOT NULL DEFAULT 2250,	-- 2250=COTIZADO, 2251=APROBADO, 2252=EN_RUTA, 2253=RECIBIDO, 2254=PARCIAL, 2255=RECHAZADO, 2256=CANCELADO
     observaciones VARCHAR(1000) NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO, 1003=ANULADO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -2245,17 +2402,17 @@ CREATE TABLE ordenes_compra (
     CONSTRAINT fk_ordenescompra_kardex_id FOREIGN KEY (kardex_id) REFERENCES kardex(kardex_id),
     CONSTRAINT fk_ordenescompra_proveedor_id FOREIGN KEY (proveedor_id) REFERENCES proveedores(proveedor_id),
     CONSTRAINT chk_ordenescompra_estadopedidoid CHECK (estado_pedido_id IN (2250, 2251, 2252, 2253, 2254, 2255, 2256)),
-    CONSTRAINT chk_ordenescompra_estadoid CHECK (estado_id IN (1000, 1001, 1002, 1003)),
+    CONSTRAINT chk_ordenescompra_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_ordenescompra_fechas CHECK (fecha_entrega_estimada IS NULL OR fecha_orden <= fecha_entrega_estimada),
     CONSTRAINT chk_ordenescompra_fechareal CHECK (fecha_entrega_real IS NULL OR fecha_orden <= fecha_entrega_real)
 );
-CREATE UNIQUE INDEX uix_ordenescompra_numeroorden_unique ON ordenes_compra (numero_orden) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_ordenescompra_numeroorden_unique ON ordenes_compra (numero_orden) WHERE estado_id IN (1000, 1003);
 CREATE INDEX idx_ordenescompra_proveedorid ON ordenes_compra(proveedor_id);
 CREATE INDEX idx_ordenescompra_kardexid ON ordenes_compra(kardex_id);
 
 COMMENT ON TABLE ordenes_compra IS 'Reglas de la tabla - ordenes_compra
 R.0: La tabla ordenes_compra registra las órdenes de compra emitidas a los proveedores para el abastecimiento de productos, enlazándose directamente con la tabla kardex y la tabla proveedores. Su propósito es controlar el ciclo de vida del pedido, desde su cotización hasta su recepción o anulación.
-R.1: El número de orden (numero_orden) debe ser único para registros activos o históricos (estado_id IN (1000, 1002)), evitando duplicidades en la numeración oficial de compras.
+R.1: El número de orden (numero_orden) debe ser único para registros activos o anulados (estado_id IN (1000, 1003)), evitando duplicidades en la numeración oficial de compras.
 R.2: El estado del pedido se controla mediante estado_pedido_id, vinculándose a los valores de estados de pedido (2250=COTIZADO, 2251=APROBADO, 2252=EN_RUTA, 2253=RECIBIDO, 2254=PARCIAL, 2255=RECHAZADO, 2256=CANCELADO).
 R.3: Cada orden de compra está vinculada obligatoriamente a un registro en kardex mediante fk_oc_kardex_id y a un proveedor mediante fk_oc_proveedor_id.';
 
@@ -2362,7 +2519,7 @@ CREATE TABLE recetas (
     fecha_emision DATE NOT NULL,
     diagnostico VARCHAR(250) NULL,
     receta_pdf VARCHAR(100) NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -2375,13 +2532,13 @@ CREATE TABLE recetas (
     CONSTRAINT fk_recetas_medico_id FOREIGN KEY (medico_id) REFERENCES medicos(medico_id),
     CONSTRAINT fk_recetas_institucion_id FOREIGN KEY (institucion_id) REFERENCES instituciones(institucion_id),
     CONSTRAINT chk_recetas_tiporeceaid CHECK (tipo_receta_id IN (3850, 3851, 3852, 3853)),
-    CONSTRAINT chk_recetas_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_recetas_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_recetas_numeroreceta_notempty CHECK (TRIM(numero_receta) <> ''),
     CONSTRAINT chk_recetas_numeroreceta_minlength CHECK (LENGTH(TRIM(numero_receta)) >= 3),
     CONSTRAINT chk_recetas_fechaemision_valida CHECK (fecha_emision <= CURRENT_DATE)
 );
-CREATE UNIQUE INDEX uix_recetas_numeroreceta_unique ON recetas (numero_receta) WHERE estado_id IN (1000, 1002);
-CREATE UNIQUE INDEX uix_recetas_varios_unique ON recetas (kardex_id, cliente_id, medico_id, fecha_emision) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_recetas_numeroreceta_unique ON recetas (numero_receta) WHERE estado_id = 1000;
+CREATE UNIQUE INDEX uix_recetas_varios_unique ON recetas (kardex_id, cliente_id, medico_id, fecha_emision) WHERE estado_id = 1000;
 CREATE INDEX idx_recetas_institucionid ON recetas(institucion_id);
 CREATE INDEX idx_recetas_sucursalid ON recetas(sucursal_id);
 
@@ -2447,13 +2604,12 @@ COMMENT ON TABLE lotes_productos IS 'Reglas de la tabla - lotes_productos
 R.0: La tabla lotes_productos es el núcleo del control de inventario físico, representando la llegada de una cantidad de un producto con un precio de costo, fecha de vencimiento y una existencia inicial. Su propósito es permitir la trazabilidad FIFO (primero en entrar, primero en salir), controlar el stock por lote, gestionar el costo de venta y la ubicación física, así como las alertas de vencimiento y agotamiento de inventario.
 R.1: Gestión de Stock y Reservas. cantidad_actual representa el stock disponible para venta o despacho. cantidad_reservada representa el stock apartado para ventas en proceso o reservas (VENTA_RESERVA). El stock total del lote se define como stock_total = cantidad_actual + cantidad_reservada, y el sistema valida estrictamente que stock_total <= cantidad_inicial.
 R.2: Control de Stock por Lote en Ventas. Al registrar una venta, el backend debe validar que la cantidad solicitada <= cantidad_actual del lote. Si el stock disponible es insuficiente, debe rechazar la transacción con el mensaje: "Stock insuficiente en lote X. Disponible: Y.YY, Solicitado: Z.ZZ".
-R.3: Registro Inicial Comodín. El lote con lote_id = 1 es un registro histórico con cantidad_actual = 0, estado_lote_id = 2503 (NINGUNO) y estado_id = 1002 (HISTORICO). Sirve como valor predeterminado para las FK que requieran un lote de referencia.
-R.4: Precios de Lote vs Producto. precio_costo es específico del lote y puede diferir del precio base del producto (productos.pcompra). El sistema utiliza el precio_costo del lote para calcular el costo_venta en kardex_productos. Los precios de venta se gestionan en productos (catálogo) y kardex_productos (transaccional).
-R.5: Control de Vencimientos y Calidad. El frontend debe mostrar alertas visuales cuando fecha_vencimiento esté próxima según los parámetros globales ''dias_alerta_vencimiento_critico'' (15 días), ''dias_alerta_vencimiento_alta'' (30 días) y ''dias_alerta_vencimiento_media'' (60 días). El campo rating_calidad_id utiliza los valores (2050-2054, con 2055 por defecto como NINGUNO) para el control de calidad interna.
-R.6: Inmutabilidad del Código de Lote y Trazabilidad del Proveedor. codigo se genera automáticamente por el backend al registrar una compra o ajuste de inventario y no puede ser modificado por el usuario (patrón: [PREFIJO]-[PRODUCTO_ID]-[FECHA]-[CORRELATIVO]). El campo lote_proveedor almacena el código de lote original emitido por el proveedor para facilitar la trazabilidad externa.
-R.7: Bloqueo de Lotes Agotados y Estados Automáticos. Un lote con cantidad_actual = 0 se bloquea automáticamente para nuevas ventas (estado_lote_id = 2502 AGOTADO), pero permanece visible en el histórico. Solo puede reactivarse mediante un ajuste que incremente cantidad_actual. Adicionalmente, el backend gestiona la actualización automática a VENCIDO (2501) si fecha_vencimiento < CURRENT_DATE.
-R.8: Fuente de Verdad del Costo. El campo precio_costo almacena el costo de adquisición del lote en el momento de su creación. Este valor es la fuente de verdad para el costo de venta y se copia al campo pcompra de kardex_productos al momento de cada transacción que afecte este lote.
-R.9: Ubicación y Auditoría de Movimientos. ubicacion_id indica el depósito físico actual del lote y puede ser NULL si se encuentra en tránsito o sin asignar. El backend es responsable de mantener actualizados los campos ultimo_movimiento y fecha_actualizacion ante cualquier cambio de estado o stock.';
+R.3: Precios de Lote vs Producto. precio_costo es específico del lote y puede diferir del precio base del producto (productos.pcompra). El sistema utiliza el precio_costo del lote para calcular el costo_venta en kardex_productos. Los precios de venta se gestionan en productos (catálogo) y kardex_productos (transaccional).
+R.4: Control de Vencimientos y Calidad. El frontend debe mostrar alertas visuales cuando fecha_vencimiento esté próxima según los parámetros globales ''dias_alerta_vencimiento_critico'' (15 días), ''dias_alerta_vencimiento_alta'' (30 días) y ''dias_alerta_vencimiento_media'' (60 días). El campo rating_calidad_id utiliza los valores (2050-2054, con 2055 por defecto como NINGUNO) para el control de calidad interna.
+R.5: Inmutabilidad del Código de Lote y Trazabilidad del Proveedor. codigo se genera automáticamente por el backend al registrar una compra o ajuste de inventario y no puede ser modificado por el usuario (patrón: [PREFIJO]-[PRODUCTO_ID]-[FECHA]-[CORRELATIVO]). El campo lote_proveedor almacena el código de lote original emitido por el proveedor para facilitar la trazabilidad externa.
+R.6: Bloqueo de Lotes Agotados y Estados Automáticos. Un lote con cantidad_actual = 0 se bloquea automáticamente para nuevas ventas (estado_lote_id = 2502 AGOTADO), pero permanece visible en el histórico. Solo puede reactivarse mediante un ajuste que incremente cantidad_actual. Adicionalmente, el backend gestiona la actualización automática a VENCIDO (2501) si fecha_vencimiento < CURRENT_DATE.
+R.7: Fuente de Verdad del Costo. El campo precio_costo almacena el costo de adquisición del lote en el momento de su creación. Este valor es la fuente de verdad para el costo de venta y se copia al campo pcompra de kardex_productos al momento de cada transacción que afecte este lote.
+R.8: Ubicación y Auditoría de Movimientos. ubicacion_id indica el depósito físico actual del lote y puede ser NULL si se encuentra en tránsito o sin asignar. El backend es responsable de mantener actualizados los campos ultimo_movimiento y fecha_actualizacion ante cualquier cambio de estado o stock.';
 
 -- ================================================================================================
 
@@ -2464,8 +2620,8 @@ CREATE TABLE kardex_productos (
     sucursal_id BIGINT NOT NULL DEFAULT 1,
     lote_id BIGINT NOT NULL DEFAULT 1,
     presentacion_id BIGINT NOT NULL DEFAULT 1,
-    tipo_pago_id BIGINT NOT NULL DEFAULT 1400,  	-- 1400=NINGUNO, 1401=EFECTIVO, 1402=CHEQUE, 1403=QR, 1404=TRANSFERENCIA, 1405=DEPOSITO, 1406=OTRO
-    tipo_venta_id SMALLINT NOT NULL DEFAULT 1350,  	-- 1350=NINGUNO, 1351=CON_FACTURA, 1352=SIN_FACTURA
+    tipo_pago_id BIGINT NOT NULL DEFAULT 1400,  	-- 1400=NINGUNO, 1401=EFECTIVO, 1402=TARJETA, 1403=CHEQUE, 1404=VALE, 1405=OTROS, 1406=SIN_PAGO, 1407=TRANSFERENCIA, 1408=DEPOSITO, 1409=QR
+	tipo_venta_id SMALLINT NOT NULL DEFAULT 1350,  	-- 1350=NINGUNO, 1351=CON_FACTURA, 1352=SIN_FACTURA
 	kardex_producto_origen_id BIGINT NOT NULL DEFAULT 1,
     cantidad DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     cantidad_unidad_base DECIMAL(12,2) NOT NULL DEFAULT 0.00,
@@ -2477,41 +2633,41 @@ CREATE TABLE kardex_productos (
     precio_venta_factura DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     costo_venta DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     descuento DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
     fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMPTZ NULL,
     fecha_baja TIMESTAMPTZ NULL,
-	CONSTRAINT fk_kardexproductos_kardex_id FOREIGN KEY (kardex_id) REFERENCES kardex(kardex_id),
-	CONSTRAINT fk_kardexproductos_producto_id FOREIGN KEY (producto_id) REFERENCES productos(producto_id),
-	CONSTRAINT fk_kardexproductos_sucursal_id FOREIGN KEY (sucursal_id) REFERENCES sucursales(sucursal_id),
-	CONSTRAINT fk_kardexproductos_lote_id FOREIGN KEY (lote_id) REFERENCES lotes_productos(lote_id),
-	CONSTRAINT fk_kardexproductos_presentacion_id FOREIGN KEY (presentacion_id) REFERENCES presentaciones(presentacion_id),
-	CONSTRAINT fk_kardexproductos_kardex_producto_origen_id FOREIGN KEY (kardex_producto_origen_id) REFERENCES kardex_productos(kardex_producto_id),
-	CONSTRAINT chk_kardexproductos_tipopagoid CHECK (tipo_pago_id IN (1400, 1401, 1402, 1403, 1404, 1405, 1406)),
-	CONSTRAINT chk_kardexproductos_tipoventaid CHECK (tipo_venta_id IN (1350, 1351, 1352)),
-	CONSTRAINT chk_kardexproductos_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
-	CONSTRAINT chk_kardexproductos_pcompra CHECK (pcompra >= 0),
-	CONSTRAINT chk_kardexproductos_factorventa CHECK (factor_venta >= 0),
-	CONSTRAINT chk_kardexproductos_factorfacturacion CHECK (factor_facturacion >= 0),
-	CONSTRAINT chk_kardexproductos_precioventa CHECK (precio_venta >= 0),
-	CONSTRAINT chk_kardexproductos_precioventafactura CHECK (precio_venta_factura >= 0),
-	CONSTRAINT chk_kardexproductos_costoventa CHECK (costo_venta >= 0),
-	CONSTRAINT chk_kardexproductos_descuento CHECK (descuento >= 0),
-	CONSTRAINT chk_kardexproductos_cantidades CHECK (
-		(cantidad >= 0 AND cantidad_salida = 0) OR
-		(cantidad = 0 AND cantidad_salida >= 0) OR
-		(cantidad = 0 AND cantidad_salida = 0)
-    )	
+    CONSTRAINT fk_kardexproductos_kardex_id FOREIGN KEY (kardex_id) REFERENCES kardex(kardex_id),
+    CONSTRAINT fk_kardexproductos_producto_id FOREIGN KEY (producto_id) REFERENCES productos(producto_id),
+    CONSTRAINT fk_kardexproductos_sucursal_id FOREIGN KEY (sucursal_id) REFERENCES sucursales(sucursal_id),
+    CONSTRAINT fk_kardexproductos_lote_id FOREIGN KEY (lote_id) REFERENCES lotes_productos(lote_id),
+    CONSTRAINT fk_kardexproductos_presentacion_id FOREIGN KEY (presentacion_id) REFERENCES presentaciones(presentacion_id),
+    CONSTRAINT fk_kardexproductos_kardex_producto_origen_id FOREIGN KEY (kardex_producto_origen_id) REFERENCES kardex_productos(kardex_producto_id),
+    CONSTRAINT chk_kardexproductos_tipopagoid CHECK (tipo_pago_id IN (1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409)),
+    CONSTRAINT chk_kardexproductos_tipoventaid CHECK (tipo_venta_id IN (1350, 1351, 1352)),
+    CONSTRAINT chk_kardexproductos_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
+    CONSTRAINT chk_kardexproductos_pcompra CHECK (pcompra >= 0),
+    CONSTRAINT chk_kardexproductos_factorventa CHECK (factor_venta >= 0),
+    CONSTRAINT chk_kardexproductos_factorfacturacion CHECK (factor_facturacion >= 0),
+    CONSTRAINT chk_kardexproductos_precioventa CHECK (precio_venta >= 0),
+    CONSTRAINT chk_kardexproductos_precioventafactura CHECK (precio_venta_factura >= 0),
+    CONSTRAINT chk_kardexproductos_costoventa CHECK (costo_venta >= 0),
+    CONSTRAINT chk_kardexproductos_descuento CHECK (descuento >= 0),
+    CONSTRAINT chk_kardexproductos_cantidades CHECK (
+        (cantidad >= 0 AND cantidad_salida = 0) OR
+        (cantidad = 0 AND cantidad_salida >= 0) OR
+        (cantidad = 0 AND cantidad_salida = 0)
+    )    
 );
-CREATE UNIQUE INDEX uix_kardexproductos_varios_unique ON kardex_productos (kardex_id, producto_id, lote_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_kardexproductos_kardexid ON kardex_productos (kardex_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_kardexproductos_tipoventaid_fecharegistro ON kardex_productos (tipo_venta_id, fecha_registro DESC) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_kardexproductos_loteid_sucursalid ON kardex_productos (lote_id, sucursal_id) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_kardexproductos_varios_unique ON kardex_productos (kardex_id, producto_id, lote_id) WHERE estado_id = 1000;
+CREATE INDEX idx_kardexproductos_kardexid ON kardex_productos (kardex_id) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_kardexproductos_tipoventaid_fecharegistro ON kardex_productos (tipo_venta_id, fecha_registro DESC) WHERE estado_id = 1000;
+CREATE INDEX idx_kardexproductos_loteid_sucursalid ON kardex_productos (lote_id, sucursal_id) WHERE estado_id = 1000;
 CREATE INDEX idx_kardexproductos_presentacionid ON kardex_productos(presentacion_id);
-CREATE INDEX idx_kardexproductos_kardexproductoorigenid ON kardex_productos (kardex_producto_origen_id) WHERE estado_id IN (1000, 1002);
+CREATE INDEX idx_kardexproductos_kardexproductoorigenid ON kardex_productos (kardex_producto_origen_id) WHERE estado_id = 1000;
 CREATE INDEX idx_kardexproductos_actividad_estadoid ON kardex_productos (COALESCE(fecha_actualizacion, fecha_registro), estado_id);
 
 COMMENT ON TABLE kardex_productos IS 'Reglas de la tabla - kardex_productos
@@ -2522,7 +2678,7 @@ R.3: Metodología de Costeo Operativo. costo_venta registra el valor real de adq
 R.4: Determinación de Precios por Tipo de Venta. Si tipo_venta_id = 1351 (CON FACTURA), la venta se tasa sobre precio_venta_factura y se bloquea la modificación del precio base. Si tipo_venta_id = 1352 (SIN FACTURA), los cálculos parciales se realizan sobre precio_venta. Cualquier deducción registrada en descuento se substrae del subtotal neto antes de consolidar la fila.
 R.5: Cuando la cabecera transaccional corresponda al evento PROFORMA (1052), el sistema debe forzar tipo_pago_id = 1400 (NINGUNO) y tipo_venta_id = 1350 (NINGUNO) en los detalles, ya que una proforma no implica un cobro efectivo ni una venta formal.
 R.6: Control de Conversión de Unidades. cantidad_unidad_base debe calcularse multiplicando la cantidad por el factor_conversion registrado en la tabla conversiones_unidad para el producto y las unidades involucradas.
-R.7: Registro Inicial Comodín. El registro con kardex_producto_id = 1 es un registro histórico con estado_id = 1002 (HISTORICO). Sirve como valor predeterminado para las FK que requieran un detalle de kardex de referencia.
+R.7: Registro Inicial Comodín. El registro con kardex_producto_id = 1 es un registro de referencia con estado_id = 1000 (ACTIVO). Sirve como valor predeterminado para las FK que requieran un detalle de kardex de referencia.
 R.8: Trazabilidad y Conversión a Nivel de Detalle (kardex_producto_origen_id). Al ejecutar el servicio de conversión de una proforma o venta-reserva (evento_id = 1059) hacia una venta definitiva (evento_id = 1051), el backend debe vincular obligatoriamente cada fila insertada en kardex_productos con su respectivo ítem de origen mediante el campo kardex_producto_origen_id. Esto permite auditar los precios congelados originales, mantener los descuentos pactados en la cotización inicial y calcular con exactitud las métricas de conversión comercial por producto.
 Reglas de la tabla - kardex_productos (Sección Compras)
 R.9: Validación de Lotes en Compra. Para COMPRA (1050):
@@ -2549,9 +2705,9 @@ CREATE TABLE inventarios_fisicos_detalle (
     ubicacion_id BIGINT NOT NULL DEFAULT 1,
     cantidad_sistema DECIMAL(12,2) NOT NULL,
     cantidad_contada DECIMAL(12,2) NOT NULL,
-    diferencia DECIMAL(12,2) GENERATED ALWAYS AS (cantidad_contada - cantidad_sistema) STORED,
+    diferencia DECIMAL(12,2) NOT NULL DEFAULT 0,
     observaciones VARCHAR(500) NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -2562,7 +2718,7 @@ CREATE TABLE inventarios_fisicos_detalle (
 	CONSTRAINT fk_inventariosfisicosdetalle_producto_id FOREIGN KEY (producto_id) REFERENCES productos(producto_id),
 	CONSTRAINT fk_inventariosfisicosdetalle_lote_id FOREIGN KEY (lote_id) REFERENCES lotes_productos(lote_id),
 	CONSTRAINT fk_inventariosfisicosdetalle_ubicacion_id FOREIGN KEY (ubicacion_id) REFERENCES ubicaciones(ubicacion_id),
-	CONSTRAINT chk_inventariosfisicosdetalle_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+	CONSTRAINT chk_inventariosfisicosdetalle_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
 	CONSTRAINT chk_inventariosfisicosdetalle_cantidades CHECK (cantidad_sistema >= 0 AND cantidad_contada >= 0)
 );
 CREATE UNIQUE INDEX uix_inventariosfisicosdetalle_varios_unique ON inventarios_fisicos_detalle (inventario_fisico_id, lote_id, ubicacion_id) WHERE estado_id = 1000;
@@ -2624,7 +2780,7 @@ CREATE TABLE ubicaciones_historial (
     kardex_producto_id BIGINT NULL,
     cantidad DECIMAL(12,2) NOT NULL,
     motivo VARCHAR(500) NOT NULL,
-    usuario_id BIGINT NOT NULL,
+    trabajador_id BIGINT NOT NULL DEFAULT 1,
     fecha_movimiento TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
@@ -2637,7 +2793,7 @@ CREATE TABLE ubicaciones_historial (
     CONSTRAINT fk_ubicacioneshistorial_ubicacion_origen_id FOREIGN KEY (ubicacion_origen_id) REFERENCES ubicaciones(ubicacion_id),
     CONSTRAINT fk_ubicacioneshistorial_ubicacion_destino_id FOREIGN KEY (ubicacion_destino_id) REFERENCES ubicaciones(ubicacion_id),
     CONSTRAINT fk_ubicacioneshistorial_kardex_producto_id FOREIGN KEY (kardex_producto_id) REFERENCES kardex_productos(kardex_producto_id),
-    CONSTRAINT fk_ubicacioneshistorial_usuario_id FOREIGN KEY (usuario_id) REFERENCES usuarios(usuario_id),
+    CONSTRAINT fk_ubicacioneshistorial_trabajador_id FOREIGN KEY (trabajador_id) REFERENCES trabajadores(trabajador_id),
     CONSTRAINT chk_ubicacioneshistorial_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
     CONSTRAINT chk_ubicacioneshistorial_cantidad CHECK (cantidad > 0),
     CONSTRAINT chk_ubicacioneshistorial_motivo CHECK (TRIM(motivo) <> ''),
@@ -2646,27 +2802,27 @@ CREATE TABLE ubicaciones_historial (
 CREATE INDEX idx_ubicacioneshistorial_productoid ON ubicaciones_historial (producto_id);
 CREATE INDEX idx_ubicacioneshistorial_fechamovimiento ON ubicaciones_historial (fecha_movimiento DESC);
 CREATE INDEX idx_ubicacioneshistorial_ubicaciondestinoid ON ubicaciones_historial (ubicacion_destino_id);
-CREATE INDEX idx_ubicacioneshistorial_usuarioid ON ubicaciones_historial (usuario_id);
-CREATE INDEX idx_ubicacioneshistorial_varios ON ubicaciones_historial (usuario_id, fecha_movimiento DESC);
+CREATE INDEX idx_ubicacioneshistorial_trabajadorid ON ubicaciones_historial (trabajador_id);
+CREATE INDEX idx_ubicacioneshistorial_varios ON ubicaciones_historial (trabajador_id, fecha_movimiento DESC);
 CREATE INDEX idx_ubicacioneshistorial_kardexproductoid ON ubicaciones_historial(kardex_producto_id);
 CREATE INDEX idx_ubicacioneshistorial_ubicacionorigenid ON ubicaciones_historial(ubicacion_origen_id);
 
 COMMENT ON TABLE ubicaciones_historial IS 'Reglas de la tabla - ubicaciones_historial
-R.0: La tabla ubicaciones_historial actúa como el registro de auditoría de todos los movimientos de productos entre ubicaciones dentro de los almacenes. Su propósito es proporcionar trazabilidad completa sobre cuándo, quién y por qué se movió un producto de una ubicación a otra, permitiendo análisis de eficiencia de picking, detección de errores logísticos y cumplimiento de procedimientos operativos.
-R.1: Registro Obligatorio de Movimientos: Cada vez que un producto cambia de ubicación (ya sea por venta, reabastecimiento, ajuste de inventario o reubicación manual), el sistema debe insertar automáticamente un registro en esta tabla. El backend es responsable de generar este registro de forma atómica junto con la operación que origina el movimiento.
-R.2: Vinculación con Transacciones: El campo kardex_producto_id permite asociar el movimiento de ubicación con una transacción específica (venta, compra, ajuste, traspaso), proporcionando trazabilidad completa desde el documento fiscal hasta la ubicación física del producto.
-R.3: Motivos de Movimiento: El campo motivo debe documentar claramente la razón del movimiento, utilizando valores estandarizados como: ''VENTA'', ''COMPRA'', ''REABASTECIMIENTO'', ''AJUSTE_INVENTARIO'', ''TRASPASO'', ''REUBICACION_MANUAL'', ''DEVOLUCION'', ''CADUCIDAD'', etc. El frontend debe presentar un combo con estas opciones predefinidas para garantizar consistencia en el registro.
-R.4: Control de Fechas y Auditoría: fecha_movimiento registra el momento exacto en que ocurrió el movimiento físico, mientras que fecha_registro puede diferir ligeramente por latencia de red. El sistema debe utilizar fecha_movimiento como fuente de verdad para reportes de trazabilidad.
-R.5: Cantidad y Unidades: El campo cantidad almacena la cantidad de producto movida, expresada en unidades base del producto (ej. tabletas, mililitros). Esta cantidad debe ser positiva y corresponde al total de unidades trasladadas.
-R.6: Inmutabilidad del Historial: Los registros en esta tabla son inmutables por diseño. No se permiten operaciones UPDATE o DELETE sobre registros existentes. Cualquier corrección debe realizarse mediante un nuevo registro que anule o complemente el movimiento anterior, manteniendo la trazabilidad completa sin pérdida de información.
-R.7: Registro Comodín: El sistema debe mantener un registro inicial con ubicacion_historial_id = 1 que sirve como valor predeterminado para las FK que requieran un historial de referencia. Este registro tiene estado_id = 1002 (HISTORICO) y no puede ser modificado ni eliminado.
-R.8: Consultas y Reportes: Los índices estratégicos (idx_uh_producto_id, idx_uh_fecha_movimiento, idx_uh_ubicacion_destino, idx_uh_usuario_id) garantizan consultas rápidas para reportes de trazabilidad, análisis de eficiencia de picking y auditorías de inventario.
+R.0: La tabla ubicaciones_historial actúa como el registro de auditoría de todos los movimientos de productos entre ubicaciones dentro de los almacenes[cite: 1]. Su propósito es proporcionar trazabilidad completa sobre cuándo, quién (trabajador responsable) y por qué se movió un producto de una ubicación a otra[cite: 1], permitiendo análisis de eficiencia de picking, detección de errores logísticos y cumplimiento de procedimientos operativos[cite: 1].
+R.1: Registro Obligatorio de Movimientos: Cada vez que un producto cambia de ubicación (ya sea por venta, reabastecimiento, ajuste de inventario o reubicación manual)[cite: 1], el sistema debe insertar automáticamente un registro en esta tabla[cite: 1]. El backend es responsable de generar este registro de forma atómica junto con la operación que origina el movimiento[cite: 1].
+R.2: Vinculación con Transacciones: El campo kardex_producto_id permite asociar el movimiento de ubicación con una transacción específica (venta, compra, ajuste, traspaso)[cite: 1], proporcionando trazabilidad completa desde el documento fiscal hasta la ubicación física del producto[cite: 1].
+R.3: Motivos de Movimiento: El campo motivo debe documentar claramente la razón del movimiento[cite: 1], utilizando valores estandarizados como: ''VENTA'', ''COMPRA'', ''REABASTECIMIENTO'', ''AJUSTE_INVENTARIO'', ''TRASPASO'', ''REUBICACION_MANUAL'', ''DEVOLUCION'', ''CADUCIDAD'', etc[cite: 1]. El frontend debe presentar un combo con estas opciones predefinidas para garantizar consistencia en el registro[cite: 1].
+R.4: Control de Fechas y Auditoría: fecha_movimiento registra el momento exacto en que ocurrió el movimiento físico[cite: 1], mientras que fecha_registro puede diferir ligeramente por latencia de red[cite: 1]. El sistema debe utilizar fecha_movimiento como fuente de verdad para reportes de trazabilidad[cite: 1].
+R.5: Cantidad y Unidades: El campo cantidad almacena la cantidad de producto movida, expresada en unidades base del producto (ej. tabletas, mililitros)[cite: 1]. Esta cantidad debe ser positiva y corresponde al total de unidades trasladadas[cite: 1].
+R.6: Inmutabilidad del Historial: Los registros en esta tabla son inmutables por diseño[cite: 1]. No se permiten operaciones UPDATE o DELETE sobre registros existentes[cite: 1]. Cualquier corrección debe realizarse mediante un nuevo registro que anule o complemente el movimiento anterior[cite: 1], manteniendo la trazabilidad completa sin pérdida de información[cite: 1].
+R.7: Registro Comodín: El sistema debe mantener un registro inicial con ubicacion_historial_id = 1 que sirve como valor predeterminado para las FK que requieran un historial de referencia[cite: 1]. Este registro se asocia al trabajador comodín (trabajador_id = 1), tiene estado_id = 1002 (HISTORICO) y no puede ser modificado ni eliminado[cite: 1].
+R.8: Consultas y Reportes: Los índices estratégicos (idx_ubicacioneshistorial_productoid, idx_ubicacioneshistorial_fechamovimiento, idx_ubicacioneshistorial_ubicaciondestinoid, idx_ubicacioneshistorial_trabajadorid) garantizan consultas rápidas para reportes de trazabilidad, análisis de eficiencia de picking y auditorías de inventario[cite: 1].
 R.9: Integración con Módulos: Esta tabla se integra con los módulos de:
-- Ventas: Registra la salida de productos del almacén al cliente.
-- Compras: Registra la entrada de productos al almacén desde proveedores.
-- Inventario: Registra reubicaciones, ajustes y traspasos.
-- Devoluciones: Registra movimientos de productos devueltos.
-- Caducidad: Registra movimientos de productos vencidos a zonas de cuarentena.';
+- Ventas: Registra la salida de productos del almacén al cliente[cite: 1].
+- Compras: Registra la entrada de productos al almacén desde proveedores[cite: 1].
+- Inventario: Registra reubicaciones, ajustes y traspasos[cite: 1].
+- Devoluciones: Registra movimientos de productos devueltos[cite: 1].
+- Caducidad: Registra movimientos de productos vencidos a zonas de cuarentena[cite: 1].';
 
 -- ================================================================================================
 
@@ -2725,7 +2881,7 @@ CREATE TABLE planes_pagos (
     fecha_baja TIMESTAMPTZ NULL,
     CONSTRAINT fk_planespagos_kardex_id FOREIGN KEY (kardex_id) REFERENCES kardex(kardex_id),
     CONSTRAINT chk_planespagos_estadopagoid CHECK (estado_pago_id IN (2550, 2551, 2552, 2553, 2554, 2555)),
-    CONSTRAINT chk_planespagos_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_planespagos_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_planespagos_numerocuota CHECK (numero_cuota > 0),
     CONSTRAINT chk_planespagos_montoprogramado CHECK (monto_programado >= 0),
     CONSTRAINT chk_planespagos_montopagado CHECK (monto_pagado >= 0),
@@ -2733,16 +2889,16 @@ CREATE TABLE planes_pagos (
     CONSTRAINT chk_planespagos_fechavencimiento CHECK (fecha_vencimiento > '2000-01-01'),
     CONSTRAINT chk_planespagos_fechapago CHECK (fecha_pago IS NULL OR fecha_pago > '2000-01-01')
 );
-CREATE UNIQUE INDEX uix_planespagos_varios_unique ON planes_pagos (kardex_id, numero_cuota) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_planespagos_kardex ON planes_pagos (kardex_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_planespagos_fechavencimiento ON planes_pagos (fecha_vencimiento) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_planespagos_varios_unique ON planes_pagos (kardex_id, numero_cuota) WHERE estado_id = 1000;
+CREATE INDEX idx_planespagos_kardex ON planes_pagos (kardex_id) WHERE estado_id = 1000;
+CREATE INDEX idx_planespagos_fechavencimiento ON planes_pagos (fecha_vencimiento) WHERE estado_id = 1000;
 
 COMMENT ON TABLE planes_pagos IS 'Reglas de la tabla - planes_pagos
 R.0: La tabla planes_pagos gestiona el calendario de vencimientos para las compras a crédito a proveedores, registrando las cuotas programadas y su estado de pago. Su propósito es administrar la deuda con los proveedores, facilitando la planificación financiera y el control de los pasivos, permitiendo registrar abonos parciales y ajustar automáticamente el estado de las cuotas.
 R.1: Control de Ciclo de Vida y Cierre. estado_pago_id califica de manera estricta el avance transaccional de la cuota. Pasará automáticamente a 2552 (PAGADO) o 2553 (CERRADO) cuando el monto_pagado iguale al monto_programado (saldo igual a 0.00). El frontend inhabilitará de forma inmediata la edición o inserción de nuevos abonos sobre registros cuyo estado_pago_id sea distinto de 2550 (PENDIENTE) o 2551 (PARCIAL) para proteger la integridad contable.
-R.2: Diferenciación de Capas. estado_id regula únicamente el borrado lógico y el comportamiento histórico en el sistema general (''ACTIVO'', ''BORRADO'', ''HISTORICO'', ''ANULADO''), operando de forma independiente a los procesos de liquidación comercial controlados por estado_pago_id.
+R.2: Diferenciación de Capas. estado_id regula únicamente el borrado lógico y el comportamiento de anulación en el sistema general (''ACTIVO'', ''BORRADO'', ''ANULADO''), operando de forma independiente a los procesos de liquidación comercial controlados por estado_pago_id.
 R.3: Los planes de pago solo pueden ser creados para transacciones de compra a proveedores (evento_id = 1050 ''COMPRA'' en la tabla kardex). El sistema bloquea la creación de planes de pago para cualquier otro evento, incluyendo VENTA (evento_id = 1051).
-R.4: Registro Inicial Comodín. El registro con plan_pago_id = 1 es un registro histórico con estado_id = 1002 (HISTORICO) y estado_pago_id = 2553 (CERRADO). Sirve como valor predeterminado para las FK que requieran un plan de pago de referencia.
+R.4: Registro Inicial Comodín. El registro con plan_pago_id = 1 es un registro con estado_id = 1000 (ACTIVO) y estado_pago_id = 2553 (CERRADO). Sirve como valor predeterminado para las FK que requieran un plan de pago de referencia.
 R.5: Validación de Fechas. fecha_pago solo puede ser registrada si es posterior a ''2000-01-01''. El backend debe validar que fecha_pago >= fecha_vencimiento cuando se registre un pago.
 R.6: Cálculo Automático del Estado de Pago. El backend debe actualizar estado_pago_id automáticamente al registrar abonos: si monto_pagado = monto_programado ? 2552 (PAGADO); si monto_pagado > 0 y < monto_programado ? 2551 (PARCIAL); si monto_pagado = 0 ? 2550 (PENDIENTE). CERRADO solo aplica cuando la cuota está completamente liquidada y el plan ha finalizado.
 Reglas de la tabla - planes_pagos (Sección Compras)
@@ -2772,8 +2928,8 @@ CREATE TABLE comprobantes_pagos (
     comprobante_pago_id BIGSERIAL PRIMARY KEY,
     kardex_id BIGINT NOT NULL DEFAULT 1,
     banco_id BIGINT NOT NULL DEFAULT 1,
-    tipo_pago_id SMALLINT NOT NULL DEFAULT 1400,		-- 1400=NINGUNO, 1401=EFECTIVO, 1402=CHEQUE, 1403=QR, 1404=TRANSFERENCIA, 1405=DEPOSITO, 1406=OTRO
-    tipo_moneda_id SMALLINT NOT NULL DEFAULT 2300,      -- 2300=BOLIVIANO, 2301=DOLAR, 2302=EURO, 2303=UFV
+    tipo_pago_id SMALLINT NOT NULL DEFAULT 1400,        -- 1400=NINGUNO, 1401=EFECTIVO, 1402=TARJETA, 1403=CHEQUE, 1404=VALE, 1405=OTROS, 1406=SIN_PAGO, 1407=TRANSFERENCIA, 1408=DEPOSITO, 1409=QR
+	tipo_moneda_id SMALLINT NOT NULL DEFAULT 2300,      -- 2300=BOLIVIANO, 2301=DOLAR, 2302=EURO, 2303=UFV
     codigo_transaccion VARCHAR(100) NOT NULL,
     monto DECIMAL(12,2) NOT NULL DEFAULT 0,
     fecha_pago DATE NOT NULL,
@@ -2782,7 +2938,7 @@ CREATE TABLE comprobantes_pagos (
     cuenta_destino VARCHAR(50) NULL,
     comprobante_digital_ruta VARCHAR(255) NULL,
     confirmado SMALLINT NOT NULL DEFAULT 0,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -2791,9 +2947,9 @@ CREATE TABLE comprobantes_pagos (
     fecha_baja TIMESTAMPTZ NULL,
     CONSTRAINT fk_comprobantespagos_kardex_id FOREIGN KEY (kardex_id) REFERENCES kardex(kardex_id),
     CONSTRAINT fk_comprobantespagos_banco_id FOREIGN KEY (banco_id) REFERENCES bancos(banco_id),
-    CONSTRAINT chk_comprobantespagos_tipopagoid CHECK (tipo_pago_id IN (1400, 1401, 1402, 1403, 1404, 1405, 1406)),
+    CONSTRAINT chk_comprobantespagos_tipopagoid CHECK (tipo_pago_id IN (1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409)),
     CONSTRAINT chk_comprobantespagos_tipomonedaid CHECK (tipo_moneda_id IN (2300, 2301, 2302, 2303)),
-    CONSTRAINT chk_comprobantespagos_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_comprobantespagos_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_comprobantespagos_confirmado CHECK (confirmado IN (0, 1)),
     CONSTRAINT chk_comprobantespagos_monto CHECK (monto > 0.00),
     CONSTRAINT chk_comprobantespagos_codigotransaccion CHECK (LENGTH(TRIM(codigo_transaccion)) >= 2),
@@ -2802,10 +2958,10 @@ CREATE TABLE comprobantes_pagos (
     CONSTRAINT chk_comprobantespagos_cuentadestino CHECK (cuenta_destino IS NULL OR TRIM(cuenta_destino) <> ''),
     CONSTRAINT chk_comprobantespagos_comprobantedigital CHECK (comprobante_digital_ruta IS NULL OR TRIM(comprobante_digital_ruta) <> '')
 );
-CREATE UNIQUE INDEX uix_comprobantespagos_varios_unique ON comprobantes_pagos (banco_id, codigo_transaccion) WHERE estado_id IN (1000, 1002) AND codigo_transaccion <> 'SN';
-CREATE INDEX idx_comprobantespagos_kardexid ON comprobantes_pagos (kardex_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_comprobantespagos_tipopagoid ON comprobantes_pagos (tipo_pago_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_comprobantespagos_fechapago ON comprobantes_pagos (fecha_pago DESC) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_comprobantespagos_varios_unique ON comprobantes_pagos (banco_id, codigo_transaccion) WHERE estado_id = 1000;
+CREATE INDEX idx_comprobantespagos_kardexid ON comprobantes_pagos (kardex_id) WHERE estado_id = 1000;
+CREATE INDEX idx_comprobantespagos_tipopagoid ON comprobantes_pagos (tipo_pago_id) WHERE estado_id = 1000;
+CREATE INDEX idx_comprobantespagos_fechapago ON comprobantes_pagos (fecha_pago DESC) WHERE estado_id = 1000;
 
 COMMENT ON TABLE comprobantes_pagos IS 'Reglas de la tabla - comprobantes_pagos
 R.0: La tabla comprobantes_pagos registra los comprobantes de pago asociados a transacciones de venta, compra u otras operaciones financieras. Sirve como soporte documental y de trazabilidad de los medios de pago utilizados en el sistema, permitiendo vincular cada transacción con su respectivo comprobante bancario o interno.
@@ -2823,15 +2979,15 @@ CREATE TABLE pagos (
     pago_id BIGSERIAL PRIMARY KEY,
     kardex_id BIGINT NOT NULL DEFAULT 1,
     plan_pago_id BIGINT NOT NULL DEFAULT 1,
-    tipo_pago_id SMALLINT NOT NULL DEFAULT 1400,		-- 1400=NINGUNO, 1401=EFECTIVO, 1402=CHEQUE, 1403=QR, 1404=TRANSFERENCIA, 1405=DEPOSITO, 1406=OTRO
-    comprobante_pago_id BIGINT NOT NULL DEFAULT 1,
-	proveedor_id BIGINT NULL,
+    tipo_pago_id SMALLINT NOT NULL DEFAULT 1400,        -- 1400=NINGUNO, 1401=EFECTIVO, 1402=TARJETA, 1403=CHEQUE, 1404=VALE, 1405=OTROS, 1406=SIN_PAGO, 1407=TRANSFERENCIA, 1408=DEPOSITO, 1409=QR
+	comprobante_pago_id BIGINT NOT NULL DEFAULT 1,
+	proveedor_id BIGINT NOT NULL DEFAULT 1,
     monto DECIMAL(12,2) NOT NULL,
     fecha_pago DATE NOT NULL,
     referencia VARCHAR(100) NULL,
     comprobante VARCHAR(100) NULL,
     observaciones VARCHAR(500) NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -2842,14 +2998,14 @@ CREATE TABLE pagos (
     CONSTRAINT fk_pagos_plan_pago_id FOREIGN KEY (plan_pago_id) REFERENCES planes_pagos(plan_pago_id),
     CONSTRAINT fk_pagos_comprobante_pago_id FOREIGN KEY (comprobante_pago_id) REFERENCES comprobantes_pagos(comprobante_pago_id),
     CONSTRAINT fk_pagos_proveedor_id FOREIGN KEY (proveedor_id) REFERENCES proveedores(proveedor_id),
-    CONSTRAINT chk_pagos_tipopagoid CHECK (tipo_pago_id IN (1400, 1401, 1402, 1403, 1404, 1405, 1406)),
-    CONSTRAINT chk_pagos_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_pagos_tipopagoid CHECK (tipo_pago_id IN (1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409)),
+    CONSTRAINT chk_pagos_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_pagos_monto CHECK (monto > 0),
     CONSTRAINT chk_pagos_fechapago CHECK (fecha_pago > '2000-01-01')
 );
-CREATE INDEX idx_pagos_kardexid ON pagos (kardex_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_pagos_planpagoid ON pagos (plan_pago_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_pagos_fechapago ON pagos (fecha_pago) WHERE estado_id IN (1000, 1002);
+CREATE INDEX idx_pagos_kardexid ON pagos (kardex_id) WHERE estado_id = 1000;
+CREATE INDEX idx_pagos_planpagoid ON pagos (plan_pago_id) WHERE estado_id = 1000;
+CREATE INDEX idx_pagos_fechapago ON pagos (fecha_pago) WHERE estado_id = 1000;
 CREATE INDEX idx_pagos_proveedorid ON pagos(proveedor_id);
 CREATE INDEX idx_pagos_comprobantepagoid ON pagos(comprobante_pago_id);
 
@@ -2873,9 +3029,9 @@ R.7: Validación de Comprobante de Pago. comprobante_pago_id debe existir y esta
 CREATE TABLE cajas (
     caja_id BIGSERIAL PRIMARY KEY,
     sucursal_id BIGINT NOT NULL DEFAULT 1,
-    apertura_usuario_id BIGINT NOT NULL DEFAULT 1,
-    cierre_usuario_id BIGINT NOT NULL DEFAULT 1,
-    autorizacion_usuario_id BIGINT NOT NULL DEFAULT 1,
+    apertura_trabajador_id BIGINT NOT NULL DEFAULT 1,
+    cierre_trabajador_id BIGINT NOT NULL DEFAULT 1,
+    autorizacion_trabajador_id BIGINT NOT NULL DEFAULT 1,
     fecha_apertura TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_cierre TIMESTAMPTZ NULL,
     fecha_autorizacion TIMESTAMPTZ NULL,
@@ -2892,7 +3048,7 @@ CREATE TABLE cajas (
     total_retiros SMALLINT NOT NULL DEFAULT 0,
     estado_caja_id SMALLINT NOT NULL DEFAULT 2650,		-- 2650=ABIERTA, 2651=CERRADA
     observaciones VARCHAR(500) NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -2900,11 +3056,11 @@ CREATE TABLE cajas (
     fecha_actualizacion TIMESTAMPTZ NULL,
     fecha_baja TIMESTAMPTZ NULL,
     CONSTRAINT fk_cajas_sucursal_id FOREIGN KEY (sucursal_id) REFERENCES sucursales(sucursal_id),
-    CONSTRAINT fk_cajas_apertura_usuario_id FOREIGN KEY (apertura_usuario_id) REFERENCES usuarios(usuario_id),
-    CONSTRAINT fk_cajas_cierre_usuario_id FOREIGN KEY (cierre_usuario_id) REFERENCES usuarios(usuario_id),
-    CONSTRAINT fk_cajas_autorizacion_usuario_id FOREIGN KEY (autorizacion_usuario_id) REFERENCES usuarios(usuario_id),
+    CONSTRAINT fk_cajas_apertura_trabajador_id FOREIGN KEY (apertura_trabajador_id) REFERENCES trabajadores(trabajador_id),
+    CONSTRAINT fk_cajas_cierre_trabajador_id FOREIGN KEY (cierre_trabajador_id) REFERENCES trabajadores(trabajador_id),
+    CONSTRAINT fk_cajas_autorizacion_trabajador_id FOREIGN KEY (autorizacion_trabajador_id) REFERENCES trabajadores(trabajador_id),
     CONSTRAINT chk_cajas_estadocajaid CHECK (estado_caja_id IN (2650, 2651)),
-    CONSTRAINT chk_cajas_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_cajas_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_cajas_fechas CHECK (fecha_cierre IS NULL OR fecha_cierre >= fecha_apertura),
     CONSTRAINT chk_cajas_fechas_varios CHECK (fecha_autorizacion IS NULL OR fecha_autorizacion <= fecha_apertura),
     CONSTRAINT chk_cajas_montos CHECK (
@@ -2916,17 +3072,16 @@ CREATE TABLE cajas (
     CONSTRAINT chk_cajas_observaciones CHECK (observaciones IS NULL OR LENGTH(TRIM(observaciones)) >= 3)
 );
 CREATE UNIQUE INDEX uix_cajas_sucursalid_unique ON cajas (sucursal_id) WHERE estado_caja_id = 2650 AND estado_id = 1000;
-CREATE INDEX idx_cajas_sucursalid_estadocajaid ON cajas (sucursal_id, estado_caja_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_cajas_fechaapertura ON cajas (fecha_apertura DESC) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_cajas_aperturausuarioid ON cajas (apertura_usuario_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_cajas_varios ON cajas (estado_caja_id, fecha_apertura DESC) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_cajas_autorizacionusuarioid ON cajas(autorizacion_usuario_id);
-CREATE INDEX idx_cajas_cierreusuarioid ON cajas(cierre_usuario_id);
+CREATE INDEX idx_cajas_sucursalid_estadocajaid ON cajas (sucursal_id, estado_caja_id) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_cajas_fechaapertura ON cajas (fecha_apertura DESC) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_cajas_aperturatrabajadorid ON cajas (apertura_trabajador_id) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_cajas_cierretrabajadorid ON cajas (cierre_trabajador_id) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_cajas_autorizaciontrabajadorid ON cajas (autorizacion_trabajador_id) WHERE estado_id IN (1000, 1003);
 
 COMMENT ON TABLE cajas IS 'Reglas de la tabla - cajas
 R.0: La tabla cajas registra el ciclo de vida operativo y financiero de las cajas físicas de cobro por sucursal, controlando la apertura, los flujos de efectivo (ingresos, egresos, ventas), los arqueos y el cierre de turno. Su propósito es garantizar la trazabilidad del dinero en efectivo y medios de pago recibidos durante las operaciones diarias del negocio.
 R.1: Apertura Única por Sucursal. El índice único parcial (uix_cajas_sucursalid_unique) garantiza que una sucursal solo puede tener una única caja abierta (estado_caja_id = 2650) de forma simultánea. No se permite abrir una nueva caja si la anterior no ha sido cerrada formalmente.
-R.2: Control de Fechas y Cronología. La fecha de cierre (fecha_cierre) debe ser estrictamente posterior o igual a la fecha de apertura (fecha_apertura). Si la caja está abierta, fecha_cierre y cierre_usuario_id deben ser obligatoriamente NULL.
+R.2: Control de Fechas y Cronología. La fecha de cierre (fecha_cierre) debe ser estrictamente posterior o igual a la fecha de apertura (fecha_apertura). Si la caja está abierta, fecha_cierre y cierre_trabajador_id deben ser obligatoriamente NULL.
 R.3: Cálculo del Monto Final Esperado. Durante la operación, el backend debe calcular dinámicamente el monto final esperado mediante la fórmula: monto_final_esperado = monto_inicial + monto_ingresos + monto_ventas - monto_egresos.
 R.4: Arqueo y Diferencia en Cierre. Al realizar el cierre de caja, se debe registrar el monto contado físicamente (monto_final_real). El sistema calcula automáticamente la diferencia como: diferencia = monto_final_real - monto_final_esperado (valores positivos indican sobrante, valores negativos indican faltante).
 R.5: Restricción de Modificación Post-Cierre. Una vez que una caja pasa a estado_caja_id = 2651 (CERRADA), ningún usuario puede registrar nuevos pagos, ingresos o egresos asociados a dicha caja, requiriendo la apertura de una nueva sesión o una autorización especial de supervisión.';
@@ -2937,15 +3092,15 @@ CREATE TABLE movimientos (
     movimiento_id BIGSERIAL PRIMARY KEY,
     caja_id BIGINT NOT NULL DEFAULT 1,
     referencia_id BIGINT NOT NULL DEFAULT 1,
-    usuario_id BIGINT NOT NULL DEFAULT 1,
-    tipo_movimiento_id SMALLINT NOT NULL DEFAULT 2600,		-- 2600=INGRESO, 2601=EGRESO
-    tipo_pago_id SMALLINT NULL DEFAULT 1400,				-- 1400=NINGUNO, 1401=EFECTIVO, 1402=CHEQUE, 1403=QR, 1404=TRANSFERENCIA, 1405=DEPOSITO, 1406=OTRO
-    monto DECIMAL(12,2) NOT NULL,
+    trabajador_id BIGINT NOT NULL DEFAULT 1,
+    tipo_movimiento_id SMALLINT NOT NULL DEFAULT 2600,	-- 2600=INGRESO, 2601=EGRESO
+    tipo_pago_id SMALLINT NOT NULL DEFAULT 1400,        -- 1400=NINGUNO, 1401=EFECTIVO, 1402=TARJETA, 1403=CHEQUE, 1404=VALE, 1405=OTROS, 1406=SIN_PAGO, 1407=TRANSFERENCIA, 1408=DEPOSITO, 1409=QR
+	monto DECIMAL(12,2) NOT NULL,
     saldo_antes DECIMAL(12,2) NOT NULL,
     saldo_despues DECIMAL(12,2) NOT NULL,
     motivo VARCHAR(500) NOT NULL,
     fecha_movimiento TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -2953,22 +3108,22 @@ CREATE TABLE movimientos (
     fecha_actualizacion TIMESTAMPTZ NULL,
     fecha_baja TIMESTAMPTZ NULL,
     CONSTRAINT fk_movimientos_caja_id FOREIGN KEY (caja_id) REFERENCES cajas(caja_id),
-    CONSTRAINT fk_movimientos_usuario_id FOREIGN KEY (usuario_id) REFERENCES usuarios(usuario_id),
+    CONSTRAINT fk_movimientos_trabajador_id FOREIGN KEY (trabajador_id) REFERENCES trabajadores(trabajador_id),
     CONSTRAINT chk_movimientos_tipomovimientoid CHECK (tipo_movimiento_id IN (2600, 2601)),
-    CONSTRAINT chk_movimientos_tipopagoid CHECK (tipo_pago_id IS NULL OR tipo_pago_id IN (1400, 1401, 1402, 1403, 1404, 1405, 1406)),
-    CONSTRAINT chk_movimientos_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_movimientos_tipopagoid CHECK (tipo_pago_id IS NULL OR tipo_pago_id IN (1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409)),
+    CONSTRAINT chk_movimientos_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_movimientos_monto CHECK (monto > 0.00),
     CONSTRAINT chk_movimientos_saldoantes CHECK (saldo_antes >= 0.00),
     CONSTRAINT chk_movimientos_saldodespues CHECK (saldo_despues >= 0.00),
     CONSTRAINT chk_movimientos_motivo_minlength CHECK (LENGTH(TRIM(motivo)) >= 3)
 );
-CREATE INDEX idx_movimientos_cajaid ON movimientos (caja_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_movimientos_fechamovimiento ON movimientos (fecha_movimiento DESC) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_movimientos_tipomovimientoid_cajaid ON movimientos (tipo_movimiento_id, caja_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_movimientos_usuarioid ON movimientos (usuario_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_movimientos_referenciaid ON movimientos (referencia_id) WHERE referencia_id IS NOT NULL AND estado_id IN (1000, 1002);
-CREATE INDEX idx_movimientos_fecharegistro ON movimientos (fecha_registro DESC) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_movimientos_tipopagoid ON movimientos (tipo_pago_id) WHERE estado_id IN (1000, 1002);
+CREATE INDEX idx_movimientos_cajaid ON movimientos (caja_id) WHERE estado_id = 1000;
+CREATE INDEX idx_movimientos_fechamovimiento ON movimientos (fecha_movimiento DESC) WHERE estado_id = 1000;
+CREATE INDEX idx_movimientos_tipomovimientoid_cajaid ON movimientos (tipo_movimiento_id, caja_id) WHERE estado_id = 1000;
+CREATE INDEX idx_movimientos_trabajadorid ON movimientos (trabajador_id) WHERE estado_id = 1000;
+CREATE INDEX idx_movimientos_referenciaid ON movimientos (referencia_id) WHERE referencia_id IS NOT NULL AND estado_id = 1000;
+CREATE INDEX idx_movimientos_fecharegistro ON movimientos (fecha_registro DESC) WHERE estado_id = 1000;
+CREATE INDEX idx_movimientos_tipopagoid ON movimientos (tipo_pago_id) WHERE estado_id = 1000;
 
 COMMENT ON TABLE movimientos IS 'Reglas de la tabla - movimientos
 R.0: La tabla movimientos registra el libro de ingresos y egresos detallados de efectivo o medios de pago asociados directamente a una sesión de caja activa. Su propósito es garantizar la trazabilidad de cada entrada o salida de dinero que afecta los saldos y el arqueo de caja.
@@ -2987,7 +3142,7 @@ CREATE TABLE arqueos_detalle (
     tipo_billete_id SMALLINT NOT NULL DEFAULT 4300,     -- 4300=NINGUNO, 4301=B200, 4302=B100, 4303=B50, 4304=B20, 4305=B10, 4306=B5, 4307=B2, 4308=B1, 4309=M050, 4310=M020, 4311=M010, 4312=M10, 4313=M5, 4314=M2, 4315=M1
     cantidad SMALLINT NOT NULL DEFAULT 0,
     subtotal DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -2996,12 +3151,12 @@ CREATE TABLE arqueos_detalle (
     fecha_baja TIMESTAMPTZ NULL,
 	CONSTRAINT fk_arqueosdetalle_caja_id FOREIGN KEY (caja_id) REFERENCES cajas(caja_id),
     CONSTRAINT chk_arqueosdetalle_tipobilleteid CHECK (tipo_billete_id IN (4300, 4301, 4302, 4303, 4304, 4305, 4306, 4307, 4308, 4309, 4310, 4311, 4312, 4313, 4314, 4315)),
-    CONSTRAINT chk_arqueosdetalle_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_arqueosdetalle_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_arqueosdetalle_cantidad CHECK (cantidad >= 0),
     CONSTRAINT chk_arqueosdetalle_subtotal CHECK (subtotal >= 0)
 );
-CREATE INDEX idx_arqueosdetalle_cajaid ON arqueos_detalle (caja_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_arqueosdetalle_tipobilleteid ON arqueos_detalle (tipo_billete_id) WHERE estado_id IN (1000, 1002);
+CREATE INDEX idx_arqueosdetalle_cajaid ON arqueos_detalle (caja_id) WHERE estado_id = 1000;
+CREATE INDEX idx_arqueosdetalle_tipobilleteid ON arqueos_detalle (tipo_billete_id) WHERE estado_id = 1000;
 
 COMMENT ON TABLE arqueos_detalle IS 'Reglas de la tabla - arqueos_detalle
 R.0: La tabla arqueos_detalle desglosa el conteo físico de dinero en efectivo (conteo de billetes y monedas por denominación) asociado a un proceso de arqueo o cierre dentro de una sesión de caja. Su propósito es estructurar el desglose físico del efectivo para calcular con exactitud el monto real disponible en la caja.
@@ -3024,17 +3179,17 @@ CREATE TABLE alertas_notificaciones (
     entidad_afectada_tipo_id SMALLINT NOT NULL DEFAULT 4111,	 -- 4100=PRODUCTOS, 4101=LOTES, 4102=VENTAS, 4103=COMPRAS, 4104=USUARIOS, 4105=SUCURSALES, 4106=PROVEEDORES, 4107=CLIENTES, 4108=FACTURAS, 4109=PAGOS, 4110=INVENTARIO, 4111=NINGUNO
     entidad_afectada_id BIGINT NULL,
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-    estado_alerta_id SMALLINT NOT NULL DEFAULT 2955,   -- 2950=PENDIENTE, 2951=EN_PROCESO, 2952=RESUELTA, 2953=IGNORADA, 2954=ESCALADA, 2955=NINGUNO
+    estado_alerta_id SMALLINT NOT NULL DEFAULT 2955,   			-- 2950=PENDIENTE, 2951=EN_PROCESO, 2952=RESUELTA, 2953=IGNORADA, 2954=ESCALADA, 2955=NINGUNO
     prioridad_resolucion SMALLINT NOT NULL DEFAULT 3,
-    usuario_asignado_id BIGINT NOT NULL DEFAULT 1,
+    trabajador_asignado_id BIGINT NOT NULL DEFAULT 1,
     fecha_asignacion TIMESTAMPTZ NULL,
     es_leido SMALLINT NOT NULL DEFAULT 0,
     fecha_lectura TIMESTAMPTZ NULL,
-    usuario_resolutor_id BIGINT NOT NULL DEFAULT 1,
+	trabajador_resolutor_id BIGINT NOT NULL DEFAULT 1,
     fecha_resolucion TIMESTAMPTZ NULL,
     comentarios_resolucion VARCHAR(3000) NULL,
     accion_tomada VARCHAR(50) NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -3042,8 +3197,8 @@ CREATE TABLE alertas_notificaciones (
     fecha_actualizacion TIMESTAMPTZ NULL,
     fecha_baja TIMESTAMPTZ NULL,
     CONSTRAINT fk_alertasnotificaciones_sucursal_id FOREIGN KEY (sucursal_id) REFERENCES sucursales(sucursal_id),
-    CONSTRAINT fk_alertasnotificaciones_usuario_asignado_id FOREIGN KEY (usuario_asignado_id) REFERENCES usuarios(usuario_id),
-    CONSTRAINT fk_alertasnotificaciones_usuario_resolutor_id FOREIGN KEY (usuario_resolutor_id) REFERENCES usuarios(usuario_id),
+    CONSTRAINT fk_alertasnotificaciones_trabajador_asignado_id FOREIGN KEY (trabajador_asignado_id) REFERENCES trabajadores(trabajador_id),
+    CONSTRAINT fk_alertasnotificaciones_trabajador_resolutor_id FOREIGN KEY (trabajador_resolutor_id) REFERENCES trabajadores(trabajador_id),
     CONSTRAINT chk_alertasnotificaciones_codigo_notempty CHECK (TRIM(codigo) <> ''),
     CONSTRAINT chk_alertasnotificaciones_codigo_minlength CHECK (LENGTH(TRIM(codigo)) >= 3),
     CONSTRAINT chk_alertasnotificaciones_codigo_mayusculas CHECK (codigo = UPPER(codigo)),
@@ -3054,25 +3209,24 @@ CREATE TABLE alertas_notificaciones (
     CONSTRAINT chk_alertasnotificaciones_nivelcriticoid CHECK (nivel_critico_id IN (2900, 2901, 2902, 2903, 2904, 2905)),
     CONSTRAINT chk_alertasnotificaciones_entidadafectadatipoid CHECK (entidad_afectada_tipo_id IN (4100, 4101, 4102, 4103, 4104, 4105, 4106, 4107, 4108, 4109, 4110, 4111)),
     CONSTRAINT chk_alertasnotificaciones_estadoalertaid CHECK (estado_alerta_id IN (2950, 2951, 2952, 2953, 2954, 2955)),
-    CONSTRAINT chk_alertasnotificaciones_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_alertasnotificaciones_estadoid CHECK (estado_id IN (1000, 1001)),
     CONSTRAINT chk_alertasnotificaciones_esleido CHECK (es_leido IN (0, 1))
 );
 CREATE UNIQUE INDEX uix_alertasnotificaciones_codigo_unique ON alertas_notificaciones (codigo) WHERE estado_id = 1000;
 CREATE INDEX idx_alertasnotificaciones_fecharegistro ON alertas_notificaciones (fecha_registro DESC) WHERE estado_id = 1000;
 CREATE INDEX idx_alertasnotificaciones_varios ON alertas_notificaciones (entidad_afectada_tipo_id, entidad_afectada_id) WHERE estado_id = 1000;
 CREATE INDEX idx_alertasnotificaciones_bandeja_consulta ON alertas_notificaciones (sucursal_id, estado_alerta_id, fecha_registro DESC) WHERE estado_id = 1000;
-CREATE INDEX idx_alertasnotificaciones_usuarioasignadoid ON alertas_notificaciones (usuario_asignado_id);
-CREATE INDEX idx_alertasnotificaciones_usuarioresolutorid ON alertas_notificaciones (usuario_resolutor_id);
+CREATE INDEX idx_alertasnotificaciones_trabajadorasignadoid ON alertas_notificaciones (trabajador_asignado_id) WHERE estado_id = 1000;
+CREATE INDEX idx_alertasnotificaciones_trabajadorresolutorid ON alertas_notificaciones (trabajador_resolutor_id) WHERE estado_id = 1000;
 
 COMMENT ON TABLE alertas_notificaciones IS 'Reglas de la tabla - alertas_notificaciones
 R.0: La tabla alertas_notificaciones es el centro de gestión de eventos y avisos del sistema, consolidando tanto las notificaciones operativas (stock bajo, vencimientos) como las generadas por los modelos de IA (pronósticos, anomalías). Su propósito es unificar la bandeja de entrada del usuario, proporcionando un registro auditado de eventos críticos, su nivel de urgencia, asignación y resolución, lo que permite una gestión proactiva de la farmacia.
 R.1: Unificación de Eventos y Bandeja de Entrada. Esta entidad consolida tanto el registro técnico de la anomalía o predicción generada por el sistema/IA como el estado de interacción del operador asignado en una sola estructura unificada, controlando la visibilidad del mensaje en la UI a través del campo es_leido. (donde 0 = No leído y 1 = Leído).
 R.2: Metadatos Flexibles con JSONB y Estructura por Defecto. El campo metadata almacena toda la información contextual específica del tipo de alerta (como modelos de IA, parámetros de automatización, resultados de acciones, etc.). Este campo es de uso obligatorio a nivel de esquema con la restricción NOT NULL DEFAULT ''{}''::jsonb, garantizando que la aplicación nunca reciba ni almacene valores nulos (NULL), facilitando el consumo directo de propiedades en el backend sin necesidad de evaluar nulos en el objeto.
-R.3: Control Dual de Estados Operacionales. estado_alerta_id rige el ciclo de vida de resolución técnica del evento (2950=PENDIENTE, 2951=EN_PROCESO, 2952=RESUELTA, 2953=IGNORADA, 2954=ESCALADA). estado_id controla la persistencia lógica en el repositorio de datos (1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO).
+R.3: Control Dual de Estados Operacionales. estado_alerta_id rige el ciclo de vida de resolución técnica del evento (2950=PENDIENTE, 2951=EN_PROCESO, 2952=RESUELTA, 2953=IGNORADA, 2954=ESCALADA). estado_id controla la persistencia lógica en el repositorio de datos (1000=ACTIVO, 1001=BORRADO).
 R.4: Gestión de Lectura y Auditoría Temporal. Al interactuar el usuario con la interfaz, la aplicación debe actualizar es_leido = TRUE y registrar la marca de tiempo exacta en fecha_lectura.
-R.5: Registro Inicial Comodín. El registro con alerta_notificacion_id = 1 es un registro histórico con estado_id = 1002 (HISTORICO). Sirve como valor predeterminado para las FK que requieran una alerta de referencia.
-R.6: Niveles de Prioridad. prioridad_resolucion es un valor entre 1 y 5 donde 1 es la máxima prioridad y 5 la mínima. El frontend debe ordenar las alertas según este campo para guiar la atención del operador.
-R.7: Estructura Estándar de Automatización en Metadata. Cuando la alerta involucre procesos automáticos, la información correspondiente debe almacenarse dentro del JSONB utilizando la siguiente estructura base acordada:
+R.5: Niveles de Prioridad. prioridad_resolucion es un valor entre 1 y 5 donde 1 es la máxima prioridad y 5 la mínima. El frontend debe ordenar las alertas según este campo para guiar la atención del operador.
+R.6: Estructura Estándar de Automatización en Metadata. Cuando la alerta involucre procesos automáticos, la información correspondiente debe almacenarse dentro del JSONB utilizando la siguiente estructura base acordada:
 {
     "automatizacion": {
         "frecuencia_minutos": 60,
@@ -3228,10 +3382,9 @@ R.0: La tabla metricas_rendimiento cuantifica la precisión de los modelos de IA
 R.1: Trazabilidad y Versión de Métricas. Cada evaluación de rendimiento almacena explícitamente su version_metricas, modelo_version, periodo_evaluacion y fecha_evaluacion, permitiendo auditorías retrospectivas cuando los hiperparámetros o las fórmulas subyacentes de los modelos de pronóstico cambien.
 R.2: Desglose Híbrido Estructurado-JSONB. Las métricas críticas para reportes rápidos (MAE, RMSE y score principal) se almacenan en columnas planas indexadas, mientras que los coeficientes complejos específicos del algoritmo residen opcionalmente en detalles_metricas.
 R.3: Ciclo de Vida Lógico. La entidad utiliza estado_id para mantener el histórico de entrenamiento de la IA sin perder trazabilidad ante eliminaciones lógicas.
-R.4: Registro Comodín. El registro con metrica_id = 1 actúa como valor por defecto con estado_id = 1002 para aquellas relaciones que requieran un apuntador de respaldo seguro.
-R.5: Estandarización de Métricas de Precisión. metrica_precision_id permite identificar el tipo de métrica de precisión utilizada (MAE, RMSE, MAPE, R2, F1), facilitando la comparación entre diferentes entrenamientos y modelos. Puede ser NULL si la métrica está definida en detalles_metricas.
-R.6: factor_estacionalidad_id define el tipo de estacionalidad considerada durante la evaluación del modelo. Puede ser NULL si no aplica.
-R.7: La combinación de tipo_metrica_id y metrica_precision_id debe ser coherente con el tipo de modelo evaluado. El backend valida que las métricas correspondan al tipo de problema (regresión, clasificación o clustering).';
+R.4: Estandarización de Métricas de Precisión. metrica_precision_id permite identificar el tipo de métrica de precisión utilizada (MAE, RMSE, MAPE, R2, F1), facilitando la comparación entre diferentes entrenamientos y modelos. Puede ser NULL si la métrica está definida en detalles_metricas.
+R.5: factor_estacionalidad_id define el tipo de estacionalidad considerada durante la evaluación del modelo. Puede ser NULL si no aplica.
+R.6: La combinación de tipo_metrica_id y metrica_precision_id debe ser coherente con el tipo de modelo evaluado. El backend valida que las métricas correspondan al tipo de problema (regresión, clasificación o clustering).';
 
 -- ================================================================================================
 
@@ -3247,7 +3400,7 @@ CREATE TABLE patrones_consumo (
     coeficiente_tendencia DECIMAL(5,2) NULL,
     fecha_inicio DATE NULL,
     fecha_fin DATE NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -3259,23 +3412,22 @@ CREATE TABLE patrones_consumo (
     CONSTRAINT fk_patronesconsumo_entrenamiento_id FOREIGN KEY (entrenamiento_id) REFERENCES entrenamientos(entrenamiento_id),
     CONSTRAINT chk_patronesconsumo_temporadaid CHECK (temporada_id IS NULL OR temporada_id IN (1600, 1601, 1602, 1603)),
     CONSTRAINT chk_patronesconsumo_tipopatronid CHECK (tipo_patron_id IN (4200)),
-    CONSTRAINT chk_patronesconsumo_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_patronesconsumo_estadoid CHECK (estado_id IN (1000, 1001)),
     CONSTRAINT chk_patronesconsumo_evento_minlength CHECK (evento IS NULL OR LENGTH(TRIM(evento)) >= 3),
     CONSTRAINT chk_patronesconsumo_fechas CHECK (fecha_inicio IS NULL OR fecha_fin IS NULL OR fecha_inicio <= fecha_fin)
 );
-CREATE UNIQUE INDEX uix_patronesconsumo_varios_unique ON patrones_consumo (producto_id, sucursal_id, entrenamiento_id, tipo_patron_id, fecha_inicio, fecha_fin) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_patronesconsumo_productoid ON patrones_consumo (producto_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_patronesconsumo_sucursalid ON patrones_consumo (sucursal_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_patronesconsumo_temporadaid ON patrones_consumo (temporada_id) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_patronesconsumo_varios_unique ON patrones_consumo (producto_id, sucursal_id, entrenamiento_id, tipo_patron_id, fecha_inicio, fecha_fin) WHERE estado_id = 1000;
+CREATE INDEX idx_patronesconsumo_productoid ON patrones_consumo (producto_id) WHERE estado_id = 1000;
+CREATE INDEX idx_patronesconsumo_sucursalid ON patrones_consumo (sucursal_id) WHERE estado_id = 1000;
+CREATE INDEX idx_patronesconsumo_temporadaid ON patrones_consumo (temporada_id) WHERE estado_id = 1000;
 
 COMMENT ON TABLE patrones_consumo IS 'Reglas de la tabla - patrones_consumo
 R.0: La tabla patrones_consumo almacena los factores estacionales y de tendencia identificados para un producto en una sucursal específica, como resultado de un entrenamiento de IA. Su propósito es capturar el comportamiento cíclico de la demanda, ajustando las predicciones futuras y los puntos de reorden para adaptarse a la realidad de cada mercado local.
 R.1: Control de Elasticidad Comercial. factor_estacional y coeficiente_tendencia gestionan las fluctuaciones estacionales de la demanda, resguardando las variaciones cíclicas del mercado boliviano (ej. Feriado de San Juan o Todos Santos) de forma acumulativa y perenne.
 R.2: Unicidad de Factores Multiplicadores. Para prevenir distorsiones en las proyecciones de inventario, la restricción uix_pat_producto_sucursal_entrenamiento restringe la existencia de más de un factor multiplicador activo para la misma combinación de artículo, punto de venta y ejecución analítica.
-R.3: Registro Inicial Comodín. El registro con patron_id = 1 es un registro histórico con estado_id = 1002 (HISTORICO). Sirve como valor predeterminado para las FK que requieran un patrón de consumo de referencia.
-R.4: Clasificación Estacional. temporada_id utiliza los valores (1600-1603): NINGUNA (1600) para patrones sin estacionalidad definida, ALTA (1601) para temporada de demanda alta, MEDIA (1602) para demanda regular, BAJA (1603) para demanda baja.
-R.5: Control de Fechas. fecha_inicio y fecha_fin definen el período de vigencia del patrón estacional. El backend debe validar que fecha_fin >= fecha_inicio cuando ambos estén definidos.
-R.6: Factor Estacional. factor_estacional es un multiplicador que ajusta la demanda esperada durante el período definido. Un valor de 1.25 indica un incremento del 25% en la demanda. coeficiente_tendencia representa la tendencia lineal de largo plazo.';
+R.3: Clasificación Estacional. temporada_id utiliza los valores (1600-1603): NINGUNA (1600) para patrones sin estacionalidad definida, ALTA (1601) para temporada de demanda alta, MEDIA (1602) para demanda regular, BAJA (1603) para demanda baja.
+R.4: Control de Fechas. fecha_inicio y fecha_fin definen el período de vigencia del patrón estacional. El backend debe validar que fecha_fin >= fecha_inicio cuando ambos estén definidos.
+R.5: Factor Estacional. factor_estacional es un multiplicador que ajusta la demanda esperada durante el período definido. Un valor de 1.25 indica un incremento del 25% en la demanda. coeficiente_tendencia representa la tendencia lineal de largo plazo.';
 
 -- ================================================================================================
 
@@ -3287,7 +3439,7 @@ CREATE TABLE variables_exogenas (
     nombre_variable VARCHAR(100) NOT NULL,
     valor DECIMAL(10,4) NOT NULL,
     fecha_variable DATE NOT NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -3297,21 +3449,19 @@ CREATE TABLE variables_exogenas (
     CONSTRAINT fk_variablesexogenas_producto_id FOREIGN KEY (producto_id) REFERENCES productos(producto_id),
     CONSTRAINT fk_variablesexogenas_sucursal_id FOREIGN KEY (sucursal_id) REFERENCES sucursales(sucursal_id),
     CONSTRAINT chk_variablesexogenas_fuenteexogenaid CHECK (fuente_exogena_id IN (4250, 4251, 4252, 4253, 4254, 4255)),
-    CONSTRAINT chk_variablesexogenas_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_variablesexogenas_estadoid CHECK (estado_id IN (1000, 1001)),
     CONSTRAINT chk_variablesexogenas_nombrevariable_minlength CHECK (LENGTH(TRIM(nombre_variable)) >= 3)
 );
-CREATE UNIQUE INDEX uix_variablesexogenas_varios_unique ON variables_exogenas (sucursal_id, producto_id, fecha_variable, nombre_variable) WHERE estado_id IN (1000, 1002) AND producto_id != 1;
-CREATE INDEX idx_variablesexogenas_varios ON variables_exogenas (sucursal_id, fecha_variable DESC) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_variablesexogenas_fechavariable ON variables_exogenas (fecha_variable DESC) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_variablesexogenas_varios_unique ON variables_exogenas (sucursal_id, producto_id, fecha_variable, nombre_variable) WHERE estado_id = 1000;
+CREATE INDEX idx_variablesexogenas_varios ON variables_exogenas (sucursal_id, fecha_variable DESC) WHERE estado_id = 1000;
+CREATE INDEX idx_variablesexogenas_fechavariable ON variables_exogenas (fecha_variable DESC) WHERE estado_id = 1000;
 
 COMMENT ON TABLE variables_exogenas IS 'Reglas de la tabla - variables_exogenas
 R.0: La tabla variables_exogenas almacena datos externos que influyen en la demanda de productos, como temperatura, precios de moneda o días festivos. Su propósito es enriquecer los modelos de pronóstico (como SARIMAX) con factores causales que mejoran significativamente la precisión de las predicciones de demanda.
 R.1: Control Coherente de Factores Externos. El registro continuo de indicadores macroeconómicos, climáticos o ambientales se asocia de forma inalterable a estado_id para salvaguardar el histórico multivariable, alimentando el motor de predicción sin particionamiento físico por periodos anuales.
-R.2: Registro Inicial Comodín. El registro con variable_exogena_id = 1 es un registro histórico con estado_id = 1002 (HISTORICO). Sirve como valor predeterminado para las FK que requieran una variable exógena de referencia.
-R.3: Unicidad de Variables por Período. La restricción uix_veg_sucursal_producto_fecha_variable garantiza que no existan duplicados de la misma variable para la misma combinación de sucursal, producto y fecha.
-R.4: Control de Fechas. fecha_variable registra la fecha a la que corresponde el valor de la variable. El backend debe validar que fecha_variable <= CURRENT_DATE para variables históricas.
-R.5: Ejemplos de Variables Exógenas. nombre_variable puede contener valores como "Temperatura Promedio C", "Precio Dolar", "Inflacion", "Festivo", etc.
-R.6: Control de Estados. estado_id gestiona el ciclo de vida del registro en el sistema (ACTIVO, BORRADO, HISTORICO).';
+R.2: Unicidad de Variables por Período. La restricción uix_veg_sucursal_producto_fecha_variable garantiza que no existan duplicados de la misma variable para la misma combinación de sucursal, producto y fecha.
+R.3: Control de Fechas. fecha_variable registra la fecha a la que corresponde el valor de la variable. El backend debe validar que fecha_variable <= CURRENT_DATE para variables históricas.
+R.4: Ejemplos de Variables Exógenas. nombre_variable puede contener valores como "Temperatura Promedio C", "Precio Dolar", "Inflacion", "Festivo", etc.';
 
 -- ================================================================================================
 
@@ -3360,7 +3510,7 @@ CREATE TABLE logs_ejecucion (
     mensaje VARCHAR(3000) NOT NULL,
     detalle JSONB NOT NULL DEFAULT '{}'::jsonb,
     fecha_log TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -3369,12 +3519,12 @@ CREATE TABLE logs_ejecucion (
     fecha_baja TIMESTAMPTZ NULL,
     CONSTRAINT fk_logsejecucion_entrenamiento_id FOREIGN KEY (entrenamiento_id) REFERENCES entrenamientos(entrenamiento_id),
     CONSTRAINT chk_logsejecucion_nivellogid CHECK (nivel_log_id IN (3150, 3151, 3152, 3153)),
-    CONSTRAINT chk_logsejecucion_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_logsejecucion_estadoid CHECK (estado_id IN (1000, 1001)),
     CONSTRAINT chk_logsejecucion_modulo_minlength CHECK (LENGTH(TRIM(modulo)) >= 3)
 );
-CREATE INDEX idx_logsejecucion_entrenamientoid ON logs_ejecucion (entrenamiento_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_logsejecucion_nivellogid ON logs_ejecucion (nivel_log_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_logsejecucion_varios ON logs_ejecucion (modulo, nivel_log_id) WHERE estado_id IN (1000, 1002);
+CREATE INDEX idx_logsejecucion_entrenamientoid ON logs_ejecucion (entrenamiento_id) WHERE estado_id = 1000;
+CREATE INDEX idx_logsejecucion_nivellogid ON logs_ejecucion (nivel_log_id) WHERE estado_id = 1000;
+CREATE INDEX idx_logsejecucion_varios ON logs_ejecucion (modulo, nivel_log_id) WHERE estado_id = 1000;
 
 COMMENT ON TABLE logs_ejecucion IS 'Reglas de la tabla - logs_ejecucion
 R.0: La tabla logs_ejecucion es la bitácora técnica que almacena los eventos, advertencias y errores generados durante los procesos del sistema, especialmente durante los entrenamientos de IA. Su propósito es proveer un registro detallado para la depuración, el monitoreo de la salud del sistema y la trazabilidad de los procesos batch y analíticos.
@@ -3382,8 +3532,7 @@ R.1: Control Continuo de Trazabilidad. El almacenamiento cronológico de la bit�
 R.2: Estructura No Estricta de Depuración. detalle en formato JSONB resguarda de forma dinámica el contexto técnico extendido (ej. pilas de ejecución o variables internas del modelo), operando de manera desacoplada sin imponer validaciones rígidas estructurales a nivel de motor de base de datos, inicializándose por defecto como objeto vacío.
 R.3: Registro Inicial Comodín. El registro con log_id = 1 es un registro histórico con estado_id = 1002 (HISTORICO). Sirve como valor predeterminado para las FK que requieran un log de ejecución de referencia.
 R.4: Niveles de Log. nivel_log_id utiliza los valores (3150-3153): INFO (3150) para información general, WARNING (3151) para advertencias, ERROR (3152) para errores, DEBUG (3153) para depuración.
-R.5: Control de Estados. estado_id gestiona el ciclo de vida del registro en el sistema (ACTIVO, BORRADO, HISTORICO). Un log en estado HISTORICO no puede ser modificado.
-R.6: Fecha de Log. fecha_log registra la fecha y hora exacta en que ocurrió el evento. fecha_registro es la fecha de inserción en la base de datos, que puede diferir ligeramente por latencia de red o procesamiento.';
+R.5: Fecha de Log. fecha_log registra la fecha y hora exacta en que ocurrió el evento. fecha_registro es la fecha de inserción en la base de datos, que puede diferir ligeramente por latencia de red o procesamiento.';
 
 -- ================================================================================================
 
@@ -3563,7 +3712,8 @@ CREATE TABLE pedidos_online (
     total DECIMAL(12,2) NOT NULL,
     repartidor_id BIGINT NOT NULL DEFAULT 1,
     ultima_actualizacion TIMESTAMPTZ NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	observacion VARCHAR(500) NULL,
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -3573,10 +3723,10 @@ CREATE TABLE pedidos_online (
     CONSTRAINT fk_pedidosonline_cliente_id FOREIGN KEY (cliente_id) REFERENCES clientes(cliente_id),
     CONSTRAINT fk_pedidosonline_sucursal_id FOREIGN KEY (sucursal_id) REFERENCES sucursales(sucursal_id),
     CONSTRAINT fk_pedidosonline_kardex_id FOREIGN KEY (kardex_id) REFERENCES kardex(kardex_id),
-    CONSTRAINT fk_pedidosonline_repartidor_id FOREIGN KEY (repartidor_id) REFERENCES usuarios(usuario_id),
+    CONSTRAINT fk_pedidosonline_repartidor_id FOREIGN KEY (repartidor_id) REFERENCES trabajador(trabajador_id),
     CONSTRAINT chk_pedidosonline_estadopedidoonlineid CHECK (estado_pedido_online_id IN (3700, 3701, 3702, 3703, 3704, 3705, 3706)),
     CONSTRAINT chk_pedidosonline_estadopagoid CHECK (estado_pago_id IN (2550, 2551, 2552, 2553, 2554, 2555)),
-    CONSTRAINT chk_pedidosonline_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_pedidosonline_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_pedidosonline_codigo_notempty CHECK (TRIM(codigo) <> ''),
     CONSTRAINT chk_pedidosonline_codigo_minlength CHECK (LENGTH(TRIM(codigo)) >= 3),
     CONSTRAINT chk_pedidosonline_codigo_mayusculas CHECK (codigo = UPPER(codigo)),
@@ -3586,9 +3736,9 @@ CREATE TABLE pedidos_online (
     CONSTRAINT chk_pedidosonline_descuentos CHECK (descuentos >= 0),
     CONSTRAINT chk_pedidosonline_total CHECK (total >= 0)
 );
-CREATE UNIQUE INDEX uix_pedidosonline_codigo_unique ON pedidos_online (codigo) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_pedidosonline_clienteid ON pedidos_online (cliente_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_pedidosonline_estadopedidoonlineid ON pedidos_online (estado_pedido_online_id) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_pedidosonline_codigo_unique ON pedidos_online (codigo) WHERE estado_id = 1000;
+CREATE INDEX idx_pedidosonline_clienteid ON pedidos_online (cliente_id) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_pedidosonline_estadopedidoonlineid ON pedidos_online (estado_pedido_online_id) WHERE estado_id IN (1000, 1003);
 CREATE INDEX idx_pedidosonline_repartidorid ON pedidos_online(repartidor_id);
 CREATE INDEX idx_pedidosonline_sucursalid ON pedidos_online(sucursal_id);
 CREATE INDEX idx_pedidosonline_kardexid ON pedidos_online(kardex_id);
@@ -3642,39 +3792,38 @@ R.10: Integración con el Módulo de Ventas Tradicional. El flujo completo de un
 5. El repartidor entrega el pedido (estado ENTREGADO) o lo rechaza (RECHAZADO).
 6. El pedido se convierte en una transacción de VENTA en el kardex (kardex_id se actualiza con el ID de la venta).
 7. El pedido se archiva en HISTORICO para conservar la trazabilidad.
-R.11: Registro Inicial Comodín. El sistema debe mantener un registro inicial con pedido_online_id = 1 que sirve como valor predeterminado para las FK que requieran un pedido de referencia. Este registro tiene estado_id = 1002 (HISTORICO) y no puede ser modificado ni eliminado.
-R.12: Índices Estratégicos. Se han creado índices específicos para optimizar las consultas más frecuentes:
-- idx_peo_cliente: Consultas de historial de pedidos por cliente.
-- idx_peo_estado: Filtrado de pedidos pendientes para el dashboard de preparación.
-- idx_peo_fecha_pedido: Reportes de pedidos por período.
-- idx_peo_sucursal_estado: Consultas de pedidos por sucursal para el módulo de delivery.
-R.13: Tareas Programadas para Expiración. El sistema debe ejecutar diariamente una tarea que:
+R.11: Índices Estratégicos. Se han creado índices específicos para optimizar las consultas más frecuentes:
+- idx_pedidosonline_clienteid: Consultas de historial de pedidos por cliente.
+- idx_pedidosonline_estadopedidoonlineid: Filtrado de pedidos pendientes para el dashboard de preparación.
+- idx_pedidosonline_actividad_estadoid: Reportes de pedidos por período y estado.
+- idx_pedidosonline_sucursalid: Consultas de pedidos por sucursal para el módulo de delivery.
+R.12: Tareas Programadas para Expiración. El sistema debe ejecutar diariamente una tarea que:
 - Identifique pedidos en estado PENDIENTE con fecha_pedido > 30 días.
 - Automáticamente los cambie a estado CANCELADO (3705).
 - Registre el evento en logs_ejecucion con motivo: "PEDIDO_EXPIRADO_POR_TIEMPO".
-R.14: Validación de Cliente y Sucursal. Antes de insertar un pedido, el sistema debe validar que:
+R.13: Validación de Cliente y Sucursal. Antes de insertar un pedido, el sistema debe validar que:
 - El cliente_id exista y esté ACTIVO (estado_id = 1000).
 - El cliente tenga habilitado_ventas = 1.
 - La sucursal_id exista, esté ACTIVA y tenga cobertura de delivery configurada.
 - La sucursal tenga stock suficiente para cubrir el pedido (se valida al confirmar, no al crear).
-R.15: Integración con Módulo de Alertas. Cuando un pedido permanece en estado PREPARANDO por más de 60 minutos, el sistema debe generar una alerta de tipo SISTEMA (2700) con nivel_critico_id = 2902 (MEDIA) para notificar al encargado de almacén.
-R.16: Trazabilidad de Cambios de Estado. Cada cambio de estado_pedido_online_id debe registrar automáticamente la fecha_hora en el campo ultima_actualizacion y crear un registro en logs_ejecucion con:
+R.14: Integración con Módulo de Alertas. Cuando un pedido permanece en estado PREPARANDO por más de 60 minutos, el sistema debe generar una alerta de tipo SISTEMA (2700) con nivel_critico_id = 2902 (MEDIA) para notificar al encargado de almacén.
+R.15: Trazabilidad de Cambios de Estado. Cada cambio de estado_pedido_online_id debe registrar automáticamente la fecha_hora en el campo ultima_actualizacion y crear un registro en logs_ejecucion con:
 - modulo = ''PEDIDOS_ONLINE''
 - nivel_log_id = 3150 (INFO)
 - mensaje = ''Pedido {codigo} cambió de estado {estado_anterior} a {estado_nuevo}''
 - detalle = { "usuario": usuario_id, "motivo": "..." }
-R.17: Política de Rechazo por Stock. Si al momento de confirmar un pedido (estado CONFIRMADO) no hay suficiente stock en la sucursal asignada, el sistema debe:
+R.16: Política de Rechazo por Stock. Si al momento de confirmar un pedido (estado CONFIRMADO) no hay suficiente stock en la sucursal asignada, el sistema debe:
 1. Intentar reasignar el pedido a otra sucursal con stock disponible.
 2. Si no es posible, rechazar el pedido (estado RECHAZADO = 3706).
 3. Notificar al cliente vía email (usando el módulo de notificaciones).
 4. Registrar el motivo en observaciones.
-R.18: Gestión de Cupones y Descuentos. Los descuentos aplicados en el campo descuentos deben validarse contra la tabla cupones_descuento cuando se aplica un código promocional. La validación debe incluir:
+R.17: Gestión de Cupones y Descuentos. Los descuentos aplicados en el campo descuentos deben validarse contra la tabla cupones_descuento cuando se aplica un código promocional. La validación debe incluir:
 - El cupón debe estar ACTIVO (estado_id = 1000).
 - La fecha actual debe estar entre fecha_inicio y fecha_fin.
 - El número de usos_realizados < uso_maximo.
 - El cliente no debe haber excedido el uso_por_cliente.
-R.19: Control de Cambios de Dirección y Teléfono. Si el cliente modifica su dirección o teléfono en la tabla clientes, los pedidos ya registrados mantienen su información original de entrega (desnormalización). La interfaz de usuario debe mostrar un indicador cuando la dirección de entrega difiere de la dirección principal del cliente.
-R.20: Flujo de Cancelación. Para cancelar un pedido (estado CANCELADO = 3705):
+R.18: Control de Cambios de Dirección y Teléfono. Si el cliente modifica su dirección o teléfono en la tabla clientes, los pedidos ya registrados mantienen su información original de entrega (desnormalización). La interfaz de usuario debe mostrar un indicador cuando la dirección de entrega difiere de la dirección principal del cliente.
+R.19: Flujo de Cancelación. Para cancelar un pedido (estado CANCELADO = 3705):
 - Solo se permite si el pedido está en estado PENDIENTE (3700) o CONFIRMADO (3701).
 - No se permite cancelar pedidos en estado PREPARANDO (3702), EN_CAMINO (3703) o ENTREGADO (3704).
 - La cancelación debe registrar un motivo obligatorio (observaciones).
@@ -3693,7 +3842,7 @@ CREATE TABLE detalles_pedidos_online (
     precio_unitario DECIMAL(12,2) NOT NULL,
     descuento_unitario DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     subtotal DECIMAL(12,2) NOT NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -3703,7 +3852,7 @@ CREATE TABLE detalles_pedidos_online (
     CONSTRAINT fk_detallespedidosonline_pedido_online_id FOREIGN KEY (pedido_online_id) REFERENCES pedidos_online(pedido_online_id),
     CONSTRAINT fk_detallespedidosonline_producto_id FOREIGN KEY (producto_id) REFERENCES productos(producto_id),
     CONSTRAINT fk_detallespedidosonline_kardex_producto_id FOREIGN KEY (kardex_producto_id) REFERENCES kardex_productos(kardex_producto_id),
-    CONSTRAINT chk_detallespedidosonline_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_detallespedidosonline_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_detallespedidosonline_codigoproducto_notempty CHECK (TRIM(codigo_producto) <> ''),
     CONSTRAINT chk_detallespedidosonline_codigoproducto_minlength CHECK (LENGTH(TRIM(codigo_producto)) >= 3),
     CONSTRAINT chk_detallespedidosonline_codigoproducto_mayusculas CHECK (codigo_producto = UPPER(codigo_producto)),
@@ -3715,21 +3864,22 @@ CREATE TABLE detalles_pedidos_online (
     CONSTRAINT chk_detallespedidosonline_descuentounitario CHECK (descuento_unitario >= 0),
     CONSTRAINT chk_detallespedidosonline_subtotal CHECK (subtotal >= 0)
 );
-CREATE INDEX idx_detallespedidosonline_pedidoonlineid ON detalles_pedidos_online (pedido_online_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_detallespedidosonline_productoid ON detalles_pedidos_online (producto_id) WHERE estado_id IN (1000, 1002);
+CREATE INDEX idx_detallespedidosonline_pedidoonlineid ON detalles_pedidos_online (pedido_online_id) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_detallespedidosonline_productoid ON detalles_pedidos_online (producto_id) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_detallespedidosonline_pedido_producto ON detalles_pedidos_online (pedido_online_id, producto_id) WHERE estado_id IN (1000, 1003);
 CREATE INDEX idx_detallespedidosonline_kardexproductoid ON detalles_pedidos_online(kardex_producto_id);
 
 COMMENT ON TABLE detalles_pedidos_online IS 'Reglas de la tabla - detalles_pedidos_online
 R.0: La tabla detalles_pedidos_online almacena el detalle de productos de cada pedido digital, incluyendo información desnormalizada (nombre, código) para garantizar la inmutabilidad del pedido ante cambios en el catálogo de productos.
 R.1: Desnormalización Estratégica. Los campos codigo_producto y nombre_producto se almacenan de forma redundante para preservar la foto exacta del pedido en el momento de la compra, independientemente de futuras modificaciones en la tabla productos.
 R.2: Conversión a Venta (kardex_producto_id). Cuando el pedido se convierte en una venta formal, este campo se actualiza con el ID del detalle de la transacción en kardex_productos, permitiendo la trazabilidad completa.
-R.3: Control de Cantidades y Precios. La cantidad debe ser mayor a 0. El precio_unitario y el subtotal no pueden ser negativos.
-R.4: Registro Inicial Comodín. El sistema debe mantener un registro inicial con detalle_pedido_online_id = 1 que sirve como valor predeterminado.';
+R.3: Control de Cantidades y Precios. La cantidad debe ser mayor a 0. El precio_unitario y el subtotal no pueden ser negativos.';
 
 -- ================================================================================================
 
 CREATE TABLE carritos_compra (
     carrito_id BIGSERIAL PRIMARY KEY,
+	sucursal_id BIGINT NOT NULL DEFAULT 1,
     cliente_id BIGINT NOT NULL,
     fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion_carrito TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -3738,15 +3888,18 @@ CREATE TABLE carritos_compra (
     cliente_documento VARCHAR(30) NOT NULL,
     total_items SMALLINT NOT NULL DEFAULT 0,
     subtotal DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_carrito_id SMALLINT NOT NULL DEFAULT 4906,	-- 4900=PENDIENTE, 4901=PROCESADO, 4902=EXPIRADO, 4903=ABANDONADO, 4904=EN_PROCESO, 4905=RESERVADO, 4906=NINGUNO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
     fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMPTZ NULL,
     fecha_baja TIMESTAMPTZ NULL,
+	CONSTRAINT fk_carritoscompra_sucursal_id FOREIGN KEY (sucursal_id) REFERENCES sucursales(sucursal_id),
     CONSTRAINT fk_carritoscompra_cliente_id FOREIGN KEY (cliente_id) REFERENCES clientes(cliente_id),
-    CONSTRAINT chk_carritoscompra_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+	CONSTRAINT chk_carritoscompra_estadocarritoid CHECK (estado_carrito_id IN (4900, 4901, 4902, 4903, 4904, 4905, 4906)),
+    CONSTRAINT chk_carritoscompra_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_carritoscompra_clientenombre_notempty CHECK (TRIM(cliente_nombre) <> ''),
     CONSTRAINT chk_carritoscompra_clientenombre_minlength CHECK (LENGTH(TRIM(cliente_nombre)) >= 3),
     CONSTRAINT chk_carritoscompra_clientedocumento_notempty CHECK (TRIM(cliente_documento) <> ''),
@@ -3756,15 +3909,13 @@ CREATE TABLE carritos_compra (
     CONSTRAINT chk_carritoscompra_fechaexpiracion CHECK (fecha_expiracion > CURRENT_TIMESTAMP)
 );
 CREATE UNIQUE INDEX uix_carritoscompra_clienteid_unique ON carritos_compra (cliente_id) WHERE estado_id = 1000;
-CREATE INDEX idx_carritoscompra_clienteid ON carritos_compra (cliente_id) WHERE estado_id IN (1000, 1002);
+CREATE INDEX idx_carritoscompra_clienteid ON carritos_compra (cliente_id) WHERE estado_id IN (1000, 1003);
 CREATE INDEX idx_carritoscompra_fechaexpiracion ON carritos_compra (fecha_expiracion) WHERE estado_id = 1000;
 
 COMMENT ON TABLE carritos_compra IS 'Reglas de la tabla - carritos_compra
 R.0: La tabla carritos_compra persiste los carritos de compra de los clientes registrados en el e-commerce, permitiendo que los usuarios retomen sus compras en diferentes sesiones.
 R.1: Control de Expiración (TTL). fecha_expiracion define el tiempo de vida del carrito (configurable en parametros_globales). Una tarea programada debe eliminar o archivar carritos expirados diariamente.
-R.2: Unicidad por Cliente Activo. Solo puede existir un carrito activo por cliente (estado_id = 1000). Al crear un nuevo carrito, el anterior debe pasar a HISTORICO.
-R.3: Desnormalización de Datos del Cliente. cliente_nombre y cliente_documento se almacenan para preservar la información del cliente en el momento de la creación del carrito.
-R.4: Registro Inicial Comodín. El sistema debe mantener un registro inicial con carrito_id = 1.';
+R.2: Desnormalización de Datos del Cliente. cliente_nombre y cliente_documento se almacenan para preservar la información del cliente en el momento de la creación del carrito.';
 
 -- ================================================================================================
 
@@ -3779,7 +3930,7 @@ CREATE TABLE detalles_carritos (
     precio_unitario DECIMAL(12,2) NOT NULL,
     descuento_unitario DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     subtotal DECIMAL(12,2) NOT NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -3788,7 +3939,7 @@ CREATE TABLE detalles_carritos (
     fecha_baja TIMESTAMPTZ NULL,
     CONSTRAINT fk_detallescarritos_carrito_id FOREIGN KEY (carrito_id) REFERENCES carritos_compra(carrito_id),
     CONSTRAINT fk_detallescarritos_producto_id FOREIGN KEY (producto_id) REFERENCES productos(producto_id),
-    CONSTRAINT chk_detallescarritos_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_detallescarritos_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_detallescarritos_codigoproducto_notempty CHECK (TRIM(codigo_producto) <> ''),
     CONSTRAINT chk_detallescarritos_codigoproducto_minlength CHECK (LENGTH(TRIM(codigo_producto)) >= 3),
     CONSTRAINT chk_detallescarritos_codigoproducto_mayusculas CHECK (codigo_producto = UPPER(codigo_producto)),
@@ -3801,8 +3952,8 @@ CREATE TABLE detalles_carritos (
     CONSTRAINT chk_detallescarritos_descuentounitario CHECK (descuento_unitario >= 0),
     CONSTRAINT chk_detallescarritos_subtotal CHECK (subtotal >= 0)
 );
-CREATE INDEX idx_detallescarritos_carritoid ON detalles_carritos (carrito_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_detallescarritos_productoid ON detalles_carritos (producto_id) WHERE estado_id IN (1000, 1002);
+CREATE INDEX idx_detallescarritos_carritoid ON detalles_carritos (carrito_id) WHERE estado_id = 1000;
+CREATE INDEX idx_detallescarritos_productoid ON detalles_carritos (producto_id) WHERE estado_id = 1000;
 
 COMMENT ON TABLE detalles_carritos IS 'Reglas de la tabla - detalles_carritos
 R.0: La tabla detalles_carritos almacena el detalle de productos de cada carrito de compra persistente, permitiendo a los clientes retomar sus compras en diferentes sesiones. Es la tabla hija de carritos_compra.
@@ -3810,7 +3961,7 @@ R.1: Desnormalización Estratégica. Los campos codigo_producto, nombre_producto
 R.2: Control de Cantidades y Precios. La cantidad debe ser mayor a 0. El precio_unitario, descuento_unitario y subtotal no pueden ser negativos.
 R.3: Cálculo Automático del Subtotal. El subtotal se calcula como: (precio_unitario - descuento_unitario) * cantidad. El backend debe garantizar que subtotal = (precio_unitario - descuento_unitario) * cantidad.
 R.4: Actualización de Totales del Carrito. Cada vez que se inserta, actualiza o elimina un detalle, el backend DEBE recalcular y actualizar los campos total_items y subtotal en la tabla carritos_compra. NO se utilizan triggers en la base de datos; la lógica debe implementarse en el servicio de carritos del backend.
-R.5: Registro Inicial Comodín. El sistema debe mantener un registro inicial con detalle_carrito_id = 1 que sirve como valor predeterminado para las FK que requieran un detalle de carrito de referencia. Este registro tiene estado_id = 1002 (HISTORICO) y no puede ser modificado ni eliminado.
+R.5: Registro Inicial Comodín. El sistema debe mantener un registro inicial con detalle_carrito_id = 1 que sirve como valor predeterminado para las FK que requieran un detalle de carrito de referencia. Este registro tiene estado_id = 1003 (ANULADO) y no puede ser modificado ni eliminado.
 R.6: Integración con el Módulo de Precios. El precio_unitario debe obtenerse de la tabla precios_productos según la lista de precios aplicable al cliente (público, afiliado, institucional, etc.).
 R.7: Control de Stock en Tiempo Real. Al agregar un producto al carrito, el sistema debe validar que la cantidad solicitada no exceda el stock disponible en la sucursal asignada. Si no hay stock suficiente, debe notificar al usuario.
 R.8: Gestión de Descuentos por Cantidad. Si el producto tiene promociones activas por cantidad (ej. 2x1, 3x2), el sistema debe aplicar el descuento_unitario correspondiente según las reglas de la promoción.
@@ -3818,11 +3969,11 @@ R.9: Control de Cupones. Si el cliente aplica un cupón de descuento que afecta 
 R.10: Índices Estratégicos. Se han creado índices específicos para optimizar las consultas más frecuentes:
 - idx_dca_carrito: Consulta rápida del contenido de un carrito.
 - idx_dca_producto: Reportes de productos más agregados a carritos.
-R.11: Control de Estados. estado_id gestiona el ciclo de vida del registro en el sistema (ACTIVO, BORRADO, HISTORICO). Un detalle en estado HISTORICO no puede ser modificado.
+R.11: Control de Estados. estado_id gestiona el ciclo de vida del registro en el sistema (ACTIVO, BORRADO, ANULADO). Un detalle en estado ANULADO no puede ser modificado.
 R.12: Tarea de Limpieza de Carritos Huérfanos. El sistema debe ejecutar diariamente una tarea que:
 - Identifique carritos en estado ACTIVO con fecha_expiracion < CURRENT_TIMESTAMP.
-- Cambie su estado a HISTORICO (1002).
-- Los detalles asociados también deben pasar a HISTORICO.
+- Cambie su estado a ANULADO (1003).
+- Los detalles asociados también deben pasar a ANULADO.
 R.13: Validación de Coherencia de Totales. Al insertar o actualizar un detalle, el backend debe validar que el subtotal del detalle sea consistente con los datos de la cabecera del carrito.
 R.14: Historial de Cambios. Cada modificación en la cantidad de un producto en el carrito debe registrar el evento en logs_ejecucion con:
 - modulo = ''CARRITOS_COMPRA''
@@ -3832,11 +3983,11 @@ R.15: Límite Máximo de Items por Carrito. El sistema debe validar que un carri
 R.16: Control de Productos Controlados. Si el producto requiere receta (productos.requiere_receta = 1), el sistema debe mostrar un aviso al agregarlo al carrito y requerir la carga de la receta al momento del checkout.
 R.17: Gestión de Lotes y Vencimientos. Al agregar un producto al carrito, el sistema debe seleccionar el lote más próximo a vencer (FEFO - First Expired, First Out) para garantizar la rotación adecuada del inventario.
 R.18: Precios Especiales por Volumen. Si la cantidad del producto supera un umbral configurado en politicas_precios, el sistema debe aplicar automáticamente el precio por volumen correspondiente.
-R.19: Inmutabilidad del Detalle. Una vez que el carrito se convierte en un pedido online (tabla pedidos_online), los detalles del carrito pasan a estado HISTORICO y no pueden ser modificados.
+R.19: Inmutabilidad del Detalle. Una vez que el carrito se convierte en un pedido online (tabla pedidos_online), los detalles del carrito pasan a estado ANULADO y no pueden ser modificados.
 R.20: Integración con el Módulo de Ventas. Cuando un carrito se convierte en pedido online, el sistema debe:
 - Crear un registro en pedidos_online con los datos del carrito.
 - Crear los detalles en detalles_pedidos_online copiando los datos del carrito.
-- Marcar el carrito y sus detalles como HISTORICO (estado_id = 1002).
+- Marcar el carrito y sus detalles como ANULADO (estado_id = 1003).
 R.21: Lógica de Recalculo de Totales en el Backend (NestJS). El servicio de carritos debe implementar el siguiente método:
 - async recalcularTotales(carritoId: number): Promise<void>
 - Este método debe calcular la suma de cantidad y subtotal de todos los detalles ACTIVOS del carrito.
@@ -3888,9 +4039,8 @@ R.0: La tabla listas_precios define los diferentes catálogos de precios comerci
 R.1: Gestión de Prioridad. El campo prioridad define el orden de aplicación cuando un cliente califica para múltiples listas. Un valor menor indica mayor prioridad. Ejemplo: si un cliente es afiliado y también institucional, se aplica la lista con prioridad más baja (ej. prioridad 1 = Mayorista, prioridad 2 = Institucional).
 R.2: Control de Visibilidad (es_publica). es_publica = 1 indica que la lista es visible en el e-commerce para que los clientes puedan ver los precios. es_publica = 0 indica que es una lista interna (ej. precios de costo, precios especiales).
 R.3: Requiere Autorización (requiere_autorizacion). requiere_autorizacion = 1 indica que para aplicar esta lista de precios se necesita autorización especial de un supervisor o gerente. El sistema debe solicitar aprobación al momento de la venta.
-R.4: Registro Comodín. El registro con lista_precio_id = 1 (NINGUNO) es el valor predeterminado para productos sin lista asignada.
-R.5: Unicidad de Código y Nombre. codigo y nombre deben ser únicos para registros activos o históricos.
-R.6: Integración con Ventas. Al momento de una venta, el sistema debe:
+R.4: Unicidad de Código y Nombre. codigo y nombre deben ser únicos para registros activos o históricos.
+R.5: Integración con Ventas. Al momento de una venta, el sistema debe:
 - Identificar el perfil del cliente (tipo_cliente_id).
 - Seleccionar la lista de precios con mayor prioridad.
 - Obtener el precio de precios_productos.
@@ -3934,26 +4084,25 @@ R.0: La tabla precios_productos almacena los precios vigentes de cada producto e
 R.1: Control de Vigencia Temporal. fecha_inicio y fecha_fin permiten programar cambios de precios con anticipación. Si fecha_fin es NULL, el precio es indefinido. El índice uix_pp_producto_lista_vigente garantiza que solo exista un precio activo por producto y lista en un momento dado.
 R.2: Precio Base vs Precio Oferta. precio_base es el precio estándar de la lista. precio_oferta es un precio promocional que reemplaza al base durante un período específico. El sistema debe usar precio_oferta si está vigente y es menor que precio_base.
 R.3: Precio Mínimo (precio_minimo). Define el precio mínimo al que se puede vender el producto en esa lista. El sistema debe validar que ningún descuento adicional reduzca el precio por debajo de este umbral.
-R.4: Registro Comodín. El registro con precio_producto_id = 1 es el valor predeterminado para productos sin precio asignado.
-R.5: Herencia de Precios. Al crear un nuevo producto, el sistema debe:
+R.4: Herencia de Precios. Al crear un nuevo producto, el sistema debe:
 - Copiar el precio del producto base (productos.pventa o pventaf) a la lista PÚBLICO GENERAL.
 - Establecer los precios de otras listas aplicando los porcentajes de descuento configurados en parametros_globales.
-R.6: Actualización Masiva de Precios. El sistema debe permitir actualizaciones masivas de precios por:
+R.5: Actualización Masiva de Precios. El sistema debe permitir actualizaciones masivas de precios por:
 - Categoría (todos los productos de una categoría).
 - Laboratorio (todos los productos de un laboratorio).
 - Lista de precios específica.
 - Porcentaje de incremento o decremento.
-R.7: Historial de Precios. Cada cambio de precio debe registrar en logs_ejecucion:
+R.6: Historial de Precios. Cada cambio de precio debe registrar en logs_ejecucion:
 - modulo = ''PRECIOS_PRODUCTOS''
 - nivel_log_id = 3150 (INFO)
 - mensaje = ''Producto {producto_id} cambió precio en lista {lista_precio_id} de {precio_anterior} a {precio_nuevo}''
 - detalle = { "usuario": usuario_id, "motivo": "..." }
-R.8: Integración con Kardex. Al registrar una venta, el sistema debe:
+R.7: Integración con Kardex. Al registrar una venta, el sistema debe:
 - Obtener el precio de precios_productos según el tipo de cliente.
 - Si no existe precio para la lista, usar la lista PÚBLICO GENERAL.
 - Si no existe precio en ninguna lista, usar productos.pventa o pventaf.
-R.9: Control de Márgenes. Al establecer un precio, el sistema debe validar que el margen de utilidad esté dentro de los límites configurados en politicas_precios.
-R.10: Validación de Coherencia. precio_base debe ser mayor a 0. precio_oferta y precio_minimo pueden ser NULL. Si se especifican, deben ser menores o iguales a precio_base.';
+R.8: Control de Márgenes. Al establecer un precio, el sistema debe validar que el margen de utilidad esté dentro de los límites configurados en politicas_precios.
+R.9: Validación de Coherencia. precio_base debe ser mayor a 0. precio_oferta y precio_minimo pueden ser NULL. Si se especifican, deben ser menores o iguales a precio_base.';
 
 -- ================================================================================================
 
@@ -4085,7 +4234,7 @@ CREATE TABLE asistencias (
     justificacion VARCHAR(1000) NULL,
     justificacion_archivo VARCHAR(255) NULL,
     usuario_registro_id BIGINT NOT NULL DEFAULT 1,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -4094,11 +4243,10 @@ CREATE TABLE asistencias (
     fecha_baja TIMESTAMPTZ NULL,
     CONSTRAINT fk_asistencias_trabajador_id FOREIGN KEY (trabajador_id) REFERENCES trabajadores(trabajador_id),
     CONSTRAINT fk_asistencias_sucursal_id FOREIGN KEY (sucursal_id) REFERENCES sucursales(sucursal_id),
-    CONSTRAINT fk_asistencias_usuario_registro_id FOREIGN KEY (usuario_registro_id) REFERENCES usuarios(usuario_id),
     CONSTRAINT chk_asistencias_tipoasistenciaid CHECK (tipo_asistencia_id IN (4400, 4401, 4402, 4403)),
     CONSTRAINT chk_asistencias_estadoasistenciaid CHECK (estado_asistencia_id IN (4450, 4451, 4452, 4453)),
     CONSTRAINT chk_asistencias_metodomarcacionid CHECK (metodo_marcacion_id IN (4500, 4501, 4502, 4503)),
-    CONSTRAINT chk_asistencias_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_asistencias_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_asistencias_dispositivo_notempty CHECK (dispositivo IS NULL OR TRIM(dispositivo) <> ''),
     CONSTRAINT chk_asistencias_dispositivo_minlength CHECK (dispositivo IS NULL OR LENGTH(TRIM(dispositivo)) >= 3),
     CONSTRAINT chk_asistencias_iporigen_notempty CHECK (ip_origen IS NULL OR TRIM(ip_origen) <> ''),
@@ -4117,9 +4265,9 @@ CREATE TABLE asistencias (
     )
 );
 CREATE UNIQUE INDEX uix_asistencias_varios_unique ON asistencias (trabajador_id, fecha) WHERE estado_id = 1000;
-CREATE INDEX idx_asistencias_fecha ON asistencias (fecha DESC) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_asistencias_trabajadorid ON asistencias (trabajador_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_asistencias_estadoasistenciaid ON asistencias (estado_asistencia_id) WHERE estado_id IN (1000, 1002);
+CREATE INDEX idx_asistencias_fecha ON asistencias (fecha DESC) WHERE estado_id = 1000;
+CREATE INDEX idx_asistencias_trabajadorid ON asistencias (trabajador_id) WHERE estado_id = 1000;
+CREATE INDEX idx_asistencias_estadoasistenciaid ON asistencias (estado_asistencia_id) WHERE estado_id = 1000;
 CREATE INDEX idx_asistencias_sucursalid ON asistencias(sucursal_id);
 CREATE INDEX idx_asistencias_usuarioregistroid ON asistencias(usuario_registro_id);
 
@@ -4133,14 +4281,13 @@ R.5: Unicidad por Trabajador y Fecha. Cada trabajador solo puede tener un regist
 R.6: Validación de Fechas. No se permiten asistencias con fecha posterior a la fecha actual (fecha <= CURRENT_DATE). El backend debe validar esta condición al insertar registros.
 R.7: Gestión de Permisos y Licencias. Los registros con tipo_asistencia_id = 4401 (LICENCIA) o 4402 (PERMISO) requieren justificacion_archivo y justificacion_texto. El backend debe validar que estos campos estén completos.
 R.8: Cálculo Automático de Horas Extras. horas_extras se calcula como las horas trabajadas que exceden la jornada laboral definida en parametros_globales (jornada_horas_diarias, por defecto 8 horas). El backend debe calcular este valor automáticamente.
-R.9: Registro Comodín. El sistema debe mantener un registro inicial con asistencia_id = 1 que sirve como valor predeterminado para las FK que requieran una asistencia de referencia.
-R.10: Índices Estratégicos. Los índices sobre fecha y trabajador garantizan consultas rápidas para reportes de asistencia, planillas y control de ausentismo.
-R.11: Integración con Planillas. La tabla asistencias es la fuente principal de datos para el cálculo de planillas mensuales, determinando los días trabajados, horas extras y ausencias.
-R.12: Integración con Módulo de Notificaciones. Cuando un trabajador acumula 3 faltas injustificadas consecutivas, el sistema debe generar automáticamente una alerta de tipo RRHH (4550) con nivel_critico_id = 2902 (MEDIA) para notificar al supervisor.
-R.13: Control de Tardanzas. Si hora_entrada > (hora_inicio_jornada + 15 minutos), el estado_asistencia_id debe ser automáticamente 4452 (TARDE). La hora_inicio_jornada se obtiene de parametros_globales.
-R.14: Marcación por QR/APP. Para metodo_marcacion_id = 4502 (QR) o 4503 (APP), el campo dispositivo debe registrar el identificador único del dispositivo o el código QR escaneado.
-R.15: Auditoría de Cambios. El campo usuario_registro_id registra quién valida o modifica la asistencia, permitiendo auditar correcciones manuales.
-R.16: Inmutabilidad de Registros Históricos. Una vez que la asistencia pasa a estado HISTORICO (1002), no puede ser modificada. Esto preserva la integridad de los registros para cálculos de planillas y reportes.';
+R.9: Índices Estratégicos. Los índices sobre fecha y trabajador garantizan consultas rápidas para reportes de asistencia, planillas y control de ausentismo.
+R.10: Integración con Planillas. La tabla asistencias es la fuente principal de datos para el cálculo de planillas mensuales, determinando los días trabajados, horas extras y ausencias.
+R.11: Integración con Módulo de Notificaciones. Cuando un trabajador acumula 3 faltas injustificadas consecutivas, el sistema debe generar automáticamente una alerta de tipo RRHH (4550) con nivel_critico_id = 2902 (MEDIA) para notificar al supervisor.
+R.12: Control de Tardanzas. Si hora_entrada > (hora_inicio_jornada + 15 minutos), el estado_asistencia_id debe ser automáticamente 4452 (TARDE). La hora_inicio_jornada se obtiene de parametros_globales.
+R.13: Marcación por QR/APP. Para metodo_marcacion_id = 4502 (QR) o 4503 (APP), el campo dispositivo debe registrar el identificador único del dispositivo o el código QR escaneado.
+R.14: Auditoría de Cambios. El campo usuario_registro_id registra quién valida o modifica la asistencia, permitiendo auditar correcciones manuales.
+R.15: Inmutabilidad de Registros Históricos. Una vez que la asistencia pasa a estado HISTORICO (1002), no puede ser modificada. Esto preserva la integridad de los registros para cálculos de planillas y reportes.';
 
 -- ================================================================================================
 
@@ -4163,10 +4310,10 @@ CREATE TABLE planillas (
     total_utilidades DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     estado_planilla_id SMALLINT NOT NULL DEFAULT 4650,   -- 4650=BORRADOR, 4651=CALCULADA, 4652=APROBADA, 4653=PAGADA, 4654=ANULADA
     observaciones VARCHAR(1000) NULL,
-    usuario_aprobacion_id BIGINT NOT NULL DEFAULT 1,
-    usuario_pago_id BIGINT NOT NULL DEFAULT 1,
+    trabajador_aprobacion_id BIGINT NOT NULL DEFAULT 1,
+    trabajador_pago_id BIGINT NOT NULL DEFAULT 1,
     fecha_aprobacion TIMESTAMPTZ NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -4174,11 +4321,11 @@ CREATE TABLE planillas (
     fecha_actualizacion TIMESTAMPTZ NULL,
     fecha_baja TIMESTAMPTZ NULL,
     CONSTRAINT fk_planillas_sucursal_id FOREIGN KEY (sucursal_id) REFERENCES sucursales(sucursal_id),
-    CONSTRAINT fk_planillas_usuario_aprobacion_id FOREIGN KEY (usuario_aprobacion_id) REFERENCES usuarios(usuario_id),
-    CONSTRAINT fk_planillas_usuario_pago_id FOREIGN KEY (usuario_pago_id) REFERENCES usuarios(usuario_id),
+    CONSTRAINT fk_planillas_trabajador_aprobacion_id FOREIGN KEY (trabajador_aprobacion_id) REFERENCES trabajadores(trabajador_id),
+    CONSTRAINT fk_planillas_trabajador_pago_id FOREIGN KEY (trabajador_pago_id) REFERENCES trabajadores(trabajador_id),
     CONSTRAINT chk_planillas_tipoplanillaid CHECK (tipo_planilla_id IN (4600, 4601, 4602)),
     CONSTRAINT chk_planillas_estadoplanillaid CHECK (estado_planilla_id IN (4650, 4651, 4652, 4653, 4654)),
-    CONSTRAINT chk_planillas_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_planillas_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_planillas_observaciones_notempty CHECK (observaciones IS NULL OR TRIM(observaciones) <> ''),
     CONSTRAINT chk_planillas_observaciones_minlength CHECK (observaciones IS NULL OR LENGTH(TRIM(observaciones)) >= 3),
     CONSTRAINT chk_planillas_periodomes CHECK (periodo_mes BETWEEN 1 AND 12),
@@ -4193,12 +4340,12 @@ CREATE TABLE planillas (
     CONSTRAINT chk_planillas_totalutilidades CHECK (total_utilidades >= 0),
     CONSTRAINT chk_planillas_total CHECK (total_bruto >= 0 AND total_descuentos >= 0 AND total_neto >= 0)
 );
-CREATE INDEX idx_planillas_fechacalculo ON planillas (fecha_calculo DESC) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_planillas_estadoplanillaid ON planillas (estado_planilla_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_planillas_periodos ON planillas (periodo_gestion, periodo_mes) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_planillas_usuariopagoid ON planillas(usuario_pago_id);
+CREATE INDEX idx_planillas_fechacalculo ON planillas (fecha_calculo DESC) WHERE estado_id IN (1000);
+CREATE INDEX idx_planillas_estadoplanillaid ON planillas (estado_planilla_id) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_planillas_periodos ON planillas (periodo_gestion, periodo_mes) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_planillas_trabajadorpagoid ON planillas(trabajador_pago_id);
 CREATE INDEX idx_planillas_sucursalid ON planillas(sucursal_id);
-CREATE INDEX idx_planillas_usuarioaprobacionid ON planillas(usuario_aprobacion_id);
+CREATE INDEX idx_planillas_trabajadoraprobacionid ON planillas(trabajador_aprobacion_id);
 
 COMMENT ON TABLE planillas IS 'Reglas de la tabla - planillas
 R.0: La tabla planillas es la cabecera de los procesos de liquidación de sueldos y salarios, agrupando los pagos a los trabajadores por período. Su propósito es centralizar el cálculo y la gestión de las planillas mensuales, permitiendo la auditoría y el control financiero de la nómina.
@@ -4207,17 +4354,16 @@ R.2: Ciclo de Vida de la Planilla. estado_planilla_id utiliza los valores (4650-
 R.3: Transiciones de Estado. Las transiciones de estado deben ser secuenciales: BORRADOR -> CALCULADA -> APROBADA -> PAGADA. No se permiten saltos de estado. ANULADA solo puede ser aplicada desde BORRADOR o CALCULADA.
 R.4: Cálculo Automático de Totales. Los campos total_bruto, total_descuentos, total_neto, total_aportes_empresa y total_aportes_trabajador se calculan automáticamente al pasar de BORRADOR a CALCULADA. El backend debe recalcular estos valores sumando los registros de planillas_detalle.
 R.5: Fechas de Corte. fecha_inicio y fecha_fin definen el período de la planilla. Generalmente, fecha_inicio = primer día del mes y fecha_fin = último día del mes. El backend debe validar que la planilla no se solape con otras planillas en la misma sucursal.
-R.6: Autorización y Pago. Los campos usuario_aprobacion_id, usuario_pago_id, fecha_aprobacion y fecha_pago se actualizan automáticamente cuando la planilla cambia de estado a APROBADA o PAGADA.
+R.6: Autorización y Pago. Los campos trabajador_aprobacion_id, trabajador_pago_id, fecha_aprobacion y fecha_pago se actualizan automáticamente cuando la planilla cambia de estado a APROBADA o PAGADA.
 R.7: Tipos de Planilla. tipo_planilla_id utiliza los valores (4600-4602): SUELDOS (mensual), JORNALES (diario/semanal), CONTRATO (por proyecto). Afecta el cálculo de conceptos y la periodicidad.
 R.8: Gestión de Aguinaldo y Utilidades. total_aguinaldo y total_utilidades se calculan en períodos específicos (diciembre para aguinaldo, según normativa para utilidades). El backend debe validar que estos campos solo se calculen en los períodos correspondientes.
-R.9: Registro Comodín. El sistema debe mantener un registro inicial con planilla_id = 1 que sirve como valor predeterminado para las FK que requieran una planilla de referencia.
-R.10: Integración con Contabilidad. Una vez que la planilla alcanza el estado PAGADA, el sistema debe generar automáticamente los asientos contables correspondientes en el módulo de contabilidad (tabla asientos_contables).
-R.11: Política de Retención. Las planillas deben conservarse indefinidamente por requisitos legales. No se permite la eliminación física de planillas (estado_id = 1001). Solo pueden pasar a HISTORICO (1002) después de 5 años.
-R.12: Notificación de Aprobación. Cuando una planilla pasa a estado APROBADA, el sistema debe enviar una notificación (alertas_notificaciones) al usuario responsable de pagos.
-R.13: Índices Estratégicos. Los índices sobre fecha y período garantizan consultas rápidas para reportes financieros y auditorías fiscales.
-R.14: Relación con el Módulo de Caja. Al pasar a PAGADA, la planilla debe generar movimientos de egreso en la tabla movimientos (caja) por el total_neto.
-R.15: Validación de Fechas de Pago. fecha_pago no puede ser anterior a fecha_calculo. El backend debe validar que el pago se realice después del cálculo.
-R.16: Control de Presupuesto. Al aprobar una planilla, el sistema debe validar que total_neto no exceda el presupuesto de nómina configurado en parametros_globales (presupuesto_nomina_mensual).';
+R.9: Integración con Contabilidad. Una vez que la planilla alcanza el estado PAGADA, el sistema debe generar automáticamente los asientos contables correspondientes en el módulo de contabilidad (tabla asientos_contables).
+R.10: Política de Retención. Las planillas deben conservarse indefinidamente por requisitos legales. No se permite la eliminación física de planillas (estado_id = 1001). Solo pueden pasar a HISTORICO (1002) después de 5 años.
+R.11: Notificación de Aprobación. Cuando una planilla pasa a estado APROBADA, el sistema debe enviar una notificación (alertas_notificaciones) al trabajador responsable de pagos.
+R.12: Índices Estratégicos. Los índices sobre fecha y período garantizan consultas rápidas para reportes financieros y auditorías fiscales.
+R.13: Relación con el Módulo de Caja. Al pasar a PAGADA, la planilla debe generar movimientos de egreso en la tabla movimientos (caja) por el total_neto.
+R.14: Validación de Fechas de Pago. fecha_pago no puede ser anterior a fecha_calculo. El backend debe validar que el pago se realice después del cálculo.
+R.15: Control de Presupuesto. Al aprobar una planilla, el sistema debe validar que total_neto no exceda el presupuesto de nómina configurado en parametros_globales (presupuesto_nomina_mensual).';
 
 -- ================================================================================================
 
@@ -4225,7 +4371,7 @@ CREATE TABLE planillas_detalle (
     planilla_detalle_id BIGSERIAL PRIMARY KEY,
     planilla_id BIGINT NOT NULL DEFAULT 1,
     trabajador_id BIGINT NOT NULL DEFAULT 1,
-    cargo_id BIGINT NOT NULL,
+    cargo_id BIGINT NOT NULL DEFAULT 1,
     sueldo_base DECIMAL(12,2) NOT NULL,
     dias_trabajados DECIMAL(5,2) NOT NULL,
     horas_trabajadas DECIMAL(5,2) NOT NULL DEFAULT 0.00,
@@ -4243,7 +4389,7 @@ CREATE TABLE planillas_detalle (
     aportes_trabajador DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     neto_pagar DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     observaciones VARCHAR(500) NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -4253,7 +4399,7 @@ CREATE TABLE planillas_detalle (
     CONSTRAINT fk_planillasdetalle_planilla_id FOREIGN KEY (planilla_id) REFERENCES planillas(planilla_id),
     CONSTRAINT fk_planillasdetalle_trabajador_id FOREIGN KEY (trabajador_id) REFERENCES trabajadores(trabajador_id),
     CONSTRAINT fk_planillasdetalle_cargo_id FOREIGN KEY (cargo_id) REFERENCES cargos(cargo_id),
-    CONSTRAINT chk_planillasdetalle_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_planillasdetalle_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_planillasdetalle_observaciones_notempty CHECK (observaciones IS NULL OR TRIM(observaciones) <> ''),
     CONSTRAINT chk_planillasdetalle_observaciones_minlength CHECK (observaciones IS NULL OR LENGTH(TRIM(observaciones)) >= 3),
     CONSTRAINT chk_planillasdetalle_sueldobase CHECK (sueldo_base >= 0),
@@ -4276,15 +4422,11 @@ CREATE TABLE planillas_detalle (
     CONSTRAINT chk_planillasdetalle_varios CHECK (
         total_ingresos >= 0 AND descuentos_legales >= 0 AND
         descuentos_extra >= 0 AND neto_pagar >= 0
-    ),
-    CONSTRAINT chk_planillasdetalle_coherencia CHECK (
-        neto_pagar = (sueldo_base + total_horas_extras + bonificaciones + comisiones) -
-        (descuentos_legales + descuentos_extra)
     )
 );
 CREATE UNIQUE INDEX uix_planillasdetalle_varios_unique ON planillas_detalle (planilla_id, trabajador_id) WHERE estado_id = 1000;
-CREATE INDEX idx_planillasdetalle_trabajadorid ON planillas_detalle (trabajador_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_planillasdetalle_planillaid ON planillas_detalle (planilla_id) WHERE estado_id IN (1000, 1002);
+CREATE INDEX idx_planillasdetalle_trabajadorid ON planillas_detalle (trabajador_id) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_planillasdetalle_planillaid ON planillas_detalle (planilla_id) WHERE estado_id IN (1000, 1003);
 
 COMMENT ON TABLE planillas_detalle IS 'Reglas de la tabla - planillas_detalle
 R.0: La tabla planillas_detalle almacena el detalle de la liquidación de cada trabajador en una planilla, incluyendo sueldos, bonificaciones, descuentos y aportes. Su propósito es desglosar el cálculo de la nómina por empleado para auditoría y control.
@@ -4294,14 +4436,13 @@ R.3: Cálculo de Horas Extras. total_horas_extras = horas_extras * valor_hora_ex
 R.4: Descuentos Legales. descuentos_legales incluye conceptos como AFP, seguridad social, impuestos, etc. El backend debe calcular estos valores según la normativa vigente en parametros_globales.
 R.5: Aportes Empresa vs Trabajador. aportes_empresa y aportes_trabajador se calculan según los porcentajes definidos en parametros_globales (ej. aporte_empresa_porcentaje, aporte_trabajador_porcentaje).
 R.6: Gestión de Aguinaldo y Utilidades. Los campos aguinaldo y utilidades solo se calculan en los períodos correspondientes (diciembre para aguinaldo, según normativa para utilidades). El backend debe validar que estos campos solo se llenen en los períodos correctos.
-R.7: Registro Comodín. El sistema debe mantener un registro inicial con planilla_detalle_id = 1 que sirve como valor predeterminado para las FK que requieran un detalle de planilla de referencia.
-R.8: Integración con Asistencias. dias_trabajados y horas_trabajadas se calculan automáticamente a partir de la tabla asistencias para el período de la planilla. El backend debe sumar las horas y días registrados.
-R.9: Inmutabilidad de Detalles. Una vez que la planilla pasa a estado CALCULADA, los detalles no pueden ser modificados directamente. Cualquier corrección debe realizarse mediante un ajuste en la planilla (descuentos_extra o bonificaciones).
-R.10: Validación de Sueldo Base. sueldo_base debe ser igual al sueldo registrado en trabajadores_cargos.sueldo_base. El backend debe validar esta coherencia al generar la planilla.
-R.11: Índices Estratégicos. Los índices sobre planilla y trabajador garantizan consultas rápidas para reportes de nómina y auditorías individuales.
-R.12: Relación con Pagos. Al pagar una planilla, el sistema debe generar registros en pagos para cada trabajador, vinculando el planilla_detalle_id con el pago correspondiente.
-R.13: Trazabilidad de Cambios. Cualquier modificación manual en una planilla detalle (por ejemplo, ajuste de descuentos_extra) debe registrar el motivo en observaciones y el usuario responsable en usuario_id_actualizacion.
-R.14: Notificación de Inconsistencias. Si neto_pagar es 0 o negativo, el sistema debe generar una alerta de tipo RRHH (5200) con nivel_critico_id = 2902 (MEDIA) para revisión del supervisor.';
+R.7: Integración con Asistencias. dias_trabajados y horas_trabajadas se calculan automáticamente a partir de la tabla asistencias para el período de la planilla. El backend debe sumar las horas y días registrados.
+R.8: Inmutabilidad de Detalles. Una vez que la planilla pasa a estado CALCULADA, los detalles no pueden ser modificados directamente. Cualquier corrección debe realizarse mediante un ajuste en la planilla (descuentos_extra o bonificaciones).
+R.9: Validación de Sueldo Base. sueldo_base debe ser igual al sueldo registrado en trabajadores_cargos.sueldo_base. El backend debe validar esta coherencia al generar la planilla.
+R.10: Índices Estratégicos. Los índices sobre planilla y trabajador garantizan consultas rápidas para reportes de nómina y auditorías individuales.
+R.11: Relación con Pagos. Al pagar una planilla, el sistema debe generar registros en pagos para cada trabajador, vinculando el planilla_detalle_id con el pago correspondiente.
+R.12: Trazabilidad de Cambios. Cualquier modificación manual en una planilla detalle (por ejemplo, ajuste de descuentos_extra) debe registrar el motivo en observaciones y el usuario responsable en usuario_id_actualizacion.
+R.13: Notificación de Inconsistencias. Si neto_pagar es 0 o negativo, el sistema debe generar una alerta de tipo RRHH (5200) con nivel_critico_id = 2902 (MEDIA) para revisión del supervisor.';
 
 -- ================================================================================================
 
@@ -4319,8 +4460,7 @@ CREATE TABLE contratos (
     observaciones VARCHAR(1000) NULL,
     documento_contrato VARCHAR(255) NULL,
     fecha_firma DATE NULL,
-    usuario_firma_id BIGINT NOT NULL DEFAULT 1,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+    estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1003=ANULADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
@@ -4328,12 +4468,11 @@ CREATE TABLE contratos (
     fecha_actualizacion TIMESTAMPTZ NULL,
     fecha_baja TIMESTAMPTZ NULL,
     CONSTRAINT fk_contratos_trabajador_id FOREIGN KEY (trabajador_id) REFERENCES trabajadores(trabajador_id),
-    CONSTRAINT fk_contratos_usuario_firma_id FOREIGN KEY (usuario_firma_id) REFERENCES usuarios(usuario_id),
     CONSTRAINT chk_contratos_tipocontratoid CHECK (tipo_contrato_id IN (4750, 4751, 4752, 4753, 4754)),
     CONSTRAINT chk_contratos_monedasueldoid CHECK (moneda_sueldo_id IN (2300, 2301, 2302)),
     CONSTRAINT chk_contratos_tipojornadaid CHECK (tipo_jornada_id IN (4800, 4801, 4802)),
     CONSTRAINT chk_contratos_estadocontratoid CHECK (estado_contrato_id IN (4700, 4701, 4702, 4703)),
-    CONSTRAINT chk_contratos_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
+    CONSTRAINT chk_contratos_estadoid CHECK (estado_id IN (1000, 1001, 1003)),
     CONSTRAINT chk_contratos_observaciones_notempty CHECK (observaciones IS NULL OR TRIM(observaciones) <> ''),
     CONSTRAINT chk_contratos_observaciones_minlength CHECK (observaciones IS NULL OR LENGTH(TRIM(observaciones)) >= 3),
     CONSTRAINT chk_contratos_documentocontrato_notempty CHECK (documento_contrato IS NULL OR TRIM(documento_contrato) <> ''),
@@ -4343,10 +4482,9 @@ CREATE TABLE contratos (
     CONSTRAINT chk_contratos_horassemanales CHECK (horas_semanales > 0)
 );
 CREATE UNIQUE INDEX uix_contratos_trabajadorid_unique ON contratos (trabajador_id) WHERE estado_contrato_id = 4750 AND estado_id = 1000;
-CREATE INDEX idx_contratos_trabajadorid ON contratos (trabajador_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_contratos_fechas ON contratos (fecha_inicio, fecha_fin) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_contratos_estadocontratoid ON contratos (estado_contrato_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_contratos_usuariofirmaid ON contratos(usuario_firma_id);
+CREATE INDEX idx_contratos_trabajadorid ON contratos (trabajador_id) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_contratos_fechas ON contratos (fecha_inicio, fecha_fin) WHERE estado_id IN (1000, 1003);
+CREATE INDEX idx_contratos_estadocontratoid ON contratos (estado_contrato_id) WHERE estado_id IN (1000, 1003);
 
 COMMENT ON TABLE contratos IS 'Reglas de la tabla - contratos
 R.0: La tabla contratos gestiona el histórico de contratos laborales de los trabajadores, permitiendo controlar las fechas de vigencia, sueldos y condiciones de contratación. Su propósito es mantener un registro completo de la relación laboral para auditoría, cálculo de antigüedad y gestión de beneficios.
@@ -4355,10 +4493,9 @@ R.2: Renovaciones Automáticas. Al renovar un contrato, el contrato anterior deb
 R.3: Control de Fechas. fecha_inicio es obligatoria. fecha_fin puede ser NULL para contratos indefinidos o que aún no tienen fecha de término.
 R.4: Gestión de Documentos. documento_contrato almacena la ruta del archivo PDF del contrato firmado. Sigue la regla R.G.8 para nomenclatura de archivos.
 R.5: Tipos de Contrato. tipo_contrato_id utiliza los valores (4750-4754): INDEFINIDO, FIJO, EVENTUAL, PRACTICAS, CONSULTORIA. Afecta el cálculo de beneficios y la normativa aplicable.
-R.6: Registro Comodín. El sistema debe mantener un registro inicial con contrato_id = 1 que sirve como valor predeterminado para las FK que requieran un contrato de referencia.
-R.7: Integración con Planillas. El sueldo_base del contrato vigente se utiliza como base para el cálculo de la planilla mensual. Si el trabajador tiene un contrato con moneda diferente, el backend debe aplicar el tipo de cambio vigente.
-R.8: Notificación de Vencimiento. Cuando un contrato con fecha_fin definida está a 30 días de vencer, el sistema debe generar una alerta de tipo VENCIMIENTO_CONTRATO (4553 / 2726) para notificar al supervisor.
-R.9: Historial de Cambios. Cada cambio de estado o actualización del contrato debe registrar el evento en logs_ejecucion para trazabilidad completa.';
+R.6: Integración con Planillas. El sueldo_base del contrato vigente se utiliza como base para el cálculo de la planilla mensual. Si el trabajador tiene un contrato con moneda diferente, el backend debe aplicar el tipo de cambio vigente.
+R.7: Notificación de Vencimiento. Cuando un contrato con fecha_fin definida está a 30 días de vencer, el sistema debe generar una alerta de tipo VENCIMIENTO_CONTRATO (4553 / 2726) para notificar al supervisor.
+R.8: Historial de Cambios. Cada cambio de estado o actualización del contrato debe registrar el evento en logs_ejecucion para trazabilidad completa.';
 
 -- ================================================================================================
 

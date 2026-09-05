@@ -13,7 +13,13 @@ export interface UsuarioRawResult {
     usuario_id: string | number;
     trabajador_id: string | number;
     trabajador_nombre_completo?: string;
+    trabajador_nombres?: string;
+    trabajador_paterno?: string;
+    trabajador_materno?: string;
     trabajador_dni?: string;
+    empresa_id: string | number;
+    empresa_nombre?: string;
+    empresa_codigo?: string;
     sucursal_id: string | number;
     sucursal_nombre?: string;
     sucursal_codigo?: string;
@@ -21,6 +27,9 @@ export interface UsuarioRawResult {
     rol_id: string | number;
     rol_nombre?: string;
     rol_codigo?: string;
+    cargo_id?: string | number;
+    cargo_nombre?: string;
+    cargo_codigo?: string;
     login: string;
     avatar: string;
     estado_id: string | number;
@@ -46,8 +55,30 @@ export class UsuarioResponseDto {
     trabajador_nombre_completo!: string;
 
     @Expose()
+    @Transform(({ obj }) => obj.trabajador_nombres || null)
+    trabajador_nombres!: string;
+
+    @Expose()
+    @Transform(({ obj }) => obj.trabajador_paterno || null)
+    trabajador_paterno!: string;
+
+    @Expose()
+    @Transform(({ obj }) => obj.trabajador_materno || null)
+    trabajador_materno!: string;
+
+    @Expose()
     @Transform(({ obj }) => obj.trabajador_dni || null)
     trabajador_dni!: string;
+
+    @Expose() empresa_id!: number;
+
+    @Expose()
+    @Transform(({ obj }) => obj.empresa_nombre || null)
+    empresa_nombre!: string;
+
+    @Expose()
+    @Transform(({ obj }) => obj.empresa_codigo || null)
+    empresa_codigo!: string;
 
     @Expose() sucursal_id!: number;
 
@@ -72,6 +103,16 @@ export class UsuarioResponseDto {
     @Expose()
     @Transform(({ obj }) => obj.rol_codigo || null)
     rol_codigo!: string;
+
+    @Expose() cargo_id!: number;
+
+    @Expose()
+    @Transform(({ obj }) => obj.cargo_nombre || null)
+    cargo_nombre!: string;
+
+    @Expose()
+    @Transform(({ obj }) => obj.cargo_codigo || null)
+    cargo_codigo!: string;
 
     @Expose() login!: string;
     @Expose() avatar!: string;

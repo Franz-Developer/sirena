@@ -142,22 +142,18 @@ export class BancosService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            // Centralización de dependencias y permisos de Administrador (1 sola línea)
+            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dtoNormalizado,
                 FindBancosQueryDto.getDependencias(),
-                this.campoPK
+                FindBancosQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
 
-            if (tieneDependencias) {
-                const camposProtegidos = FindBancosQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dtoNormalizado) {
-                        delete (dtoNormalizado as any)[campo];
-                    }
-                });
-            }
-
+            // Las validaciones de unicidad continúan ejecutándose sobre los campos que sobrevivieron al DTO
             const validaciones: Promise<any>[] = [];
 
             if (dtoNormalizado.codigo_asfi && dtoNormalizado.codigo_asfi !== bancoActual.codigo_asfi) {
@@ -207,9 +203,7 @@ export class BancosService extends BaseService {
                 await manager.save(bancoActual);
                 return this.findOne(id, usuarioId, manager);
             } catch (error: unknown) {
-                if (isDomainException(error)) {
-                    throw error;
-                }
+                if (isDomainException(error)) throw error;
                 this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
                 throw error;
             }

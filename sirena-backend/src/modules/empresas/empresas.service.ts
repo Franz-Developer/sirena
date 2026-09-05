@@ -89,45 +89,15 @@ export class EmpresasService extends BaseService {
                 throw new DomainException('Empresa no encontrada.', { httpStatus: HttpStatus.NOT_FOUND });
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dto = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dto,
                 FindEmpresasQueryDto.getDependencias(),
-                this.campoPK
+                FindEmpresasQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindEmpresasQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dto) {
-                        delete (dto as any)[campo];
-                    }
-                });
-            } else {
-                const validaciones: Promise<any>[] = [];
-                if (dto.empresa !== undefined) validaciones.push(this.unicidadValidador.validarUnicidad({
-                    tabla: this.nombreTabla,
-                    campos: [{ nombre: 'empresa', valor: dto.empresa }],
-                    idExcluir: id,
-                    campoPk: this.campoPK,
-                    estadosValidos: [...ESTADOS_VIVOS]
-                }));
-                if (dto.codigo !== undefined) validaciones.push(this.unicidadValidador.validarUnicidad({
-                    tabla: this.nombreTabla,
-                    campos: [{ nombre: 'codigo', valor: dto.codigo }],
-                    idExcluir: id,
-                    campoPk: this.campoPK,
-                    estadosValidos: [...ESTADOS_VIVOS]
-                }));
-                if (dto.matricula_comercio !== undefined) validaciones.push(this.unicidadValidador.validarUnicidad({
-                    tabla: this.nombreTabla,
-                    campos: [{ nombre: 'matricula_comercio', valor: dto.matricula_comercio }],
-                    idExcluir: id,
-                    campoPk: this.campoPK,
-                    estadosValidos: [...ESTADOS_VIVOS]
-                }));
-                if (validaciones.length > 0) await Promise.all(validaciones);
-            }
 
             manager.merge(Empresa, empresaActual, dto);
             empresaActual.update(usuarioId);

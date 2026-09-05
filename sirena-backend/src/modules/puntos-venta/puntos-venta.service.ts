@@ -177,21 +177,15 @@ export class PuntosVentaService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dtoNormalizado,
                 FindPuntosVentaQueryDto.getDependencias(),
-                this.campoPK
+                FindPuntosVentaQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindPuntosVentaQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dtoNormalizado) {
-                        delete (dtoNormalizado as any)[campo];
-                    }
-                });
-            }
 
             if (dtoNormalizado.sucursal_id !== undefined && dtoNormalizado.sucursal_id !== puntoVentaActual.sucursal_id) {
                 await this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dtoNormalizado.sucursal_id);

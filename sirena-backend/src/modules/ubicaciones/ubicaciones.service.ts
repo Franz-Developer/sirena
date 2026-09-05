@@ -278,15 +278,9 @@ export class UbicacionesService extends BaseService {
         usuarioId: number
     ): Promise<UbicacionResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            const dtoNormalizado = { ...dto };
+            let dtoNormalizado = { ...dto };
 
-            await this.tablaValidador.validarPreUpdate(
-                this.nombreTabla,
-                id,
-                dtoNormalizado,
-                this.campoPK,
-                usuarioId
-            );
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
 
             const ubicacionActual = await manager.findOne(Ubicacion, {
                 where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
@@ -299,29 +293,19 @@ export class UbicacionesService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dtoNormalizado,
                 FindUbicacionesQueryDto.getDependencias(),
-                this.campoPK
+                FindUbicacionesQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindUbicacionesQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach((campo) => {
-                    if (campo in dtoNormalizado) {
-                        delete (dtoNormalizado as any)[campo];
-                    }
-                });
-            }
 
             const validaciones: Promise<any>[] = [];
 
-            if (
-                dtoNormalizado.almacen_id !== undefined &&
-                !tieneDependencias &&
-                dtoNormalizado.almacen_id !== ubicacionActual.almacen_id
-            ) {
+            if (dtoNormalizado.almacen_id !== undefined && dtoNormalizado.almacen_id !== ubicacionActual.almacen_id) {
                 validaciones.push(
                     this.tablaValidador.validarRegistrosActivos(
                         'almacenes',
@@ -348,7 +332,7 @@ export class UbicacionesService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            if (dtoNormalizado.almacen_id !== undefined && !tieneDependencias) {
+            if (dtoNormalizado.almacen_id !== undefined) {
                 ubicacionActual.almacen_id = dtoNormalizado.almacen_id;
             }
 

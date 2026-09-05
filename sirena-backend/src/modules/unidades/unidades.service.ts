@@ -130,23 +130,15 @@ export class UnidadesService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dto = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
-                this.config.tablasDependientes || [],
-                this.campoPK
+                dto,
+                FindUnidadesQueryDto.getDependencias(),
+                FindUnidadesQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                throw new DomainException(
-                    `No se puede actualizar la unidad "${unidadActual.unidad}" porque tiene registros dependientes activos.`,
-                    {
-                        unidad: unidadActual.unidad,
-                        tablasDependientes: this.config.tablasDependientes,
-                        httpStatus: HttpStatus.CONFLICT
-                    }
-                );
-            }
 
             const validaciones: Promise<any>[] = [];
 

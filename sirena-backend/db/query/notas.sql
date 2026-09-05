@@ -1,5 +1,128 @@
 
 /*
+UPDATE bancos SET
+banco = 'BANCO MERCANTIL SANTA CRUZ S.A.',
+codigo_asfi = '02',
+abreviatura = 'BMSC',
+usuario_id_actualizacion = NULL,
+fecha_actualizacion = NULL,
+usuario_id_baja = NULL,
+fecha_baja = NULL
+WHERE banco_id = 3;
+
+
+SELECT *
+FROM usuarios
+WHERE usuario_id=3
+ORDER BY usuario_id ASC;
+*/
+
+
+SELECT *
+FROM usuarios
+WHERE usuario_id>=1
+ORDER BY usuario_id ASC;
+
+SELECT *
+FROM roles
+WHERE rol_id>=1
+ORDER BY rol_id ASC;
+
+
+SELECT *
+FROM menus
+WHERE menu_id>=1
+ORDER BY menu_id ASC;
+
+SELECT *
+FROM roles_menus
+WHERE rol_menu_id>=1
+ORDER BY rol_menu_id ASC;
+
+SELECT *
+FROM roles_tablas
+WHERE rol_tabla_id>=1
+ORDER BY rol_tabla_id ASC;
+
+
+SELECT
+    m.menu_id,
+    m.menu_padre_id,
+    m.titulo,
+    m.icono,
+    m.url,
+    m.orden,
+    COALESCE(rt.crear, 0) AS crear,
+    COALESCE(rt.editar, 0) AS editar,
+    COALESCE(rt.eliminar, 0) AS eliminar,
+    COALESCE(rt.leer, 0) AS leer,
+    COALESCE(rt.anular, 0) AS anular,
+    COALESCE(rt.archivar, 0) AS archivar,
+    COALESCE(rt.desarchivar, 0) AS desarchivar
+FROM menus m
+INNER JOIN roles_menus rm ON m.menu_id = rm.menu_id
+INNER JOIN usuarios u ON rm.rol_id = u.rol_id
+LEFT JOIN roles_tablas rt ON rt.rol_id = u.rol_id AND rt.tabla = 'menus'
+WHERE
+    1=1
+    AND m.estado_id = 1000
+    AND rm.estado_id = 1000
+    AND u.estado_id = 1000
+    AND m.menu_id > 1
+ORDER BY m.orden ASC;
+
+SELECT
+    m.menu_id,
+    m.menu_padre_id,
+    m.titulo,
+    m.icono,
+    m.url,
+    m.orden,
+    COALESCE(rt.crear, 0) AS crear,
+    COALESCE(rt.editar, 0) AS editar,
+    COALESCE(rt.eliminar, 0) AS eliminar,
+    COALESCE(rt.leer, 0) AS leer,
+    COALESCE(rt.anular, 0) AS anular,
+    COALESCE(rt.archivar, 0) AS archivar,
+    COALESCE(rt.desarchivar, 0) AS desarchivar
+FROM menus m
+INNER JOIN roles_menus rm ON m.menu_id = rm.menu_id
+INNER JOIN usuarios u ON rm.rol_id = u.rol_id
+LEFT JOIN roles_tablas rt ON rt.rol_id = u.rol_id AND rt.tabla = 'menus'
+WHERE
+    1=1
+    AND u.usuario_id = 3
+    AND m.estado_id = 1000
+    AND rm.estado_id = 1000
+    AND u.estado_id = 1000
+    AND m.menu_id > 1
+ORDER BY m.orden ASC;
+
+/*
+SELECT *
+FROM ubicaciones_historial
+WHERE usuario_id=3
+ORDER BY ubicacion_historial_id ASC;
+
+SELECT *
+FROM cajas
+WHERE usuario_id=3
+ORDER BY caja_id ASC;
+
+SELECT *
+FROM movimientos
+WHERE usuario_id=3
+ORDER BY movimiento_id ASC;
+
+
+SELECT *
+FROM alertas_notificaciones
+WHERE usuario_id=3
+ORDER BY alerta_notificacion_id ASC;
+*/
+
+
+/*
 UPDATE trabajadores SET fecha_contratacion = '2026-01-01' WHERE trabajador_id >=1;
 
 UPDATE trabajadores SET qr='1.png' WHERE trabajador_id = 1;

@@ -18,7 +18,7 @@ BEGIN
     
     SET session_replication_role = origin;
     
-    RAISE NOTICE '✅ Todas las tablas limpiadas y secuencias reiniciadas';
+    RAISE NOTICE 'Todas las tablas limpiadas y secuencias reiniciadas';
 END $$;
 
 -- ================================================================================================
@@ -40,9 +40,6 @@ INSERT INTO bancos (banco_id, banco, codigo_asfi, abreviatura, estado_id, usuari
 (11, 'BANCO PRODEM S.A.', '10', 'PRD', 1000, 2),
 (12, 'BANCO PYME ECOFUTURO S.A.', '11', 'ECO', 1000, 2),
 (13, 'BANCO PYME DE LA COMUNIDAD S.A.', '12', 'BCO', 1000, 2);
-
-UPDATE bancos SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE bancos SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
 
 SELECT setval('bancos_banco_id_seq', COALESCE((SELECT MAX(banco_id) FROM bancos), 0), (SELECT COUNT(*) > 0 FROM bancos));
 
@@ -66,9 +63,6 @@ SELECT
     2 AS usuario_id_registro
 FROM generate_series('2026-01-01'::date, '2026-12-31'::date, '1 day'::interval) AS fecha;
 
-UPDATE tipos_cambios SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE tipos_cambios SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('tipos_cambios_tipo_cambio_id_seq', COALESCE((SELECT MAX(tipo_cambio_id) FROM tipos_cambios), 0), (SELECT COUNT(*) > 0 FROM tipos_cambios));
 
 -- ================================================================================================
@@ -79,9 +73,6 @@ ALTER SEQUENCE empresas_empresa_id_seq RESTART WITH 1;
 INSERT INTO empresas (empresa_id, empresa, codigo, logo, eslogan, descripcion, lugar, representante, direccion, telefono, email, matricula_comercio, estado_id, usuario_id_registro) VALUES
 (1, 'NINGUNA', 'NIN', '1.png', NULL, NULL, NULL, 'ADMIN', 'DIRECCION NINGUNA', '00000000', 'ninguna@gmail.com', 'MAT-000', 1000, 1),
 (2, 'FARMACIA SALUD Y VIDA S.R.L.', '309', '2.png', 'Tu salud es nuestra prioridad', 'Venta de medicamentos', 'LA PAZ - BOLIVIA', 'JUAN PEREZ FLORES', 'AV. ARCE NRO. 2105, SOPOCACHI, LA PAZ', '22441122', 'central@saludyvida.com.bo', 'M-356981', 1000, 2);
-
-UPDATE empresas SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE empresas SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
 
 SELECT setval('empresas_empresa_id_seq', COALESCE((SELECT MAX(empresa_id) FROM empresas), 0), (SELECT COUNT(*) > 0 FROM empresas));
 
@@ -99,9 +90,6 @@ INSERT INTO empresas_nits (empresa_nit_id, empresa_id, ambiente_id, nit, razon_s
 (6, 2, 2751, '321654987', 'FARMACIA SALUD Y VIDA S.R.L.', 'VENTA DE MATERIAL DE ESCRITORIO Y SUMINISTROS DE OFICINA', 'ESCRITORIO', 3900, NULL, NULL, NULL, '2026-01-01', '2027-12-31', 'escritorio@saludyvida.com.bo', 1000, 2),
 (7, 2, 2750, '321654988', 'FARMACIA SALUD Y VIDA S.R.L.', 'VENTA DE LIBROS', 'LIBROS', 3901, NULL, NULL, NULL, '2026-01-01', '2027-12-31', 'libros@saludyvida.com.bo', 1000, 2);
 
-UPDATE empresas_nits SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE empresas_nits SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('empresas_nits_empresa_nit_id_seq', COALESCE((SELECT MAX(empresa_nit_id) FROM empresas_nits), 0), (SELECT COUNT(*) > 0 FROM empresas_nits));
 
 -- ================================================================================================
@@ -115,9 +103,6 @@ INSERT INTO empresas_cuentas (empresa_cuenta_id, empresa_id, banco_id, tipo_mone
 (3, 2, 5, 2300, '4000003456', 1751, 'FARMACIA SALUD Y VIDA S.R.L.', 1000, 2),
 (4, 2, 4, 2301, '3000005678', 1751, 'FARMACIA SALUD Y VIDA S.R.L.', 1000, 2);
 
-UPDATE empresas_cuentas SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE empresas_cuentas SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('empresas_cuentas_empresa_cuenta_id_seq', COALESCE((SELECT MAX(empresa_cuenta_id) FROM empresas_cuentas), 0), (SELECT COUNT(*) > 0 FROM empresas_cuentas));
 
 -- ================================================================================================
@@ -129,9 +114,6 @@ INSERT INTO sucursales (sucursal_id, empresa_id, sucursal, sucursal_largo, codig
 (1, 1, 'NINGUNO', 'NINGUNO', 'NIN', 0, '00000000', 'DIRECCION NINGUNA', '00:00 - 00:00', 1.50, 1.19, 1000, 1),
 (2, 2, 'CASA MATRIZ - SOPOCACHI', 'FARMACIA SALUD Y VIDA - CASA MATRIZ SOPOCACHI', 'FSM', 0, '22441122', 'AV. ARCE NRO. 2105, SOPOCACHI, LA PAZ', '08:00 - 22:00', 1.50, 1.19, 1000, 2),
 (3, 2, 'SUCURSAL ZONA SUR', 'FARMACIA SALUD Y VIDA - SUCURSAL ZONA SUR CALACOTO', 'FSZ', 1, '22774433', 'AV. BALLIVIAN NRO. 540, CALACOTO, LA PAZ', '08:00 - 23:00', 1.50, 1.19, 1000, 2);
-
-UPDATE sucursales SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE sucursales SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
 
 SELECT setval('sucursales_sucursal_id_seq', COALESCE((SELECT MAX(sucursal_id) FROM sucursales), 0), (SELECT COUNT(*) > 0 FROM sucursales));
 
@@ -146,9 +128,6 @@ INSERT INTO puntos_venta (punto_venta_id, sucursal_id, codigo, nombre, tipo_punt
 (3, 2, 2, 'CAJA SECUNDARIA - SOPOCACHI', 3951, 1000, 2),
 (4, 3, 3, 'CAJA PRINCIPAL - ZONA SUR', 3951, 1000, 2);
 
-UPDATE puntos_venta SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE puntos_venta SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('puntos_venta_punto_venta_id_seq', COALESCE((SELECT MAX(punto_venta_id) FROM puntos_venta), 0), (SELECT COUNT(*) > 0 FROM puntos_venta));
 
 -- ================================================================================================
@@ -162,9 +141,6 @@ INSERT INTO cuis (cuis_id, sucursal_id, punto_venta_id, codigo_cuis, fecha_vigen
 (3, 2, 3, 'CUIS-FSM-002', '2027-12-31 23:59:59-04', 1000, 2),
 (4, 3, 4, 'CUIS-FSZ-001', '2027-12-31 23:59:59-04', 1000, 2);
 
-UPDATE cuis SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE cuis SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('cuis_cuis_id_seq', COALESCE((SELECT MAX(cuis_id) FROM cuis), 0), (SELECT COUNT(*) > 0 FROM cuis));
 
 -- ================================================================================================
@@ -177,9 +153,6 @@ INSERT INTO cufd (cufd_id, sucursal_id, punto_venta_id, codigo_cufd, codigo_cont
 (2, 2, 2, 'CUFD-FSM-001', 'CTRL-FSM-001', CURRENT_TIMESTAMP + INTERVAL '24 hours', 1000, 2),
 (3, 2, 3, 'CUFD-FSM-002', 'CTRL-FSM-002', CURRENT_TIMESTAMP + INTERVAL '24 hours', 1000, 2),
 (4, 3, 4, 'CUFD-FSZ-001', 'CTRL-FSZ-001', CURRENT_TIMESTAMP + INTERVAL '24 hours', 1000, 2);
-
-UPDATE cufd SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE cufd SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
 
 SELECT setval('cufd_cufd_id_seq', COALESCE((SELECT MAX(cufd_id) FROM cufd), 0), (SELECT COUNT(*) > 0 FROM cufd));
 
@@ -232,9 +205,6 @@ INSERT INTO unidades (unidad_id, codigo, codigo_sin, unidad, estado_id, usuario_
 (41, 'ML/KG', 38, 'MILILITRO POR KILOGRAMO', 1000, 2),
 (42, 'U/KG', 39, 'UNIDAD POR KILOGRAMO', 1000, 2);
 
-UPDATE unidades SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE unidades SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('unidades_unidad_id_seq', COALESCE((SELECT MAX(unidad_id) FROM unidades), 0), (SELECT COUNT(*) > 0 FROM unidades));
 
 -- ================================================================================================
@@ -255,9 +225,6 @@ INSERT INTO almacenes (almacen_id,sucursal_id,almacen,codigo,tipo_almacen_id,tip
 	 (10,3,'ALMACEN PRINCIPAL','ALM-FSZ-01',1700,4051,'ALMACEN GENERAL DE MEDICAMENTOS - ZONA SUR',1000,2),
 	 (11,3,'REFRIGERADOS','REF-FSZ-01',1701,4051,'ALMACEN DE PRODUCTOS REFRIGERADOS ZONA SUR',1000,2),
 	 (12,3,'JUGUETES Y RECREATIVOS','JUG-FSZ-01',1700,4051,'ALMACEN DE JUGUETES Y ARTICULOS RECREATIVOS ZONA SUR',1000,2);
-
-UPDATE almacenes SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE almacenes SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
 
 SELECT setval('almacenes_almacen_id_seq', COALESCE((SELECT MAX(almacen_id) FROM almacenes), 0), (SELECT COUNT(*) > 0 FROM almacenes));
 
@@ -304,9 +271,6 @@ INSERT INTO ubicaciones (ubicacion_id, almacen_id, codigo, jerarquia, descripcio
 (35, 12, 'JUG-Z-A', '{"tipo":"ANAQUEL","valor":"Z-A","camino":"ANAQUEL Z-A"}'::jsonb, 'Anaquél de Juguetes - Zona Sur A', 1000, 2),
 (36, 12, 'JUG-Z-B', '{"tipo":"ANAQUEL","valor":"Z-B","camino":"ANAQUEL Z-B"}'::jsonb, 'Anaquél de Juguetes - Zona Sur B', 1000, 2);
 
-UPDATE ubicaciones SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE ubicaciones SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('ubicaciones_ubicacion_id_seq', COALESCE((SELECT MAX(ubicacion_id) FROM ubicaciones), 0), (SELECT COUNT(*) > 0 FROM ubicaciones));
 
 -- ================================================================================================
@@ -332,9 +296,6 @@ INSERT INTO almacenes_puntos_venta (almacen_punto_venta_id, sucursal_id, almacen
 (15, 3, 11, 4, 2, 0, 1000, 2),
 (16, 3, 12, 4, 3, 0, 1000, 2);
 
-UPDATE almacenes_puntos_venta SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE almacenes_puntos_venta SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('almacenes_puntos_venta_almacen_punto_venta_id_seq', COALESCE((SELECT MAX(almacen_punto_venta_id) FROM almacenes_puntos_venta), 0), (SELECT COUNT(*) > 0 FROM almacenes_puntos_venta));
 
 -- ================================================================================================
@@ -352,9 +313,6 @@ INSERT INTO cargos (cargo_id, cargo, codigo, descripcion, estado_id, usuario_id_
 (7, 'VENTAS', 'VENT', 'Encargado de ventas.', 1000, 2),
 (8, 'INVENTARIO', 'INV', 'Encargado del inventario.', 1000, 2),
 (9, 'MENSAJERO', 'MENS', 'Encargado de mensajeria.', 1000, 2);
-
-UPDATE cargos SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE cargos SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
 
 SELECT setval('cargos_cargo_id_seq', COALESCE((SELECT MAX(cargo_id) FROM cargos), 0), (SELECT COUNT(*) > 0 FROM cargos));
 
@@ -382,9 +340,6 @@ INSERT INTO trabajadores (trabajador_id, genero_id, estado_civil_id, nombres, pa
 (16, 1200, 1250, 'ALEXANDER', 'QUISPE', 'CHOQUE', '7891234', '71589632', 'alexander.quispe@gmail.com', '2000-05-12', '2026-01-01', '16.jpg', '16.png', 1000, 2),
 (17, 1200, 1250, 'KEVIN', 'MAMANI', 'FLORES', '6547891', '72036541', 'kevin.mamani@hotmail.com', '2002-08-19', '2026-01-01', '17.jpg', '17.png', 1000, 2);
 
-UPDATE trabajadores SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE trabajadores SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('trabajadores_trabajador_id_seq', COALESCE((SELECT MAX(trabajador_id) FROM trabajadores), 0), (SELECT COUNT(*) > 0 FROM trabajadores));
 
 -- ================================================================================================
@@ -392,7 +347,8 @@ SELECT setval('trabajadores_trabajador_id_seq', COALESCE((SELECT MAX(trabajador_
 DELETE FROM trabajadores_cargos;
 ALTER SEQUENCE trabajadores_cargos_trabajador_cargo_id_seq RESTART WITH 1;
 
-INSERT INTO trabajadores_cargos (trabajador_cargo_id, trabajador_id, cargo_id, sueldo_base, tipo_moneda_id, es_activo, estado_id, usuario_id_registro) VALUES
+INSERT INTO trabajadores_cargos (trabajador_cargo_id, trabajador_id, cargo_id, sueldo_base, tipo_moneda_id, es_activo, estado_id, 
+usuario_id_registro) VALUES
 (1, 1, 1, 8000.00, 2300, 1, 1000, 1),
 (2, 3, 4, 6000.00, 2300, 1, 1000, 2),
 (3, 4, 5, 5500.00, 2300, 1, 1000, 2),
@@ -408,10 +364,8 @@ INSERT INTO trabajadores_cargos (trabajador_cargo_id, trabajador_id, cargo_id, s
 (13, 14, 8, 4000.00, 2300, 1, 1000, 2),
 (14, 15, 3, 15000.00, 2300, 1, 1000, 2),
 (15, 16, 9, 3000.00, 2300, 1, 1000, 2),
-(16, 17, 9, 3000.00, 2300, 1, 1000, 2);
-
-UPDATE trabajadores_cargos SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE trabajadores_cargos SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
+(16, 17, 9, 3000.00, 2300, 1, 1000, 2),
+(17, 2, 2, 7000.00, 2300, 1, 1000, 2);
 
 SELECT setval('trabajadores_cargos_trabajador_cargo_id_seq', COALESCE((SELECT MAX(trabajador_cargo_id) FROM trabajadores_cargos), 0), (SELECT COUNT(*) > 0 FROM trabajadores_cargos));
 
@@ -420,18 +374,15 @@ SELECT setval('trabajadores_cargos_trabajador_cargo_id_seq', COALESCE((SELECT MA
 DELETE FROM roles;
 ALTER SEQUENCE roles_rol_id_seq RESTART WITH 1;
 
-INSERT INTO roles (rol_id, codigo, rol, descripcion, estado_id, usuario_id_registro) VALUES
-(1, 'NIN', 'NINGUNO', 'REGISTRO COMODIN POR DEFECTO DEL SISTEMA', 1000, 1),
-(2, 'ADM', 'ADMINISTRADOR', 'Control total de la plataforma sirena acceso a todo, tiene todos los permisos', 1000, 2),
-(3, 'GER', 'GERENTE', 'Control y acceso a todos los modulos pero solo de lectura', 1000, 2),
-(4, 'SUC', 'ENCARGADO DE SUCURSAL', 'Responsable de la supervision, operaciones y arqueos de una sucursal especifica', 1000, 2),
-(5, 'COM', 'COMPRADOR', 'Responsable de la gestion de proveedores, ordenes de compra y adquisiciones', 1000, 2),
-(6, 'VEN', 'VENDEDOR', 'Responsable de la atencion a clientes, cotizaciones y registro de ventas', 1000, 2),
-(7, 'ALM', 'ALMACENERO', 'Responsable de la recepcion de mercaderia, control de stock, ingresos y salidas de almacen', 1000, 2),
-(8, 'CAJ', 'CAJERO', 'Responsable de la recepcion de pagos, facturacion y apertura/cierre de caja chica', 1000, 2);
-
-UPDATE roles SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE roles SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
+INSERT INTO roles (rol_id, es_admin, codigo, rol, descripcion, estado_id, usuario_id_registro) VALUES
+(1, 0, 'NIN', 'NINGUNO', 'REGISTRO COMODIN POR DEFECTO DEL SISTEMA', 1000, 1),
+(2, 1, 'ADM', 'ADMINISTRADOR', 'Control total de la plataforma sirena acceso a todo, tiene todos los permisos', 1000, 2),
+(3, 0, 'GER', 'GERENTE', 'Control y acceso a todos los modulos pero solo de lectura', 1000, 2),
+(4, 0, 'SUC', 'ENCARGADO DE SUCURSAL', 'Responsable de la supervision, operaciones y arqueos de una sucursal especifica', 1000, 2),
+(5, 0, 'COM', 'COMPRADOR', 'Responsable de la gestion de proveedores, ordenes de compra y adquisiciones', 1000, 2),
+(6, 0, 'VEN', 'VENDEDOR', 'Responsable de la atencion a clientes, cotizaciones y registro de ventas', 1000, 2),
+(7, 0, 'ALM', 'ALMACENERO', 'Responsable de la recepcion de mercaderia, control de stock, ingresos y salidas de almacen', 1000, 2),
+(8, 0, 'CAJ', 'CAJERO', 'Responsable de la recepcion de pagos, facturacion y apertura/cierre de caja chica', 1000, 2);
 
 SELECT setval('roles_rol_id_seq', COALESCE((SELECT MAX(rol_id) FROM roles), 0), (SELECT COUNT(*) > 0 FROM roles));
 
@@ -456,130 +407,400 @@ INSERT INTO usuarios (usuario_id,trabajador_id,sucursal_id,rol_id,login,contrase
 (13,13,3,6,'DIEGO','$2b$12$gq0CYwa7ZfRvKiD/oMD3eO2Hn/n4L2lXOaH6DjAtvVkohhpPjnWMq','13.png',1000,1),
 (14,14,3,7,'MONICA','$2b$12$gq0CYwa7ZfRvKiD/oMD3eO2Hn/n4L2lXOaH6DjAtvVkohhpPjnWMq','14.png',1000,1),
 (15,15,2,3,'VALERIA','$2b$12$gq0CYwa7ZfRvKiD/oMD3eO2Hn/n4L2lXOaH6DjAtvVkohhpPjnWMq','15.png',1000,1);
-	 
-UPDATE usuarios SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE usuarios SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
 
 SELECT setval('usuarios_usuario_id_seq', COALESCE((SELECT MAX(usuario_id) FROM usuarios), 0), (SELECT COUNT(*) > 0 FROM usuarios));
 
 -- ================================================================================================
 
-DELETE FROM roles_tablas;
-ALTER SEQUENCE roles_tablas_rol_tabla_id_seq RESTART WITH 1;
+DELETE FROM tablas;
+ALTER SEQUENCE tablas_tabla_id_seq RESTART WITH 1;
+
+INSERT INTO tablas (tabla_id, nombre, estado_id, usuario_id_registro) VALUES
+(1, 'ninguno', 1000, 1),
+(2, 'alertas_notificaciones', 1000, 2),
+(3, 'almacenes', 1000, 2),
+(4, 'almacenes_puntos_venta', 1000, 2),
+(5, 'analitica_productos', 1000, 2),
+(6, 'arqueos_detalle', 1000, 2),
+(7, 'asistencias', 1000, 2),
+(8, 'bancos', 1000, 2),
+(9, 'cajas', 1000, 2),
+(10, 'cargos', 1000, 2),
+(11, 'carritos_compra', 1000, 2),
+(12, 'categorias', 1000, 2),
+(13, 'clientes', 1000, 2),
+(14, 'comprobantes_pagos', 1000, 2),
+(15, 'concentraciones', 1000, 2),
+(16, 'contratos', 1000, 2),
+(17, 'control_facturas', 1000, 2),
+(18, 'conversiones_unidad', 1000, 2),
+(19, 'costos_promedio', 1000, 2),
+(20, 'cufd', 1000, 2),
+(21, 'cuis', 1000, 2),
+(22, 'detalles_carritos', 1000, 2),
+(23, 'detalles_pedidos_online', 1000, 2),
+(24, 'empresas', 1000, 2),
+(25, 'empresas_cuentas', 1000, 2),
+(26, 'empresas_nits', 1000, 2),
+(27, 'entrenamientos', 1000, 2),
+(28, 'equivalentes', 1000, 2),
+(29, 'especialidades', 1000, 2),
+(30, 'formas', 1000, 2),
+(31, 'historicos', 1000, 2),
+(32, 'instituciones', 1000, 2),
+(33, 'inventarios_fisicos', 1000, 2),
+(34, 'inventarios_fisicos_detalle', 1000, 2),
+(35, 'kardex', 1000, 2),
+(36, 'kardex_productos', 1000, 2),
+(37, 'laboratorios', 1000, 2),
+(38, 'listas_precios', 1000, 2),
+(39, 'logs_ejecucion', 1000, 2),
+(40, 'lotes_productos', 1000, 2),
+(41, 'marcas', 1000, 2),
+(42, 'medicos', 1000, 2),
+(43, 'menus', 1000, 2),
+(44, 'metricas_rendimiento', 1000, 2),
+(45, 'modelos', 1000, 2),
+(46, 'movimientos', 1000, 2),
+(47, 'ordenes_compra', 1000, 2),
+(48, 'pagos', 1000, 2),
+(49, 'parametros_globales', 1000, 2),
+(50, 'patrones_consumo', 1000, 2),
+(51, 'pedidos_online', 1000, 2),
+(52, 'planes_pagos', 1000, 2),
+(53, 'planillas', 1000, 2),
+(54, 'planillas_detalle', 1000, 2),
+(55, 'politicas_precios', 1000, 2),
+(56, 'precios_productos', 1000, 2),
+(57, 'presentaciones', 1000, 2),
+(58, 'principios_activos', 1000, 2),
+(59, 'productos', 1000, 2),
+(60, 'productos_controlados', 1000, 2),
+(61, 'productos_principios', 1000, 2),
+(62, 'productos_rangos_edad', 1000, 2),
+(63, 'productos_ubicaciones', 1000, 2),
+(64, 'productos_vias', 1000, 2),
+(65, 'promociones', 1000, 2),
+(66, 'promociones_productos', 1000, 2),
+(67, 'proveedores', 1000, 2),
+(68, 'proveedores_contactos', 1000, 2),
+(69, 'proveedores_rating_historico', 1000, 2),
+(70, 'puntos_venta', 1000, 2),
+(71, 'rangos_edad', 1000, 2),
+(72, 'recetas', 1000, 2),
+(73, 'registros_sanitarios', 1000, 2),
+(74, 'roles', 1000, 2),
+(75, 'roles_menus', 1000, 2),
+(76, 'roles_tablas', 1000, 2),
+(77, 'sucursales', 1000, 2),
+(78, 'tablas', 1000, 2),
+(79, 'tareas_programadas', 1000, 2),
+(80, 'tipos_cambios', 1000, 2),
+(81, 'tipos_planes_pago', 1000, 2),
+(82, 'trabajadores', 1000, 2),
+(83, 'trabajadores_cargos', 1000, 2),
+(84, 'ubicaciones', 1000, 2),
+(85, 'ubicaciones_historial', 1000, 2),
+(86, 'ubicaciones_movimientos', 1000, 2),
+(87, 'umbrales_configuracion', 1000, 2),
+(88, 'unidades', 1000, 2),
+(89, 'usuarios', 1000, 2),
+(90, 'variables_exogenas', 1000, 2),
+(91, 'vias', 1000, 2);
+
+SELECT setval('tablas_tabla_id_seq', COALESCE((SELECT MAX(tabla_id) FROM tablas), 0), (SELECT COUNT(*) > 0 FROM tablas));
+
+-- ================================================================================================
+
+DELETE FROM sucesos;
+
+INSERT INTO sucesos (suceso_id, codigo, suceso, descripcion, tabla_id, estado_id, usuario_id_registro) VALUES
+(1, 'NINGUNO', 'NINGUNO', 'Evento por defecto sin acción específica', 1, 1000, 1),
+(1050, 'LOT', 'COMPRA', 'Registro de ingreso de mercadería por compra a proveedor. Afecta positivamente el stock y genera cuentas por pagar.', 2, 1000, 2),
+(1051, 'VEN', 'VENTA', 'Registro de salida de mercadería por venta a cliente. Afecta negativamente el stock, genera facturación y movimiento de caja.', 2, 1000, 2),
+(1052, 'PRO', 'PROFORMA', 'Cotización o presupuesto temporal que NO afecta stock ni finanzas. Solo documento informativo o estimación de precios.', 2, 1000, 2),
+(1053, 'EGR', 'EGRESO_TRASPASO', 'Egreso de mercadería desde sucursal origen hacia destino. Disminuye stock en origen hasta confirmación en destino.', 2, 1000, 2),
+(1054, 'ING', 'INGRESO_TRASPASO', 'Ingreso de mercadería a sucursal destino procedente de origen. Aumenta stock en destino al confirmar recepción.', 2, 1000, 2),
+(1055, 'ANU', 'ANULACION', 'Cancelación de una transacción previa (compra o venta). Revierte automáticamente el stock afectado y deja registro inmutable para auditoría.', 2, 1000, 2),
+(1056, 'AJI', 'AJUSTE_INGRESO', 'Incremento de stock por sobrante detectado en inventario físico. No genera transacción comercial.', 2, 1000, 2),
+(1057, 'AJE', 'AJUSTE_EGRESO', 'Decremento de stock por faltante detectado en inventario físico. No genera transacción comercial.', 2, 1000, 2),
+(1058, 'SOL', 'SOLICITUD_COMPRA', 'Pedido administrativo pendiente de aprobación. No afecta stock ni finanzas hasta su conversión a COMPRA (1050).', 2, 1000, 2),
+(1059, 'VRE', 'VENTA_RESERVA', 'Proforma con reserva temporal de stock por tiempo limitado. Afecta negativamente el stock (lo aparta) y puede convertirse en VENTA (1051). Requiere validez_dias para definir plazo de reserva.', 2, 1000, 2),
+(1060, 'DCLI', 'DEVOLUCION_CLIENTE', 'Devolución de mercadería por parte del cliente. Afecta positivamente el stock y requiere nota de crédito/débito fiscal si aplica.', 2, 1000, 2),
+(1061, 'DPRO', 'DEVOLUCION_PROVEEDOR', 'Devolución de mercadería defectuosa o próxima a vencer al proveedor. Disminuye el stock y ajusta cuentas por pagar.', 2, 1000, 2),
+(1062, 'ROB', 'ROBO', 'Salida extraordinaria de inventario por sustracción o robo detectado. Disminuye el stock sin contrapartida comercial y genera alerta de auditoría.', 2, 1000, 2),
+(1063, 'PCAD', 'PERDIDA_CADUCIDAD', 'Baja de stock por productos vencidos o caducados detectados en control de almacén. Afecta como pérdida operativa.', 2, 1000, 2),
+(1064, 'MER', 'MERMA_ROTURA', 'Salida de stock por daño físico, rotura o deterioro de medicamentos. No genera transacción comercial.', 2, 1000, 2),
+(1065, 'IFSO', 'INVENTARIO_FISICO_SOBRANTE', 'Ajuste positivo por conteo físico de inventario (diferencia a favor respecto al sistema).', 2, 1000, 2),
+(1066, 'IFFAL', 'INVENTARIO_FISICO_FALTANTE', 'Ajuste negativo por conteo físico de inventario (diferencia en contra o merma no identificada).', 2, 1000, 2),
+(1067, 'CENV', 'CONVERSION_UNIDADES', 'Salida de productos en empaque mayor (cajas/blísteres) y reingreso automático como unidades sueltas por fraccionamiento.', 2, 1000, 2),
+(1068, 'RCUA', 'RETIRO_CUARENTENA', 'Salida temporal o definitiva de stock retenido por alerta sanitaria o control de calidad. Bloquea o saca la mercadería de la disponibilidad comercial.', 2, 1000, 2),
+(1069, 'DON', 'INGRESO_DONACION', 'Ingreso de mercadería por donación o recepción sin costo. Afecta positivamente el stock sin generar obligación de pago.', 2, 1000, 2),
+(1070, 'LRES', 'LIBERACION_RESERVA', 'Liberación de stock retenido por expiración de tiempo o anulación de reserva. Reintegra el stock disponible.', 2, 1000, 2);
+
+-- ================================================================================================
+
+DELETE FROM roles_permisos_tablas;
+ALTER SEQUENCE roles_permisos_tablas_rol_permiso_tabla_id_seq RESTART WITH 1;
 
 -- ROL: NINGUNO (rol_id = 1) - TODOS LOS PERMISOS EN 0
-INSERT INTO roles_tablas (rol_id, tabla, leer, crear, editar, eliminar, anular, archivar, desarchivar, eventos_permitidos, estado_id, usuario_id_registro)
-VALUES (1, 'ninguno', 0, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 1);
+INSERT INTO roles_permisos_tablas (rol_id, tabla_id, leer, crear, editar, eliminar, anular, archivar, desarchivar, estado_id, usuario_id_registro)
+SELECT 1, t.tabla_id, 1, 0, 0, 0, 0, 0, 0, 1000, 1 
+FROM tablas t 
+WHERE t.estado_id = 1000;
 
--- ROL: ADMINISTRADOR (rol_id = 2) - PERMISOS GENERALES Y RESTRICCIONES CRÍTICAS APLICADAS
-INSERT INTO roles_tablas (rol_id, tabla, leer, crear, editar, eliminar, anular, archivar, desarchivar, eventos_permitidos, estado_id, usuario_id_registro)
+-- ROL: ADMINISTRADOR (rol_id = 2) - PERMISOS GENERALES Y RESTRICCIONES CRÍTICAS
+INSERT INTO roles_permisos_tablas (rol_id, tabla_id, leer, crear, editar, eliminar, anular, archivar, desarchivar, estado_id, usuario_id_registro)
 SELECT 
-    2, 
-    t.tabla, 
+    2,
+    t.tabla_id,
     1, 1, 1, 1, 
-    CASE WHEN t.tabla IN ('kardex', 'ordenes_compra', 'control_facturas') THEN 1 ELSE 0 END, 
-    1,
-    1,
-    CASE WHEN t.tabla = 'kardex' THEN '{"crear": [1050,1051,1052,1053,1054,1055,1056,1057,1058,1059,1060,1061,1062,1063,1064,1065,1066,1067,1068,1069,1070], "editar": [1050,1051], "anular": [1055]}'::jsonb ELSE '{}'::jsonb END,
-    1000, 2 
-FROM (
-    VALUES 
-    ('constantes'), ('bancos'), ('tipos_cambios'), ('empresas'), ('empresas_nits'), ('empresas_cuentas'), ('sucursales'), ('puntos_venta'), ('cuis'), ('cufd'), ('almacenes'), ('ubicaciones'), ('almacenes_puntos_venta'), ('cargos'), ('trabajadores'), ('trabajadores_cargos'), ('roles'), ('usuarios'), ('menus'), ('roles_menus'), ('inventarios_fisicos'), ('clientes'), ('categorias'), ('unidades'), ('laboratorios'), ('formas'), ('presentaciones'), ('concentraciones'), ('vias'), ('rangos_edad'), ('marcas'), ('productos'), ('productos_vias'), ('equivalentes'), ('productos_rangos_edad'), ('productos_ubicaciones'), ('principios_activos'), ('productos_principios'), ('registros_sanitarios'), ('productos_controlados'), ('promociones'), ('promociones_productos'), ('conversiones_unidad'), ('proveedores'), ('proveedores_contactos'), ('proveedores_rating_historico'), ('parametros_globales'), ('tareas_programadas'), ('control_facturas'), ('kardex'), ('ordenes_compra'), ('instituciones'), ('especialidades'), ('medicos'), ('recetas'), ('lotes_productos'), ('kardex_productos'), ('inventarios_fisicos_detalle'), ('ubicaciones_movimientos'), ('ubicaciones_historial'), ('tipos_planes_pago'), ('planes_pagos'), ('comprobantes_pagos'), ('pagos'), ('cajas'), ('movimientos'), ('arqueos_detalle'), ('alertas_notificaciones'), ('modelos'), ('entrenamientos'), ('metricas_rendimiento'), ('patrones_consumo'), ('variables_exogenas'), ('umbrales_configuracion'), ('logs_ejecucion'), ('analitica_productos'), ('pedidos_online'), ('detalles_pedidos_online'), ('carritos_compra'), ('detalles_carritos'), ('listas_precios'), ('precios_productos'), ('costos_promedio'), ('politicas_precios'), ('asistencias'), ('planillas'), ('planillas_detalle'), ('contratos'), ('historicos'), ('roles_tablas') 
-) AS t(tabla);
+    CASE 
+        WHEN t.nombre IN ('kardex', 'ordenes_compra', 'control_facturas', 'lotes_productos', 'kardex_productos', 'planes_pagos', 'pagos', 'comprobantes_pagos') THEN 1 
+        ELSE 0 
+    END, 
+    1, 1,
+    1000, 2
+FROM tablas t
+WHERE t.estado_id = 1000
+AND t.nombre NOT IN ('roles_permisos_tablas', 'ninguno');
 
 -- ROL: GERENTE (rol_id = 3) - SOLO LECTURA
-INSERT INTO roles_tablas (rol_id, tabla, leer, crear, editar, eliminar, anular, archivar, desarchivar, eventos_permitidos, estado_id, usuario_id_registro)
+INSERT INTO roles_permisos_tablas (rol_id, tabla_id, leer, crear, editar, eliminar, anular, archivar, desarchivar, estado_id, usuario_id_registro)
 SELECT 
-    3, 
-    t.tabla, 
-    1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2 
-FROM (
-    VALUES 
-    ('bancos'), ('tipos_cambios'), ('empresas'), ('empresas_nits'), ('empresas_cuentas'), ('sucursales'), ('puntos_venta'), ('cuis'), ('cufd'), ('almacenes'), ('ubicaciones'), ('almacenes_puntos_venta'), ('cargos'), ('trabajadores'), ('trabajadores_cargos'), ('roles'), ('usuarios'), ('menus'), ('roles_menus'), ('inventarios_fisicos'), ('clientes'), ('categorias'), ('unidades'), ('laboratorios'), ('formas'), ('presentaciones'), ('concentraciones'), ('vias'), ('rangos_edad'), ('marcas'), ('productos'), ('productos_vias'), ('equivalentes'), ('productos_rangos_edad'), ('productos_ubicaciones'), ('principios_activos'), ('productos_principios'), ('registros_sanitarios'), ('productos_controlados'), ('promociones'), ('promociones_productos'), ('conversiones_unidad'), ('proveedores'), ('proveedores_contactos'), ('proveedores_rating_historico'), ('parametros_globales'), ('tareas_programadas'), ('control_facturas'), ('kardex'), ('ordenes_compra'), ('instituciones'), ('especialidades'), ('medicos'), ('recetas'), ('lotes_productos'), ('kardex_productos'), ('inventarios_fisicos_detalle'), ('ubicaciones_movimientos'), ('ubicaciones_historial'), ('tipos_planes_pago'), ('planes_pagos'), ('comprobantes_pagos'), ('pagos'), ('cajas'), ('movimientos'), ('arqueos_detalle'), ('alertas_notificaciones'), ('modelos'), ('entrenamientos'), ('metricas_rendimiento'), ('patrones_consumo'), ('variables_exogenas'), ('umbrales_configuracion'), ('logs_ejecucion'), ('analitica_productos'), ('pedidos_online'), ('detalles_pedidos_online'), ('carritos_compra'), ('detalles_carritos'), ('listas_precios'), ('precios_productos'), ('costos_promedio'), ('politicas_precios'), ('asistencias'), ('planillas'), ('planillas_detalle'), ('contratos'), ('historicos'), ('tablas')
-) AS t(tabla);
+    3,
+    t.tabla_id,
+    1, 0, 0, 0, 0, 0, 0,
+    1000, 2
+FROM tablas t
+WHERE t.estado_id = 1000
+AND t.nombre NOT IN ('roles_permisos_tablas', 'ninguno');
 
--- ROL: ENCARGADO DE SUCURSAL (rol_id = 4) - OPERATIVO CON RESTRICCIONES EXCLUSIVAS DE ANULACIÓN/ARCHIVO
-INSERT INTO roles_tablas (rol_id, tabla, leer, crear, editar, eliminar, anular, archivar, desarchivar, eventos_permitidos, estado_id, usuario_id_registro)
+-- ROL: ENCARGADO DE SUCURSAL (rol_id = 4) - OPERATIVO CON RESTRICCIONES
+INSERT INTO roles_permisos_tablas (rol_id, tabla_id, leer, crear, editar, eliminar, anular, archivar, desarchivar, estado_id, usuario_id_registro)
 SELECT 
-    4, 
-    t.tabla, 
+    4,
+    t.tabla_id,
     1, 1, 1, 1, 
-    CASE WHEN t.tabla IN ('kardex', 'ordenes_compra', 'control_facturas') THEN 1 ELSE 0 END, 
-    CASE WHEN t.tabla IN ('kardex', 'ordenes_compra', 'control_facturas') THEN 1 ELSE 0 END, 
-    CASE WHEN t.tabla IN ('kardex', 'ordenes_compra', 'control_facturas') THEN 1 ELSE 0 END, 
-    CASE WHEN t.tabla = 'kardex' THEN '{"crear": [1050,1051,1052,1053,1054,1055,1056,1057,1058,1059,1060,1061,1062,1063,1064,1065,1066,1067,1068,1069,1070], "editar": [1050,1051], "anular": [1055]}'::jsonb ELSE '{}'::jsonb END,
-    1000, 2 
-FROM (
-    VALUES 
-    ('constantes'), ('bancos'), ('tipos_cambios'), ('empresas'), ('empresas_nits'), ('empresas_cuentas'), ('sucursales'), ('puntos_venta'), ('cuis'), ('cufd'), ('almacenes'), ('ubicaciones'), ('almacenes_puntos_venta'), ('cargos'), ('trabajadores'), ('trabajadores_cargos'), ('roles'), ('usuarios'), ('menus'), ('roles_menus'), ('inventarios_fisicos'), ('clientes'), ('categorias'), ('unidades'), ('laboratorios'), ('formas'), ('presentaciones'), ('concentraciones'), ('vias'), ('rangos_edad'), ('marcas'), ('productos'), ('productos_vias'), ('equivalentes'), ('productos_rangos_edad'), ('productos_ubicaciones'), ('principios_activos'), ('productos_principios'), ('registros_sanitarios'), ('productos_controlados'), ('promociones'), ('promociones_productos'), ('conversiones_unidad'), ('proveedores'), ('proveedores_contactos'), ('proveedores_rating_historico'), ('parametros_globales'), ('tareas_programadas'), ('control_facturas'), ('kardex'), ('ordenes_compra'), ('instituciones'), ('especialidades'), ('medicos'), ('recetas'), ('lotes_productos'), ('kardex_productos'), ('inventarios_fisicos_detalle'), ('ubicaciones_movimientos'), ('ubicaciones_historial'), ('tipos_planes_pago'), ('planes_pagos'), ('comprobantes_pagos'), ('pagos'), ('cajas'), ('movimientos'), ('arqueos_detalle'), ('alertas_notificaciones'), ('modelos'), ('entrenamientos'), ('metricas_rendimiento'), ('patrones_consumo'), ('variables_exogenas'), ('umbrales_configuracion'), ('logs_ejecucion'), ('analitica_productos'), ('pedidos_online'), ('detalles_pedidos_online'), ('carritos_compra'), ('detalles_carritos'), ('listas_precios'), ('precios_productos'), ('costos_promedio'), ('politicas_precios'), ('asistencias'), ('planillas'), ('planillas_detalle'), ('contratos'), ('historicos'), ('tablas')
-) AS t(tabla);
+    CASE 
+        WHEN t.nombre IN ('kardex', 'ordenes_compra', 'control_facturas', 'lotes_productos', 'kardex_productos', 'planes_pagos', 'pagos', 'comprobantes_pagos') THEN 1 
+        ELSE 0 
+    END, 
+    CASE 
+        WHEN t.nombre IN ('kardex', 'ordenes_compra', 'control_facturas', 'lotes_productos', 'kardex_productos', 'planes_pagos', 'pagos', 'comprobantes_pagos') THEN 1 
+        ELSE 0 
+    END, 
+    CASE 
+        WHEN t.nombre IN ('kardex', 'ordenes_compra', 'control_facturas', 'lotes_productos', 'kardex_productos', 'planes_pagos', 'pagos', 'comprobantes_pagos') THEN 1 
+        ELSE 0 
+    END,
+    1000, 2
+FROM tablas t
+WHERE t.estado_id = 1000
+AND t.nombre NOT IN ('roles_permisos_tablas', 'ninguno');
 
 -- ROL: COMPRADOR (rol_id = 5) - SIN ANULAR
-INSERT INTO roles_tablas (rol_id, tabla, leer, crear, editar, eliminar, anular, archivar, desarchivar, eventos_permitidos, estado_id, usuario_id_registro) VALUES
-(5, 'proveedores', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(5, 'proveedores_contactos', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(5, 'proveedores_rating_historico', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(5, 'kardex', 1, 1, 0, 0, 0, 0, 0, '{"crear": [1050, 1058], "editar": []}'::jsonb, 1000, 2),
-(5, 'ordenes_compra', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(5, 'parametros_globales', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(5, 'tareas_programadas', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(5, 'tipos_planes_pago', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(5, 'planes_pagos', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(5, 'comprobantes_pagos', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(5, 'pagos', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2);
+INSERT INTO roles_permisos_tablas (rol_id, tabla_id, leer, crear, editar, eliminar, anular, archivar, desarchivar, estado_id, usuario_id_registro)
+SELECT 
+    5,
+    t.tabla_id,
+    CASE 
+        WHEN t.nombre IN ('proveedores', 'proveedores_contactos', 'ordenes_compra', 'tipos_planes_pago', 'planes_pagos', 'comprobantes_pagos', 'pagos') THEN 1
+        WHEN t.nombre IN ('proveedores_rating_historico', 'parametros_globales', 'tareas_programadas') THEN 1
+        WHEN t.nombre IN ('kardex', 'kardex_productos', 'lotes_productos') THEN 1
+        ELSE 0
+    END,
+    CASE 
+        WHEN t.nombre IN ('proveedores', 'proveedores_contactos', 'ordenes_compra', 'tipos_planes_pago', 'planes_pagos', 'comprobantes_pagos', 'pagos') THEN 1
+        WHEN t.nombre IN ('kardex', 'kardex_productos', 'lotes_productos') THEN 1
+        ELSE 0
+    END,
+    CASE 
+        WHEN t.nombre IN ('proveedores', 'proveedores_contactos', 'ordenes_compra', 'tipos_planes_pago', 'planes_pagos', 'comprobantes_pagos', 'pagos') THEN 1
+        ELSE 0
+    END,
+    0, 0, 0, 0,
+    1000, 2
+FROM tablas t
+WHERE t.estado_id = 1000
+AND t.nombre IN ('proveedores', 'proveedores_contactos', 'proveedores_rating_historico', 'kardex', 'kardex_productos', 'lotes_productos', 'ordenes_compra', 'parametros_globales', 'tareas_programadas', 'tipos_planes_pago', 'planes_pagos', 'comprobantes_pagos', 'pagos');
 
 -- ROL: VENDEDOR (rol_id = 6) - SIN ANULAR
-INSERT INTO roles_tablas (rol_id, tabla, leer, crear, editar, eliminar, anular, archivar, desarchivar, eventos_permitidos, estado_id, usuario_id_registro) VALUES
-(6, 'clientes', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(6, 'productos', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(6, 'kardex', 1, 1, 0, 0, 0, 0, 0, '{"crear": [1051, 1052, 1059], "editar": [1051]}'::jsonb, 1000, 2),
-(6, 'kardex_productos', 1, 1, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(6, 'pedidos_online', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(6, 'detalles_pedidos_online', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(6, 'carritos_compra', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(6, 'detalles_carritos', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(6, 'listas_precios', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(6, 'precios_productos', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(6, 'politicas_precios', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(6, 'cajas', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(6, 'movimientos', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2);
+INSERT INTO roles_permisos_tablas (rol_id, tabla_id, leer, crear, editar, eliminar, anular, archivar, desarchivar, estado_id, usuario_id_registro)
+SELECT 
+    6,
+    t.tabla_id,
+    CASE 
+        WHEN t.nombre IN ('clientes', 'productos', 'kardex', 'kardex_productos', 'lotes_productos', 'pedidos_online', 'detalles_pedidos_online', 'carritos_compra', 'detalles_carritos') THEN 1
+        WHEN t.nombre IN ('listas_precios', 'precios_productos', 'politicas_precios', 'cajas', 'movimientos') THEN 1
+        ELSE 0
+    END,
+    CASE 
+        WHEN t.nombre IN ('clientes', 'productos', 'kardex', 'kardex_productos', 'lotes_productos', 'pedidos_online', 'detalles_pedidos_online', 'carritos_compra', 'detalles_carritos') THEN 1
+        ELSE 0
+    END,
+    CASE 
+        WHEN t.nombre IN ('clientes', 'productos', 'pedidos_online', 'detalles_pedidos_online', 'carritos_compra', 'detalles_carritos') THEN 1
+        ELSE 0
+    END,
+    0, 0, 0, 0,
+    1000, 2
+FROM tablas t
+WHERE t.estado_id = 1000
+AND t.nombre IN ('clientes', 'productos', 'kardex', 'kardex_productos', 'lotes_productos', 'pedidos_online', 'detalles_pedidos_online', 'carritos_compra', 'detalles_carritos', 'listas_precios', 'precios_productos', 'politicas_precios', 'cajas', 'movimientos');
 
 -- ROL: ALMACENERO (rol_id = 7) - SIN ANULAR
-INSERT INTO roles_tablas (rol_id, tabla, leer, crear, editar, eliminar, anular, archivar, desarchivar, eventos_permitidos, estado_id, usuario_id_registro) VALUES
-(7, 'almacenes', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(7, 'ubicaciones', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(7, 'almacenes_puntos_venta', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(7, 'productos', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(7, 'productos_ubicaciones', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(7, 'kardex', 1, 1, 0, 0, 0, 0, 0, '{"crear": [1053, 1054, 1056, 1057, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070], "editar": []}'::jsonb, 1000, 2),
-(7, 'lotes_productos', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(7, 'kardex_productos', 1, 1, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(7, 'ubicaciones_movimientos', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(7, 'ubicaciones_historial', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(7, 'inventarios_fisicos_detalle', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(7, 'inventarios_fisicos', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(7, 'umbrales_configuracion', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(7, 'analitica_productos', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2);
+INSERT INTO roles_permisos_tablas (rol_id, tabla_id, leer, crear, editar, eliminar, anular, archivar, desarchivar, estado_id, usuario_id_registro)
+SELECT 
+    7,
+    t.tabla_id,
+    CASE 
+        WHEN t.nombre IN ('almacenes', 'ubicaciones', 'almacenes_puntos_venta', 'productos_ubicaciones', 'kardex', 'lotes_productos', 'kardex_productos', 'ubicaciones_movimientos', 'ubicaciones_historial', 'inventarios_fisicos_detalle', 'inventarios_fisicos') THEN 1
+        WHEN t.nombre IN ('productos', 'umbrales_configuracion', 'analitica_productos') THEN 1
+        ELSE 0
+    END,
+    CASE 
+        WHEN t.nombre IN ('almacenes', 'ubicaciones', 'almacenes_puntos_venta', 'productos_ubicaciones', 'kardex', 'lotes_productos', 'kardex_productos', 'ubicaciones_movimientos', 'ubicaciones_historial', 'inventarios_fisicos_detalle', 'inventarios_fisicos') THEN 1
+        ELSE 0
+    END,
+    CASE 
+        WHEN t.nombre IN ('almacenes', 'ubicaciones', 'almacenes_puntos_venta', 'productos_ubicaciones', 'lotes_productos', 'ubicaciones_movimientos', 'ubicaciones_historial', 'inventarios_fisicos_detalle', 'inventarios_fisicos') THEN 1
+        ELSE 0
+    END,
+    0, 0, 0, 0,
+    1000, 2
+FROM tablas t
+WHERE t.estado_id = 1000
+AND t.nombre IN ('almacenes', 'ubicaciones', 'almacenes_puntos_venta', 'productos', 'productos_ubicaciones', 'kardex', 'lotes_productos', 'kardex_productos', 'ubicaciones_movimientos', 'ubicaciones_historial', 'inventarios_fisicos_detalle', 'inventarios_fisicos', 'umbrales_configuracion', 'analitica_productos');
 
 -- ROL: CAJERO (rol_id = 8) - SIN ANULAR
-INSERT INTO roles_tablas (rol_id, tabla, leer, crear, editar, eliminar, anular, archivar, desarchivar, eventos_permitidos, estado_id, usuario_id_registro) VALUES
-(8, 'clientes', 1, 1, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(8, 'kardex', 1, 1, 0, 0, 0, 0, 0, '{"crear": [1051], "editar": []}'::jsonb, 1000, 2),
-(8, 'kardex_productos', 1, 1, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(8, 'control_facturas', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(8, 'comprobantes_pagos', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(8, 'pagos', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(8, 'cajas', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(8, 'movimientos', 1, 1, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(8, 'arqueos_detalle', 1, 1, 1, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(8, 'bancos', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(8, 'listas_precios', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2),
-(8, 'precios_productos', 1, 0, 0, 0, 0, 0, 0, '{}'::jsonb, 1000, 2);
+INSERT INTO roles_permisos_tablas (rol_id, tabla_id, leer, crear, editar, eliminar, anular, archivar, desarchivar, estado_id, usuario_id_registro)
+SELECT 
+    8,
+    t.tabla_id,
+    CASE 
+        WHEN t.nombre IN ('clientes', 'kardex', 'kardex_productos', 'lotes_productos', 'comprobantes_pagos', 'pagos', 'cajas', 'movimientos', 'arqueos_detalle') THEN 1
+        WHEN t.nombre IN ('control_facturas', 'bancos', 'listas_precios', 'precios_productos') THEN 1
+        ELSE 0
+    END,
+    CASE 
+        WHEN t.nombre IN ('clientes', 'kardex', 'kardex_productos', 'lotes_productos', 'comprobantes_pagos', 'pagos', 'cajas', 'movimientos', 'arqueos_detalle') THEN 1
+        ELSE 0
+    END,
+    CASE 
+        WHEN t.nombre IN ('comprobantes_pagos', 'pagos', 'cajas', 'arqueos_detalle') THEN 1
+        ELSE 0
+    END,
+    0, 0, 0, 0,
+    1000, 2
+FROM tablas t
+WHERE t.estado_id = 1000
+AND t.nombre IN ('clientes', 'kardex', 'kardex_productos', 'lotes_productos', 'control_facturas', 'comprobantes_pagos', 'pagos', 'cajas', 'movimientos', 'arqueos_detalle', 'bancos', 'listas_precios', 'precios_productos');
 
-UPDATE roles_tablas SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE roles_tablas SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
+SELECT setval('roles_permisos_tablas_rol_permiso_tabla_id_seq', COALESCE((SELECT MAX(rol_permiso_tabla_id) FROM roles_permisos_tablas), 0), (SELECT COUNT(*) > 0 FROM roles_permisos_tablas));
 
-SELECT setval('roles_tablas_rol_tabla_id_seq', COALESCE((SELECT MAX(rol_tabla_id) FROM roles_tablas), 0), (SELECT COUNT(*) > 0 FROM roles_tablas));
+-- ================================================================================================
+
+DELETE FROM roles_permisos_sucesos;
+ALTER SEQUENCE roles_permisos_sucesos_rol_permiso_suceso_id_seq RESTART WITH 1;
+
+-- ROL: NINGUNO (rol_id = 1) - SIN PERMISOS DE SUCESOS
+-- No se insertan registros para NINGUNO
+
+-- ROL: ADMINISTRADOR (rol_id = 2) - TODOS LOS SUCESOS PERMITIDOS
+INSERT INTO roles_permisos_sucesos (rol_permiso_tabla_id, suceso_id, estado_id, usuario_id_registro)
+SELECT 
+    rpt.rol_permiso_tabla_id,
+    s.suceso_id,
+    1000, 2
+FROM roles_permisos_tablas rpt
+INNER JOIN tablas t ON rpt.tabla_id = t.tabla_id
+CROSS JOIN sucesos s
+WHERE rpt.rol_id = 2
+AND t.nombre = 'kardex'
+AND s.suceso_id IN (1050, 1051, 1052, 1053, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070)
+AND rpt.estado_id = 1000
+AND s.estado_id = 1000;
+
+-- ROL: GERENTE (rol_id = 3) - SOLO LECTURA, SIN SUCESOS
+-- No se insertan registros para GERENTE (solo lectura)
+
+-- ROL: ENCARGADO DE SUCURSAL (rol_id = 4) - TODOS LOS SUCESOS PERMITIDOS
+INSERT INTO roles_permisos_sucesos (rol_permiso_tabla_id, suceso_id, estado_id, usuario_id_registro)
+SELECT 
+    rpt.rol_permiso_tabla_id,
+    s.suceso_id,
+    1000, 2
+FROM roles_permisos_tablas rpt
+INNER JOIN tablas t ON rpt.tabla_id = t.tabla_id
+CROSS JOIN sucesos s
+WHERE rpt.rol_id = 4
+AND t.nombre = 'kardex'
+AND s.suceso_id IN (1050, 1051, 1052, 1053, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070)
+AND rpt.estado_id = 1000
+AND s.estado_id = 1000;
+
+-- ROL: COMPRADOR (rol_id = 5) - SOLO SUCESOS DE COMPRA Y SOLICITUD_COMPRA
+INSERT INTO roles_permisos_sucesos (rol_permiso_tabla_id, suceso_id, estado_id, usuario_id_registro)
+SELECT 
+    rpt.rol_permiso_tabla_id,
+    s.suceso_id,
+    1000, 2
+FROM roles_permisos_tablas rpt
+INNER JOIN tablas t ON rpt.tabla_id = t.tabla_id
+CROSS JOIN sucesos s
+WHERE rpt.rol_id = 5
+AND t.nombre = 'kardex'
+AND s.suceso_id IN (1050, 1058)
+AND rpt.estado_id = 1000
+AND s.estado_id = 1000;
+
+-- ROL: VENDEDOR (rol_id = 6) - SUCESOS DE VENTA, PROFORMA Y VENTA_RESERVA
+INSERT INTO roles_permisos_sucesos (rol_permiso_tabla_id, suceso_id, estado_id, usuario_id_registro)
+SELECT 
+    rpt.rol_permiso_tabla_id,
+    s.suceso_id,
+    1000, 2
+FROM roles_permisos_tablas rpt
+INNER JOIN tablas t ON rpt.tabla_id = t.tabla_id
+CROSS JOIN sucesos s
+WHERE rpt.rol_id = 6
+AND t.nombre = 'kardex'
+AND s.suceso_id IN (1051, 1052, 1059)
+AND rpt.estado_id = 1000
+AND s.estado_id = 1000;
+
+-- ROL: ALMACENERO (rol_id = 7) - SUCESOS DE TRASPASOS, AJUSTES, INVENTARIO FISICO, ETC
+INSERT INTO roles_permisos_sucesos (rol_permiso_tabla_id, suceso_id, estado_id, usuario_id_registro)
+SELECT 
+    rpt.rol_permiso_tabla_id,
+    s.suceso_id,
+    1000, 2
+FROM roles_permisos_tablas rpt
+INNER JOIN tablas t ON rpt.tabla_id = t.tabla_id
+CROSS JOIN sucesos s
+WHERE rpt.rol_id = 7
+AND t.nombre = 'kardex'
+AND s.suceso_id IN (1053, 1054, 1056, 1057, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070)
+AND rpt.estado_id = 1000
+AND s.estado_id = 1000;
+
+-- ROL: CAJERO (rol_id = 8) - SOLO SUCESO DE VENTA
+INSERT INTO roles_permisos_sucesos (rol_permiso_tabla_id, suceso_id, estado_id, usuario_id_registro)
+SELECT 
+    rpt.rol_permiso_tabla_id,
+    s.suceso_id,
+    1000, 2
+FROM roles_permisos_tablas rpt
+INNER JOIN tablas t ON rpt.tabla_id = t.tabla_id
+CROSS JOIN sucesos s
+WHERE rpt.rol_id = 8
+AND t.nombre = 'kardex'
+AND s.suceso_id IN (1051)
+AND rpt.estado_id = 1000
+AND s.estado_id = 1000;
+
+SELECT setval('roles_permisos_sucesos_rol_permiso_suceso_id_seq', COALESCE((SELECT MAX(rol_permiso_suceso_id) FROM roles_permisos_sucesos), 0), (SELECT COUNT(*) > 0 FROM roles_permisos_sucesos));
 
 -- ================================================================================================
 
@@ -665,9 +886,6 @@ INSERT INTO menus (menu_id, menu_padre_id, titulo, icono, url, orden, estado_id,
 (76, 73, 'PANEL DE CONTROL FINANCIERO', 'pi pi-percentage', '/gerencia/reportes-financieros', 3, 1000, 2),
 (77, 73, 'HISTORIAL DE COSTOS Y MÁRGENES', 'pi pi-chart-line', '/gerencia/historial-costos', 4, 1000, 2),
 (78, 73, 'MONITOR DE ALERTAS DE RIESGO', 'pi pi-bolt', '/gerencia/alertas-criticas', 5, 1000, 2);
-
-UPDATE menus SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE menus SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
 
 SELECT setval('menus_menu_id_seq', COALESCE((SELECT MAX(menu_id) FROM menus), 0), (SELECT COUNT(*) > 0 FROM menus));
 
@@ -758,9 +976,6 @@ INSERT INTO roles_menus (rol_menu_id, rol_id, menu_id, estado_id, usuario_id_reg
 (79, 6, 44, 1000, 2),
 (80, 6, 46, 1000, 2);
 
-UPDATE roles_menus SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE roles_menus SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('roles_menus_rol_menu_id_seq', COALESCE((SELECT MAX(rol_menu_id) FROM roles_menus), 0), (SELECT COUNT(*) > 0 FROM roles_menus));
 
 -- ================================================================================================
@@ -789,9 +1004,6 @@ INSERT INTO inventarios_fisicos (inventario_fisico_id,almacen_id,ubicacion_id,fe
 	 (18,4,18,'2026-07-17','2026-07-17 08:00:00-04','2026-07-17 17:00:00-04',2,3,1000,'INVENTARIO FISICO - CONGELADOR 01 - BANDEJA 2',2),
 	 (19,4,19,'2026-07-18','2026-07-18 08:00:00-04','2026-07-18 17:00:00-04',2,3,1000,'INVENTARIO FISICO - CONGELADOR 02 - BANDEJA 1',2),
 	 (20,4,20,'2026-07-19','2026-07-19 08:00:00-04','2026-07-19 17:00:00-04',2,3,1000,'INVENTARIO FISICO - CONGELADOR 02 - BANDEJA 2',2);
-
-UPDATE inventarios_fisicos SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE inventarios_fisicos SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
 
 SELECT setval('inventarios_fisicos_inventario_fisico_id_seq', COALESCE((SELECT MAX(inventario_fisico_id) FROM inventarios_fisicos), 0), (SELECT COUNT(*) > 0 FROM inventarios_fisicos));
 
@@ -826,9 +1038,6 @@ INSERT INTO clientes (cliente_id, tipo_cliente_id, cliente, nit, razon_social, d
 (19, 1150, 'HERNAN ROLANDO VARGAS FLORES', NULL, NULL, '65432109', '4D', 2200, NULL, NULL, NULL, 1, NULL, 1, 0.00, 1000, 2),
 (20, 1150, 'PAOLA ANDREA QUIROZ CASTRO', NULL, NULL, '90123456', NULL, 2200, NULL, NULL, NULL, 1, NULL, 1, 0.00, 1000, 2),
 (21, 1150, 'RAFAEL ENRIQUE SOLIZ HUANCA', NULL, NULL, '76543210', NULL, 2200, NULL, NULL, NULL, 1, NULL, 0, 0.00, 1000, 2);
-
-UPDATE clientes SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE clientes SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
 
 SELECT setval('clientes_cliente_id_seq', COALESCE((SELECT MAX(cliente_id) FROM clientes), 0), (SELECT COUNT(*) > 0 FROM clientes));
 
@@ -918,9 +1127,6 @@ INSERT INTO categorias (categoria_id, empresa_nit_id, categoria_padre_id, catego
 (80, 1, 7, 'HISTORIA', 'LIB-4', NULL, 2, 4, 1000, 2),
 (81, 1, 7, 'INFANTILES', 'LIB-5', NULL, 2, 5, 1000, 2);
 
-UPDATE categorias SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE categorias SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('categorias_categoria_id_seq', COALESCE((SELECT MAX(categoria_id) FROM categorias), 0), (SELECT COUNT(*) > 0 FROM categorias));
 
 -- ================================================================================================
@@ -935,9 +1141,6 @@ INSERT INTO laboratorios (laboratorio_id, codigo, laboratorio, nit, direccion, t
 (4, 'FAR', 'FARMACÉUTICA BOLIVIANA S.A.', '1034567890', 'AV. MONTES NRO. 789, ZONA INDUSTRIAL, EL ALTO, LA PAZ', '22887788', 'contacto@far-bol.com.bo', 'www.far-bol.com', 1000, 2),
 (5, 'MCN', 'MCNEIL BOLIVIA S.R.L.', '1045678901', 'EDIF. EMPRESARIAL, PISO 8, AV. ARCE NRO. 2121, SOPOCACHI, LA PAZ', '22445566', 'info@mcneil.com.bo', 'www.mcneil.com.bo', 1000, 2),
 (6, 'ROC', 'LABORATORIOS ROCHE BOLIVIA S.A.', '1056789012', 'AV. 6 DE AGOSTO NRO. 2800, EDIF. TOWER, PISO 10, LA PAZ', '22448899', 'contacto@roche.com.bo', 'www.roche.com.bo', 1000, 2);
-
-UPDATE laboratorios SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE laboratorios SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
 
 SELECT setval('laboratorios_laboratorio_id_seq', COALESCE((SELECT MAX(laboratorio_id) FROM laboratorios), 0), (SELECT COUNT(*) > 0 FROM laboratorios));
 
@@ -987,9 +1190,6 @@ INSERT INTO formas (forma_id, forma_farmaceutica, codigo, descripcion, estado_id
 (38, 'GOMA DE MASCAR', 'GOM', 'Preparación masticable que libera principios activos durante la masticación', 1000, 2),
 (39, 'PELICULA ORAL', 'PEL', 'Película delgada que se disuelve en la cavidad oral liberando el principio activo', 1000, 2),
 (40, 'ESPRAY', 'ESPR', 'Solución o suspensión administrada en forma de rocío fino para aplicación oral o tópica', 1000, 2);
-
-UPDATE formas SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE formas SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
 
 SELECT setval('formas_forma_id_seq', COALESCE((SELECT MAX(forma_id) FROM formas), 0), (SELECT COUNT(*) > 0 FROM formas));
 
@@ -1071,9 +1271,6 @@ INSERT INTO presentaciones (presentacion_id, unidad_id, codigo, presentacion, ca
 (70, 11, 'CJSUP12', 'CAJA X 12 SUPOSITORIOS', 12, 'Caja conteniendo 12 supositorios', 1000, 2),
 (71, 11, 'CJSUP6', 'CAJA X 6 SUPOSITORIOS', 6, 'Caja conteniendo 6 supositorios', 1000, 2);
 
-UPDATE presentaciones SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE presentaciones SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('presentaciones_presentacion_id_seq', COALESCE((SELECT MAX(presentacion_id) FROM presentaciones), 0), (SELECT COUNT(*) > 0 FROM presentaciones));
 
 -- ================================================================================================
@@ -1135,9 +1332,6 @@ INSERT INTO concentraciones (concentracion_id, unidad_base_id, codigo, concentra
 (51, 15, '1000UI', '1000 UI', 1000.00, 'Concentración de 1000 unidades internacionales', 1000, 2),
 (52, 15, '5000UI', '5000 UI', 5000.00, 'Concentración de 5000 unidades internacionales', 1000, 2);
 
-UPDATE concentraciones SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE concentraciones SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('concentraciones_concentracion_id_seq', COALESCE((SELECT MAX(concentracion_id) FROM concentraciones), 0), (SELECT COUNT(*) > 0 FROM concentraciones));
 
 -- ================================================================================================
@@ -1161,9 +1355,6 @@ INSERT INTO vias (via_id, nombre, descripcion, requiere_ayuno, tiempo_efecto_min
 (13, 'VAGINAL', 'Administración por vía vaginal mediante óvulos, cremas o tabletas vaginales.', 0, 30, 'Usar aplicador si está incluido. Acostarse durante 15-20 minutos después de la aplicación.', 1000, 2),
 (14, 'OFTÁLMICA', 'Administración en el ojo mediante gotas o ungüentos oftálmicos. Para tratar infecciones y afecciones oculares.', 0, NULL, 'Lavarse las manos antes y después. No tocar el ojo con el aplicador.', 1000, 2),
 (15, 'ÓTICA', 'Administración en el oído mediante gotas óticas. Para tratar infecciones del oído externo.', 0, NULL, 'Templar el frasco antes de usar. Inclinar la cabeza y permanecer unos minutos.', 1000, 2);
-
-UPDATE vias SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE vias SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
 
 SELECT setval('vias_via_id_seq', COALESCE((SELECT MAX(via_id) FROM vias), 0), (SELECT COUNT(*) > 0 FROM vias));
 
@@ -1193,9 +1384,6 @@ INSERT INTO rangos_edad (rango_edad_id, codigo, rango, edad_minima_meses, edad_m
 (18, 'ADULTO_MAYOR_75-85A', 'Adulto Mayor 75-85 años', 900, 1020, 'De 75 a 85 años. Cuarta edad.', 1000, 2),
 (19, 'ADULTO_MAYOR_85A', 'Adulto Mayor 85+ años', 1020, NULL, 'Mayores de 85 años. Quinta edad.', 1000, 2),
 (20, 'ADULTO_MAYOR_GERIATRICO', 'Adulto Mayor / Geriátrico', 780, NULL, 'Mayores de 65 años. Población geriátrica.', 1000, 2);
-
-UPDATE rangos_edad SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE rangos_edad SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
 
 SELECT setval('rangos_edad_rango_edad_id_seq', COALESCE((SELECT MAX(rango_edad_id) FROM rangos_edad), 0), (SELECT COUNT(*) > 0 FROM rangos_edad));
 
@@ -1238,13 +1426,10 @@ INSERT INTO marcas (marca_id, nombre, descripcion, estado_id, usuario_id_registr
 (31, 'LOREAL', 'Marca francesa de cosméticos y productos de belleza', 1000, 2),
 (32, 'PROCTER & GAMBLE', 'Marca de productos de limpieza, cuidado personal y del hogar', 1000, 2);
 
-UPDATE marcas SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE marcas SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('marcas_marca_id_seq', COALESCE((SELECT MAX(marca_id) FROM marcas), 0), (SELECT COUNT(*) > 0 FROM marcas));
 
 -- ================================================================================================
-/*
+
 DELETE FROM productos;
 ALTER SEQUENCE productos_producto_id_seq RESTART WITH 1;
 
@@ -2015,10 +2200,147 @@ INSERT INTO productos (producto_id,categoria_id,laboratorio_id,marca_id,forma_id
 	 (764,81,1,1,1,1,1,9,1700,'SM-81-00004',NULL,'LIB-5004','978-0-13-235136-2',NULL,NULL,'MATILDA',NULL,9.00,1.50,1.19,13.50,10.71,10.00,55.00,18.00,0,0,0,'Novela de Roald Dahl sobre una niña prodigio con poderes especiales.',NULL,NULL,NULL,NULL,4150,1000,1),
 	 (765,81,1,1,1,1,1,9,1700,'SM-81-00005',NULL,'LIB-5005','978-0-13-235137-9',NULL,NULL,'CHARLIE Y LA FÁBRICA DE CHOCOLATE',NULL,10.00,1.50,1.19,15.00,11.90,10.00,50.00,15.00,0,0,0,'Otra obra de Roald Dahl que narra la aventura de Charlie en la fábrica de chocolate de Willy Wonka.',NULL,NULL,NULL,NULL,4150,1000,1);
 
-UPDATE productos SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE productos SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('productos_producto_id_seq', COALESCE((SELECT MAX(producto_id) FROM productos), 0), (SELECT COUNT(*) > 0 FROM productos));
+
+-- ================================================================================================
+
+DELETE FROM productos_vias;
+ALTER SEQUENCE productos_vias_producto_via_id_seq RESTART WITH 1;
+
+INSERT INTO productos_vias (producto_via_id, producto_id, via_id, es_principal, observaciones, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 1, 'NINGUNO', 1000, 1);
+
+SELECT setval('productos_vias_producto_via_id_seq', COALESCE((SELECT MAX(producto_via_id) FROM productos_vias), 0), (SELECT COUNT(*) > 0 FROM productos_vias));
+
+-- ================================================================================================
+
+DELETE FROM equivalentes;
+ALTER SEQUENCE equivalentes_equivalente_id_seq RESTART WITH 1;
+
+INSERT INTO equivalentes (equivalente_id, producto_base_id, producto_alternativo_id, grado_equivalente_id, prioridad_recomendacion, observaciones, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 3803, 1, 'NINGUNO', 1000, 1);
+
+SELECT setval('equivalentes_equivalente_id_seq', COALESCE((SELECT MAX(equivalente_id) FROM equivalentes), 0), (SELECT COUNT(*) > 0 FROM equivalentes));
+
+-- ================================================================================================
+
+DELETE FROM productos_rangos_edad;
+ALTER SEQUENCE productos_rangos_edad_producto_rango_edad_id_seq RESTART WITH 1;
+
+INSERT INTO productos_rangos_edad (producto_rango_edad_id, producto_id, rango_edad_id, contraindicado, dosis_recomendada, observaciones, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 0, NULL, NULL, 1000, 1);
+
+SELECT setval('productos_rangos_edad_producto_rango_edad_id_seq', COALESCE((SELECT MAX(producto_rango_edad_id) FROM productos_rangos_edad), 0), (SELECT COUNT(*) > 0 FROM productos_rangos_edad));
+
+-- ================================================================================================
+
+DELETE FROM productos_ubicaciones;
+ALTER SEQUENCE productos_ubicaciones_producto_ubicacion_id_seq RESTART WITH 1;
+
+INSERT INTO productos_ubicaciones (producto_ubicacion_id, producto_id, ubicacion_id, prioridad_picking, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 99, 1000, 1);
+
+SELECT setval('productos_ubicaciones_producto_ubicacion_id_seq', COALESCE((SELECT MAX(producto_ubicacion_id) FROM productos_ubicaciones), 0), (SELECT COUNT(*) > 0 FROM productos_ubicaciones));
+
+-- ================================================================================================
+
+DELETE FROM principios_activos;
+ALTER SEQUENCE principios_activos_principio_activo_id_seq RESTART WITH 1;
+
+INSERT INTO principios_activos (principio_activo_id, codigo, nombre, descripcion, es_controlado, estado_id, usuario_id_registro) VALUES
+(1, 'NINGUNO', 'NINGUNO', 'SIN COMPONENTE ACTIVO REGISTRADO / NO APLICA', 0, 1000, 1);
+
+SELECT setval('principios_activos_principio_activo_id_seq', COALESCE((SELECT MAX(principio_activo_id) FROM principios_activos), 0), (SELECT COUNT(*) > 0 FROM principios_activos));
+
+-- ================================================================================================
+
+DELETE FROM productos_principios;
+ALTER SEQUENCE productos_principios_producto_principio_id_seq RESTART WITH 1;
+
+INSERT INTO productos_principios (producto_principio_id, producto_id, principio_activo_id, concentracion, es_principal, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 'NINGUNO', 0, 1000, 1);
+
+SELECT setval('productos_principios_producto_principio_id_seq', COALESCE((SELECT MAX(producto_principio_id) FROM productos_principios), 0), (SELECT COUNT(*) > 0 FROM productos_principios));
+
+-- ================================================================================================
+
+DELETE FROM registros_sanitarios;
+ALTER SEQUENCE registros_sanitarios_registro_sanitario_id_seq RESTART WITH 1;
+
+INSERT INTO registros_sanitarios (registro_sanitario_id, producto_id, codigo_registro, entidad_emisora, fecha_emision, fecha_vencimiento, estado_id, usuario_id_registro) VALUES
+(1, 1, 'NINGUNO', 'NINGUNO', '2000-01-01', '2001-01-01', 1000, 1);
+
+SELECT setval('registros_sanitarios_registro_sanitario_id_seq', COALESCE((SELECT MAX(registro_sanitario_id) FROM registros_sanitarios), 0), (SELECT COUNT(*) > 0 FROM registros_sanitarios));
+
+-- ================================================================================================
+
+DELETE FROM productos_controlados;
+ALTER SEQUENCE productos_controlados_producto_controlado_id_seq RESTART WITH 1;
+
+INSERT INTO productos_controlados (producto_controlado_id, producto_id, numero_autorizacion, requiere_receta_retenida, observaciones_control, estado_id, usuario_id_registro) VALUES 
+(1, 1, 'NINGUNO', 0, 'SIN FISCALIZACIÓN / NO APLICA', 1000, 1);
+
+SELECT setval('productos_controlados_producto_controlado_id_seq', COALESCE((SELECT MAX(producto_controlado_id) FROM productos_controlados), 0), (SELECT COUNT(*) > 0 FROM productos_controlados));
+
+-- ================================================================================================
+
+DELETE FROM promociones;
+ALTER SEQUENCE promociones_promocion_id_seq RESTART WITH 1;
+
+INSERT INTO promociones (promocion_id, codigo, nombre, descripcion, tipo_beneficio_id, valor_beneficio, fecha_inicio, fecha_fin, estado_id, usuario_id_registro) VALUES
+(1, 'NINGUNO', 'NINGUNO', 'SIN CAMPAÑA PROMOCIONAL / NO APLICA', 1504, 0.00, '2000-01-01', '2001-01-01', 1000, 1);
+
+SELECT setval('promociones_promocion_id_seq', COALESCE((SELECT MAX(promocion_id) FROM promociones), 0), (SELECT COUNT(*) > 0 FROM promociones));
+
+-- ================================================================================================
+
+DELETE FROM promociones_productos;
+ALTER SEQUENCE promociones_productos_promocion_producto_id_seq RESTART WITH 1;
+
+INSERT INTO promociones_productos (promocion_producto_id, promocion_id, producto_id, limite_por_transaccion, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 0, 1000, 1);
+
+SELECT setval('promociones_productos_promocion_producto_id_seq', COALESCE((SELECT MAX(promocion_producto_id) FROM promociones_productos), 0), (SELECT COUNT(*) > 0 FROM promociones_productos));
+
+-- ================================================================================================
+
+DELETE FROM conversiones_unidad;
+ALTER SEQUENCE conversiones_unidad_conversion_id_seq RESTART WITH 1;
+
+INSERT INTO conversiones_unidad (conversion_id, producto_id, unidad_origen_id, unidad_destino_id, factor_conversion, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 1, 1.0000, 1000, 1);
+
+SELECT setval('conversiones_unidad_conversion_id_seq', COALESCE((SELECT MAX(conversion_id) FROM conversiones_unidad), 0), (SELECT COUNT(*) > 0 FROM conversiones_unidad));
+
+-- ================================================================================================
+
+DELETE FROM proveedores;
+ALTER SEQUENCE proveedores_proveedor_id_seq RESTART WITH 1;
+
+INSERT INTO proveedores (proveedor_id, codigo, nombre, nit, direccion, telefono, email, rating_calidad_id, monto_minimo_compra, plazo_entrega_dias, limite_credito, dias_credito, ultima_evaluacion, observaciones, estado_id, usuario_id_registro) VALUES
+(1, 'NINGUNO', 'NINGUNO', NULL, NULL, NULL, NULL, 2055, 0.00, 0, 0.00, 0, NULL, 'PROVEEDOR COMODÍN PARA COMPRAS DIRECTAS O DONACIONES', 1000, 1);
+
+SELECT setval('proveedores_proveedor_id_seq', COALESCE((SELECT MAX(proveedor_id) FROM proveedores), 0), (SELECT COUNT(*) > 0 FROM proveedores));
+
+-- ================================================================================================
+
+DELETE FROM proveedores_contactos;
+ALTER SEQUENCE proveedores_contactos_proveedor_contacto_id_seq RESTART WITH 1;
+
+INSERT INTO proveedores_contactos (proveedor_contacto_id, proveedor_id, nombre, cargo, telefono, email, es_principal, estado_id, usuario_id_registro) VALUES
+(1, 1, 'NINGUNO', 'NINGUNO', NULL, NULL, 1, 1000, 1);
+
+SELECT setval('proveedores_contactos_proveedor_contacto_id_seq', COALESCE((SELECT MAX(proveedor_contacto_id) FROM proveedores_contactos), 0), (SELECT COUNT(*) > 0 FROM proveedores_contactos));
+
+-- ================================================================================================
+
+DELETE FROM proveedores_rating_historico;
+ALTER SEQUENCE proveedores_rating_historico_rating_historico_id_seq RESTART WITH 1;
+
+INSERT INTO proveedores_rating_historico (rating_historico_id, proveedor_id, rating_calidad_id, motivo, fecha_evaluacion, estado_id, usuario_id_registro)
+VALUES (1, 1, 2055, 'REGISTRO INICIAL COMODÍN', CURRENT_DATE, 1000, 1);
+
+SELECT setval('proveedores_rating_historico_rating_historico_id_seq', COALESCE((SELECT MAX(rating_historico_id) FROM proveedores_rating_historico), 0), (SELECT COUNT(*) > 0 FROM proveedores_rating_historico));
 
 -- ================================================================================================
 
@@ -2068,10 +2390,459 @@ INSERT INTO parametros_globales (parametro_id, clave, valor, tipo_dato_id, datos
 INSERT INTO parametros_globales (parametro_id, clave, valor, tipo_dato_id, datos_json, descripcion, editable, estado_id, usuario_id_registro) VALUES
      (37, 'avatar_config', 'AVATAR_CONFIG', 1805, '{"max_size": 20480, "max_width": 48, "max_height": 48, "retention_days": 1, "allowed_formats": ["png", "jpeg"], "allowed_extensions": ["png", "jpg", "jpeg"]}', 'Configuración de avatares de usuarios (tamaño máximo: 20 KB, dimensiones: 48x48 px, formatos: PNG, JPEG, JPG)', 1, 1000, 2);
 	 
-UPDATE parametros_globales SET usuario_id_actualizacion = NULL, fecha_actualizacion = NULL, usuario_id_baja = 1, fecha_baja = CURRENT_TIMESTAMP WHERE estado_id = 1001;
-UPDATE parametros_globales SET usuario_id_actualizacion = 1, fecha_actualizacion = CURRENT_TIMESTAMP, usuario_id_baja = NULL, fecha_baja = NULL WHERE estado_id = 1002;
-
 SELECT setval('parametros_globales_parametro_id_seq', COALESCE((SELECT MAX(parametro_id) FROM parametros_globales), 0), (SELECT COUNT(*) > 0 FROM parametros_globales));
 
 -- ================================================================================================
-*/
+
+DELETE FROM tareas_programadas;
+ALTER SEQUENCE tareas_programadas_tarea_id_seq RESTART WITH 1;
+
+INSERT INTO tareas_programadas (
+    tarea_id, codigo, nombre, descripcion, tipo_tarea_id, subtipo_tarea_id, 
+    frecuencia_id, cron_expresion, parametros, ultima_ejecucion, proxima_ejecucion, 
+    ejecucion_exitosa, ultimo_error, intentos_fallidos, max_intentos, 
+    tarea_dependencia_id, ejecutar_en_cascada, modulo_estrategico_id, estado_id, usuario_id_registro
+) VALUES
+(1, 'NIN', 'NINGUNO', 'NINGUNA', 3409, 3461, 3359, NULL, '{"ejecutar": false}', NULL, NULL, NULL, NULL, 0, 3, NULL, 0, 2157, 1000, 1),
+(2, 'ALERTA_VENC', 'ALERTA DE VENCIMIENTO DE LOTES', 'Identifica lotes próximos a vencer y genera notificaciones', 3403, 3461, 3352, '0 6 * * *', '{"dias_alerta_critica": 15, "dias_alerta_alta": 30, "dias_alerta_media": 60}', NULL, NULL, NULL, NULL, 0, 3, NULL, 0, 2153, 1000, 1),
+(3, 'ALERTA_STOCK', 'ALERTA DE STOCK CRÍTICO', 'Monitorea inventario y genera alertas por debajo del punto de reorden', 3403, 3461, 3351, '0 * * * *', '{"umbral_quiebre": 5, "umbral_reorden": 20}', NULL, NULL, NULL, NULL, 0, 3, NULL, 0, 2151, 1000, 1),
+(4, 'ENTRENAR_SARIMA', 'ENTRENAMIENTO DE MODELO SARIMA', 'Entrena el modelo de pronóstico de demanda con datos históricos', 3405, 3450, 3353, '0 2 * * 0', '{"ventana_dias": 90, "test_size": 0.2, "p": 1, "d": 1, "q": 1, "P": 1, "D": 1, "Q": 1, "s": 7}', NULL, NULL, NULL, NULL, 0, 3, NULL, 0, 2151, 1000, 1),
+(5, 'CLASIFICAR_ABC', 'CLASIFICACIÓN ABC DE INVENTARIO', 'Reclasifica productos en categorías A, B y C con K-Means', 3406, 3453, 3354, '0 3 1 * *', '{"n_clusters": 3, "random_state": 42, "max_iter": 300, "criterios": ["costo", "rotacion", "margen", "criticidad"]}', NULL, NULL, NULL, NULL, 0, 3, NULL, 0, 2151, 1000, 1),
+(6, 'PREDECIR_DEMANDA', 'PREDICCIÓN DE DEMANDA Y ROP', 'Calcula predicciones de demanda y actualiza puntos de reorden', 3407, 3454, 3352, '0 4 * * *', '{"dias_a_predecir": 30, "lead_time_default": 7, "stock_seguridad_default": 10}', NULL, NULL, NULL, NULL, 0, 3, 4, 1, 2151, 1000, 1),
+(7, 'BACKUP_DB', 'RESPALDO AUTOMÁTICO DE BASE DE DATOS', 'Genera backup completo de PostgreSQL', 3402, 3461, 3352, '0 1 * * *', '{"retencion_dias": 30, "compresion": true, "ruta_destino": "/backups/db/"}', NULL, NULL, NULL, NULL, 0, 3, NULL, 0, NULL, 1000, 1),
+(8, 'REPORTE_VENTAS_DIA', 'REPORTE DIARIO DE VENTAS', 'Consolida ventas del día con gráficos y resúmenes', 3400, 3461, 3352, '0 23 * * *', '{"formato": "PDF", "incluir_graficos": true, "destino_email": "gerencia@farmacia.com"}', NULL, NULL, NULL, NULL, 0, 3, NULL, 0, 2157, 1000, 1),
+(9, 'LIMPIEZA_NOTIFICACIONES', 'LIMPIEZA DE NOTIFICACIONES LEÍDAS', 'Archiva notificaciones leídas con más de X días', 3404, 3461, 3353, '0 5 * * 0', '{"dias_para_archivar": 90}', NULL, NULL, NULL, NULL, 0, 3, NULL, 0, NULL, 1000, 1),
+(13, 'ENTRENAR_PROPHET', 'ENTRENAMIENTO DE MODELO PROPHET', 'Entrena el modelo Prophet de Facebook', 3405, 3452, 3354, '0 4 1 * *', '{"ventana_dias": 180, "estacionalidad_anual": true, "estacionalidad_semanal": true}', NULL, NULL, NULL, NULL, 0, 3, NULL, 0, 2151, 1000, 1),
+(10, 'PREDECIR_VENCIMIENTOS', 'PREDICCIÓN DE FECHAS DE VENCIMIENTO', 'Pronostica vencimientos basados en patrones de consumo', 3405, 3452, 3353, '0 4 * * 1', '{"modelo": "PROPHET", "dias_proyeccion": 180}', NULL, NULL, NULL, NULL, 0, 3, 13, 1, 2153, 1000, 1),
+(11, 'ALERTA_PREDICTIVA', 'ALERTAS PREDICTIVAS DE IA', 'Evalúa riesgos futuros basados en modelos predictivos', 3403, 3456, 3352, '0 7 * * *', '{"umbral_riesgo_alto": 0.8, "umbral_riesgo_medio": 0.5, "dias_proyeccion": 30}', NULL, NULL, NULL, NULL, 0, 3, 6, 1, 2156, 1000, 1),
+(12, 'ENTRENAR_SARIMAX', 'ENTRENAMIENTO SARIMAX CON VARIABLES EXÓGENAS', 'Entrena SARIMAX incorporando variables externas', 3405, 3451, 3353, '0 3 * * 0', '{"ventana_dias": 90, "incluir_festivos": true, "incluir_clima": true}', NULL, NULL, NULL, NULL, 0, 3, 4, 1, 2151, 1000, 1),
+(14, 'PATRON_CONSUMO', 'DETECCIÓN DE PATRONES DE CONSUMO', 'Analiza históricos para identificar patrones estacionales', 3405, 3455, 3354, '0 5 1 * *', '{"min_datos": 90, "umbral_correlacion": 0.7}', NULL, NULL, NULL, NULL, 0, 3, 13, 1, 2151, 1000, 1),
+(15, 'VAR_EXOGENA', 'PROCESAMIENTO DE VARIABLES EXÓGENAS', 'Obtiene y procesa variables externas', 3405, 3457, 3352, '0 1 * * *', '{"fuentes": ["API_CLIMA", "API_FESTIVOS", "API_ECONOMIA"]}', NULL, NULL, NULL, NULL, 0, 3, NULL, 0, 2151, 1000, 1),
+(16, 'VALIDAR_MODELOS', 'VALIDACIÓN CRUZADA DE MODELOS', 'Evalúa y compara el rendimiento de todos los modelos', 3408, 3460, 3354, '0 6 15 * *', '{"k_folds": 5, "metricas": ["MAPE", "RMSE", "MAE", "R2"]}', NULL, NULL, NULL, NULL, 0, 3, 4, 1, 2151, 1000, 1),
+(17, 'METRICAS_IA', 'MÉTRICAS DE RENDIMIENTO DE IA', 'Genera reporte de métricas de todos los modelos', 3400, 3458, 3354, '0 7 1 * *', '{"incluir_graficos": true, "formato": "PDF"}', NULL, NULL, NULL, NULL, 0, 3, 16, 1, 2151, 1000, 1),
+(18, 'REENTRENAR_AUTO', 'REENTRENAMIENTO AUTOMÁTICO DE MODELOS', 'Reentrena automáticamente si el error supera el umbral', 3405, 3459, 3357, NULL, '{"umbral_mape": 10.0, "min_datos_nuevos": 7, "modelos": ["SARIMA", "PROPHET"]}', NULL, NULL, NULL, NULL, 0, 3, NULL, 0, 2151, 1000, 1),
+(19, 'BACKUP_MODELOS', 'RESPALDO DE MODELOS DE IA', 'Guarda versionado de todos los modelos entrenados', 3402, 3461, 3353, '0 2 * * 0', '{"retencion_version": 10, "ruta_destino": "/backups/models/"}', NULL, NULL, NULL, NULL, 0, 3, NULL, 0, NULL, 1000, 1),
+(20, 'REPORTE_PREDICCIONES', 'REPORTE DE PREDICCIONES Y PROYECCIONES', 'Reporte consolidado de todas las predicciones de IA', 3400, 3461, 3354, '0 8 1 * *', '{"incluir_graficos": true, "formato": "PDF", "destino_email": "gerencia@farmacia.com"}', NULL, NULL, NULL, NULL, 0, 3, 6, 1, 2151, 1000, 1);
+
+SELECT setval('tareas_programadas_tarea_id_seq', COALESCE((SELECT MAX(tarea_id) FROM tareas_programadas), 0), (SELECT COUNT(*) > 0 FROM tareas_programadas));
+
+-- ================================================================================================
+
+DELETE FROM control_facturas;
+ALTER SEQUENCE control_facturas_control_factura_id_seq RESTART WITH 1;
+
+INSERT INTO control_facturas (control_factura_id, sucursal_id, tipo_comprobante_id, numero_actual, numero_inicial, numero_final, autorizacion, cuf, cufd, cuis, codigo_control, codigo_qr, fecha_autorizacion, fecha_vencimiento, gestion, estado_operativo_id, estado_id, usuario_id_registro) VALUES
+(1, 1, 1103, 0, 1, 999999, '00000000000000000000', NULL, NULL, NULL, NULL, NULL, '2026-01-01', '2027-12-31', 2026, 3300, 1000, 1);
+
+SELECT setval('control_facturas_control_factura_id_seq', COALESCE((SELECT MAX(control_factura_id) FROM control_facturas), 0), (SELECT COUNT(*) > 0 FROM control_facturas));
+
+-- ================================================================================================
+
+DELETE FROM kardex;
+ALTER SEQUENCE kardex_kardex_id_seq RESTART WITH 1;
+
+INSERT INTO kardex (kardex_id, tipo_comprobante_id, motivo_anulacion_id, motivo_devolucion_id, cliente_id, proveedor_id, sucursal_id, sucursal_destino_id, kardex_origen_id, kardex_pedido_compra_id, evento_id, codigo, comprobante, comprobante_referencia, kardex_referencia_id, fecha_kardex, total_compra, total_venta, total_venta_factura, total_pagado, total_cambio, saldo_pendiente, lugar_entrega, numero_factura, nota_credito_debito, validez_dias, fecha_expiracion, estado_proforma_id, tipo_factura_id, estado_traspaso_id, estado_financiero_id, estado_pedido_id, tipo_despacho_id, estado_id, usuario_id_registro, usuario_id_actualizacion, usuario_id_baja, fecha_registro, fecha_actualizacion, fecha_baja) VALUES 
+(1, 1103, 2455, 3506, 1, 1, 1, NULL, NULL, NULL, 1050, 'INI-1-2026-00000000', 'REGISTRO COMODIN SISTEMA', NULL, NULL, CURRENT_TIMESTAMP, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, NULL, NULL, NULL, NULL, NULL, 4000, 2353, 2103, 2403, NULL, 3554, 1000, 1, NULL, NULL, CURRENT_TIMESTAMP, NULL, NULL);
+
+SELECT setval('kardex_kardex_id_seq', COALESCE((SELECT MAX(kardex_id) FROM kardex), 0), (SELECT COUNT(*) > 0 FROM kardex));
+
+-- ================================================================================================
+
+DELETE FROM ordenes_compra;
+ALTER SEQUENCE ordenes_compra_orden_compra_id_seq RESTART WITH 1;
+
+INSERT INTO ordenes_compra (orden_compra_id, kardex_id, proveedor_id, numero_orden, fecha_orden, fecha_entrega_estimada, fecha_entrega_real, estado_pedido_id, observaciones, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 'OC-000000', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, 2253, 'ORDEN DE COMPRA COMODÍN PARA REGISTROS INICIALES', 1000, 1);
+
+SELECT setval('ordenes_compra_orden_compra_id_seq', COALESCE((SELECT MAX(orden_compra_id) FROM ordenes_compra), 0), (SELECT COUNT(*) > 0 FROM ordenes_compra));
+
+-- ================================================================================================
+
+DELETE FROM instituciones;
+ALTER SEQUENCE instituciones_institucion_id_seq RESTART WITH 1;
+
+INSERT INTO instituciones (institucion_id, codigo, institucion, direccion, telefono, estado_id, usuario_id_registro) VALUES
+(1, 'NIN', 'NINGUNO', NULL, NULL, 1000, 1);
+
+SELECT setval('instituciones_institucion_id_seq', COALESCE((SELECT MAX(institucion_id) FROM instituciones), 0), (SELECT COUNT(*) > 0 FROM instituciones));
+
+-- ================================================================================================
+
+DELETE FROM especialidades;
+ALTER SEQUENCE especialidades_especialidad_id_seq RESTART WITH 1;
+
+INSERT INTO especialidades (especialidad_id, especialidad, estado_id, usuario_id_registro) VALUES
+(1, 'NINGUNO', 1000, 1);
+
+SELECT setval('especialidades_especialidad_id_seq', COALESCE((SELECT MAX(especialidad_id) FROM especialidades), 0), (SELECT COUNT(*) > 0 FROM especialidades));
+
+-- ================================================================================================
+
+DELETE FROM medicos;
+ALTER SEQUENCE medicos_medico_id_seq RESTART WITH 1;
+
+INSERT INTO medicos (medico_id, medico, matricula, especialidad_id, telefono, email, estado_id, usuario_id_registro) VALUES
+(1, 'NINGUNO', 'MAT-000', 1, NULL, NULL, 1000, 1);
+
+SELECT setval('medicos_medico_id_seq', COALESCE((SELECT MAX(medico_id) FROM medicos), 0), (SELECT COUNT(*) > 0 FROM medicos));
+
+-- ================================================================================================
+
+DELETE FROM recetas;
+ALTER SEQUENCE recetas_receta_id_seq RESTART WITH 1;
+
+INSERT INTO recetas (receta_id, kardex_id, cliente_id, sucursal_id, medico_id, institucion_id, tipo_receta_id, numero_receta, fecha_emision, diagnostico, receta_pdf, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 1, 1, 1, 3853, 'REC-000', CURRENT_DATE, NULL, NULL, 1000, 1);
+
+SELECT setval('recetas_receta_id_seq', COALESCE((SELECT MAX(receta_id) FROM recetas), 0), (SELECT COUNT(*) > 0 FROM recetas));
+
+-- ================================================================================================
+
+DELETE FROM lotes_productos;
+ALTER SEQUENCE lotes_productos_lote_id_seq RESTART WITH 1;
+
+INSERT INTO lotes_productos (lote_id, producto_id, kardex_id, codigo, fecha_vencimiento, cantidad_inicial, cantidad_actual, cantidad_reservada, precio_costo, fecha_fabricacion, lote_proveedor, ubicacion_id, rating_calidad_id, estado_lote_id, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 'NINGUNO', '2099-12-31', 1.00, 0.00, 0.00, 0.00, NULL, 'NINGUNO', 1, 2055, 2503, 1000, 1);
+
+SELECT setval('lotes_productos_lote_id_seq', COALESCE((SELECT MAX(lote_id) FROM lotes_productos), 0), (SELECT COUNT(*) > 0 FROM lotes_productos));
+
+-- ================================================================================================
+
+DELETE FROM kardex_productos;
+ALTER SEQUENCE kardex_productos_kardex_producto_id_seq RESTART WITH 1;
+
+INSERT INTO kardex_productos (kardex_producto_id, kardex_id, producto_id, sucursal_id, lote_id, presentacion_id, tipo_pago_id, tipo_venta_id, kardex_producto_origen_id, cantidad, cantidad_unidad_base, cantidad_salida, pcompra, factor_venta, factor_facturacion, precio_venta, precio_venta_factura, costo_venta, descuento, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 1, 1, 1, 1400, 1350, 1, 0.00, 0.00, 0.00, 0.00, 1.00, 1.00, 0.00, 0.00, 0.00, 0.00, 1000, 1);
+
+SELECT setval('kardex_productos_kardex_producto_id_seq', COALESCE((SELECT MAX(kardex_producto_id) FROM kardex_productos), 0), (SELECT COUNT(*) > 0 FROM kardex_productos));
+
+-- ================================================================================================
+
+DELETE FROM inventarios_fisicos_detalle;
+ALTER SEQUENCE inventarios_fisicos_detalle_inventario_fisico_detalle_id_seq RESTART WITH 1;
+
+INSERT INTO inventarios_fisicos_detalle (inventario_fisico_detalle_id, inventario_fisico_id, producto_id, lote_id, ubicacion_id, cantidad_sistema, cantidad_contada, observaciones, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 1, 1, 0.00, 0.00, 'REGISTRO INICIAL COMODIN DE DETALLE DE INVENTARIO FISICO', 1000, 1);
+
+SELECT setval('inventarios_fisicos_detalle_inventario_fisico_detalle_id_seq', COALESCE((SELECT MAX(inventario_fisico_detalle_id) FROM inventarios_fisicos_detalle), 0), (SELECT COUNT(*) > 0 FROM inventarios_fisicos_detalle));
+
+-- ================================================================================================
+
+DELETE FROM ubicaciones_movimientos;
+ALTER SEQUENCE ubicaciones_movimientos_ubicacion_movimiento_id_seq RESTART WITH 1;
+
+INSERT INTO ubicaciones_movimientos (ubicacion_movimiento_id, kardex_producto_id, ubicacion_origen_id, ubicacion_destino_id, lote_id, cantidad, tipo_ubicacion_movimiento_id, motivo, estado_id, usuario_id_registro) VALUES
+(1, 1, NULL, 1, 1, 1.00, 3200, 'REGISTRO INICIAL COMODIN DE MOVIMIENTO', 1000, 1);
+
+SELECT setval('ubicaciones_movimientos_ubicacion_movimiento_id_seq', COALESCE((SELECT MAX(ubicacion_movimiento_id) FROM ubicaciones_movimientos), 0), (SELECT COUNT(*) > 0 FROM ubicaciones_movimientos));
+
+-- ================================================================================================
+
+DELETE FROM ubicaciones_historial;
+ALTER SEQUENCE ubicaciones_historial_ubicacion_historial_id_seq RESTART WITH 1;
+
+INSERT INTO ubicaciones_historial (ubicacion_historial_id, producto_id, ubicacion_origen_id, ubicacion_destino_id, kardex_producto_id, cantidad, motivo, trabajador_id, estado_id, usuario_id_registro) VALUES 
+(1, 1, NULL, 1, NULL, 1.00, 'REGISTRO PREDETERMINADO INICIAL DE UBICACION', 1, 1002, 1);
+
+SELECT setval('ubicaciones_historial_ubicacion_historial_id_seq', COALESCE((SELECT MAX(ubicacion_historial_id) FROM ubicaciones_historial), 1), true);
+
+-- ================================================================================================
+
+DELETE FROM tipos_planes_pago;
+ALTER SEQUENCE tipos_planes_pago_tipo_plan_pago_id_seq RESTART WITH 1;
+
+INSERT INTO tipos_planes_pago (tipo_plan_pago_id, codigo, nombre, meses_plazo, porcentaje_recargo, monto_fijo_recargo, permite_personalizar, descripcion, estado_id, usuario_id_registro) VALUES
+(1, 'NIN', 'NINGUNO', 0, 0.00, 0.00, 0, 'Pago por defecto.', 1000, 1),
+(2, '3M', 'Plan a 3 Meses', 3, 5.00, 0.00, 0, 'Fraccionado a 3 meses con un recargo financiero del 5% sobre capital.', 1000, 1),
+(3, '6M', 'Plan a 6 Meses', 6, 10.00, 0.00, 0, 'Fraccionado a 6 meses con un recargo financiero del 10% sobre capital.', 1000, 1),
+(4, '12M', 'Plan a 12 Meses', 12, 18.00, 0.00, 0, 'Fraccionado a 12 meses con un recargo financiero del 18% sobre capital.', 1000, 1),
+(5, 'PER', 'Plan Personalizado', 0, 0.00, 0.00, 1, 'Plan a medida donde el usuario define fechas y porcentajes por cuota.', 1000, 1);
+
+SELECT setval('tipos_planes_pago_tipo_plan_pago_id_seq', COALESCE((SELECT MAX(tipo_plan_pago_id) FROM tipos_planes_pago), 0), (SELECT COUNT(*) > 0 FROM tipos_planes_pago));
+
+-- ================================================================================================
+
+DELETE FROM planes_pagos;
+ALTER SEQUENCE planes_pagos_plan_pago_id_seq RESTART WITH 1;
+
+INSERT INTO planes_pagos (plan_pago_id, kardex_id, numero_cuota, monto_programado, fecha_vencimiento, estado_pago_id, fecha_pago, monto_pagado, observaciones, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 0.00, '2026-01-01', 2553, '2026-01-01', 0.00, 'REGISTRO COMODIN OBLIGATORIO', 1000, 1);
+
+SELECT setval('planes_pagos_plan_pago_id_seq', COALESCE((SELECT MAX(plan_pago_id) FROM planes_pagos), 0), (SELECT COUNT(*) > 0 FROM planes_pagos));
+
+-- ================================================================================================
+
+DELETE FROM comprobantes_pagos;
+ALTER SEQUENCE comprobantes_pagos_comprobante_pago_id_seq RESTART WITH 1;
+
+INSERT INTO comprobantes_pagos (comprobante_pago_id, kardex_id, banco_id, tipo_pago_id, tipo_moneda_id, codigo_transaccion, monto, fecha_pago, titular_cuenta, autorizacion_nro, cuenta_destino, comprobante_digital_ruta, confirmado, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 1400, 2300, 'SN', 0.01, CURRENT_DATE, 'NINGUNO', NULL, NULL, NULL, 0, 1000, 1);
+
+SELECT setval('comprobantes_pagos_comprobante_pago_id_seq', COALESCE((SELECT MAX(comprobante_pago_id) FROM comprobantes_pagos), 0), (SELECT COUNT(*) > 0 FROM comprobantes_pagos));
+
+-- ================================================================================================
+
+DELETE FROM pagos;
+ALTER SEQUENCE pagos_pago_id_seq RESTART WITH 1;
+
+INSERT INTO pagos (pago_id, kardex_id, plan_pago_id, tipo_pago_id, comprobante_pago_id, monto, fecha_pago, referencia, comprobante, observaciones, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 1400, 1, 1.00, '2026-01-01', 'NINGUNO', 'NINGUNO', 'REGISTRO COMODIN OBLIGATORIO', 1000, 1);
+
+SELECT setval('pagos_pago_id_seq', COALESCE((SELECT MAX(pago_id) FROM pagos), 0), (SELECT COUNT(*) > 0 FROM pagos));
+
+-- ================================================================================================
+
+DELETE FROM cajas;
+ALTER SEQUENCE cajas_caja_id_seq RESTART WITH 1;
+
+INSERT INTO cajas (caja_id, sucursal_id, apertura_trabajador_id, cierre_trabajador_id, autorizacion_trabajador_id, fecha_apertura, fecha_cierre, fecha_autorizacion, monto_inicial, monto_ingresos, monto_egresos, monto_ventas, monto_final_esperado, monto_final_real, diferencia, total_transacciones, total_ventas, total_devoluciones, total_retiros, estado_caja_id, observaciones, estado_id, usuario_id_registro) VALUES 
+(1, 1, 1, 1, 1, '2026-01-01 00:00:00-04', NULL, NULL, 0.00, 0.00, 0.00, 0.00, 0.00, NULL, NULL, 0, 0, 0, 0, 2650, 'REGISTRO COMODIN INICIAL', 1000, 1);
+
+SELECT setval('cajas_caja_id_seq', COALESCE((SELECT MAX(caja_id) FROM cajas), 0), (SELECT COUNT(*) > 0 FROM cajas));
+
+-- ================================================================================================
+
+DELETE FROM movimientos;
+ALTER SEQUENCE movimientos_movimiento_id_seq RESTART WITH 1;
+
+INSERT INTO movimientos (movimiento_id, caja_id, referencia_id, trabajador_id, tipo_movimiento_id, tipo_pago_id, monto, saldo_antes, saldo_despues, motivo, fecha_movimiento, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 1, 2600, 1400, 0.01, 0.00, 0.01, 'REGISTRO COMODIN OBLIGATORIO', CURRENT_TIMESTAMP, 1000, 1);
+
+SELECT setval('movimientos_movimiento_id_seq', COALESCE((SELECT MAX(movimiento_id) FROM movimientos), 0), (SELECT COUNT(*) > 0 FROM movimientos));
+
+-- ================================================================================================
+
+DELETE FROM arqueos_detalle;
+ALTER SEQUENCE arqueos_detalle_arqueo_detalle_id_seq RESTART WITH 1;
+
+INSERT INTO arqueos_detalle (arqueo_detalle_id, caja_id, tipo_billete_id, cantidad, subtotal, estado_id, usuario_id_registro) VALUES
+(1, 1, 4300, 0, 0.00, 1000, 1);
+
+SELECT setval('arqueos_detalle_arqueo_detalle_id_seq', COALESCE((SELECT MAX(arqueo_detalle_id) FROM arqueos_detalle), 0), (SELECT COUNT(*) > 0 FROM arqueos_detalle));
+
+-- ================================================================================================
+
+DELETE FROM alertas_notificaciones;
+ALTER SEQUENCE alertas_notificaciones_alerta_notificacion_id_seq RESTART WITH 1;
+
+INSERT INTO alertas_notificaciones (alerta_notificacion_id, sucursal_id, codigo, tipo_alerta_notificacion_id, subtipo_alerta_id, origen_alerta_id, nivel_critico_id, titulo, mensaje, entidad_afectada_tipo_id, entidad_afectada_id, metadata, estado_alerta_id, trabajador_asignado_id, fecha_asignacion, es_leido, fecha_lectura, trabajador_resolutor_id, fecha_resolucion, comentarios_resolucion, accion_tomada, estado_id, usuario_id_registro) VALUES
+(1, 1, 'ALN-000', 2700, 2812, 2850, 2905, 'NINGUNO', 'REGISTRO COMODIN POR DEFECTO', 4111, NULL, '{}'::jsonb, 2953, 1, NULL, 1, CURRENT_TIMESTAMP, 1, NULL, NULL, NULL, 1000, 1);
+
+SELECT setval('alertas_notificaciones_alerta_notificacion_id_seq', COALESCE((SELECT MAX(alerta_notificacion_id) FROM alertas_notificaciones), 0), (SELECT COUNT(*) > 0 FROM alertas_notificaciones));
+
+-- ================================================================================================
+
+DELETE FROM modelos;
+ALTER SEQUENCE modelos_modelo_id_seq RESTART WITH 1;
+
+INSERT INTO modelos (modelo_id, codigo, nombre, tipo_modelo_id, descripcion, framework_id, framework_version, version, parametros_default, estado_modelo_id, estado_id, usuario_id_registro) VALUES
+(1, 'NIN', 'NINGUNO', 1456, 'REGISTRO COMODIN POR DEFECTO', 3004, '0.0.0', '0.0.0', '{}'::jsonb, 2002, 1000, 1),
+(2, 'ARIMA', 'ARIMA_CLASICO', 1450, 'Modelo ARIMA (Autoregressive Integrated Moving Average) para pronóstico de demanda sin componente estacional, útil para series temporales no estacionales', 3000, '0.14.1', '0.14.1', '{"p": 1, "d": 1, "q": 1, "trend": "c", "enforce_stationarity": false, "enforce_invertibility": false, "metrica_optimizacion": "AIC"}'::jsonb, 2002, 1000, 1),
+(3, 'SARIMA', 'SARIMA_ESTACIONAL', 1451, 'Modelo SARIMA (Seasonal ARIMA) para pronóstico de demanda estacional con componentes autorregresivos, de diferenciación y promedio móvil estacional. Ideal para patrones semanales, mensuales o anuales', 3000, '0.14.1', '0.14.1', '{"p": 1, "d": 1, "q": 1, "P": 1, "D": 1, "Q": 1, "s": 7, "trend": "c", "enforce_stationarity": false, "enforce_invertibility": false, "metrica_optimizacion": "AIC"}'::jsonb, 2002, 1000, 1),
+(4, 'SARIMAX', 'SARIMAX_EXOGENO', 1451, 'Modelo SARIMAX (SARIMA con variables exógenas) que incorpora factores externos como clima, festivos, días especiales y campañas promocionales para mejorar la precisión del pronóstico', 3000, '0.14.1', '0.14.1', '{"p": 1, "d": 1, "q": 1, "P": 1, "D": 1, "Q": 1, "s": 7, "trend": "c", "enforce_stationarity": false, "enforce_invertibility": false, "exog_variables": ["temperatura", "festivo", "dia_semana", "mes", "promocion"], "metrica_optimizacion": "AIC"}'::jsonb, 2002, 1000, 1),
+(16, 'AUTOARIMA', 'AUTO_ARIMA', 1451, 'Modelo Auto-ARIMA que realiza búsqueda automática de los mejores parámetros (p, d, q, P, D, Q, s) utilizando criterios de información AIC/BIC. Ideal para automatizar el entrenamiento', 3000, '0.14.1', '0.14.1', '{"p_max": 5, "d_max": 2, "q_max": 5, "P_max": 2, "D_max": 1, "Q_max": 2, "s_max": 12, "criterio": "aic", "seasonal": true, "m": 7, "stepwise": true, "trace": false}'::jsonb, 2002, 1000, 1),
+(5, 'PROPHET', 'PROPHET_META', 1452, 'Modelo Prophet de Facebook/Meta para detección de estacionalidades múltiples (anual, semanal, diaria) y manejo de días festivos, ideal para patrones de consumo farmacéutico con múltiples estacionalidades', 3003, '1.1.5', '1.1.5', '{"growth": "linear", "yearly_seasonality": true, "weekly_seasonality": true, "daily_seasonality": false, "seasonality_mode": "additive", "changepoint_prior_scale": 0.05, "seasonality_prior_scale": 10.0, "holidays_prior_scale": 10.0, "interval_width": 0.95}'::jsonb, 2002, 1000, 1),
+(6, 'PATRON', 'PATRON_CONSUMO', 1452, 'Modelo especializado en detección de patrones de consumo estacionales y tendencias de largo plazo para medicamentos, identificando picos por enfermedades estacionales (gripe, alergias, etc.)', 3003, '1.0.0', '1.0.0', '{"min_datos_entrenamiento": 90, "umbral_correlacion": 0.7, "ventana_deteccion": 30, "nivel_confianza": 0.95, "metrica_principal": "MAPE", "enfermedades_estacionales": ["gripe", "alergia", "dengue", "infecciones"]}'::jsonb, 2002, 1000, 1),
+(14, 'PREDVENC', 'PREDICTOR_VENCIMIENTOS', 1452, 'Modelo especializado en pronosticar fechas de vencimiento de lotes basado en patrones históricos de consumo y rotación de inventario. Identifica lotes con riesgo de vencerse antes de ser vendidos', 3003, '1.0.0', '1.0.0', '{"dias_proyeccion": 180, "min_datos_consumo": 60, "umbral_riesgo_alto": 0.8, "umvald_riesgo_medio": 0.5, "incluir_estacionalidad": true, "factor_estacional": 1.15}'::jsonb, 2002, 1000, 1),
+(15, 'ENSEMBLE', 'ENSEMBLE_FORECAST', 1452, 'Modelo Ensemble que combina predicciones de ARIMA, SARIMA, Prophet y otros modelos para mejorar la precisión del pronóstico mediante promedio ponderado y selección dinámica del mejor modelo', 3003, '1.0.0', '1.0.0', '{"modelos_ensemble": ["ARIMA_CLASICO", "SARIMA_ESTACIONAL", "PROPHET_META", "PATRON_CONSUMO"], "pesos": [0.20, 0.30, 0.25, 0.25], "metrica_optimizacion": "MAPE", "ventana_validacion": 30, "seleccion_dinamica": true}'::jsonb, 2002, 1000, 1),
+(7, 'KMEANS', 'KMEANS_ABC', 1453, 'Algoritmo K-Means Clustering para clasificación ABC de inventario multicriterio basado en costo, rotación, margen de ganancia y criticidad médica. Genera categorías A (alta prioridad), B (media) y C (baja)', 3001, '1.3.2', '1.3.2', '{"n_clusters": 3, "random_state": 42, "max_iter": 300, "n_init": 10, "algorithm": "lloyd", "criterios": ["costo", "rotacion", "margen", "criticidad"], "pesos": [0.30, 0.30, 0.20, 0.20], "etiquetas": ["A", "B", "C"]}'::jsonb, 2002, 1000, 1),
+(8, 'CRITICIDAD', 'CLASIFICADOR_CRITICIDAD', 1453, 'Modelo para clasificar productos por nivel de criticidad médica basado en principios activos, uso, disponibilidad en el mercado y sustitutos disponibles', 3001, '1.3.2', '1.3.2', '{"niveles": ["CRITICO", "ALTO", "MEDIO", "BAJO"], "criterios": ["principio_activo", "frecuencia_uso", "disponibilidad", "sustitutos"], "random_state": 42, "pesos": [0.35, 0.30, 0.20, 0.15]}'::jsonb, 2002, 1000, 1),
+(9, 'ROP', 'ROP_DINAMICO', 1454, 'Modelo para cálculo dinámico del Punto de Reorden (ROP) basado en demanda promedio histórica, lead time y stock de seguridad ajustable. Fórmula: ROP = (d * L) + SS', 3003, '2.0.0', '2.0.0', '{"lead_time_default": 7, "stock_seguridad_default": 10, "nivel_confianza": 0.95, "metrica_demanda": "media_movil", "ventana_dias": 30, "factor_estacional": true, "ajuste_estacional": 1.2}'::jsonb, 2002, 1000, 1),
+(10, 'OPTSTOCK', 'OPTIMIZADOR_STOCK', 1454, 'Modelo de optimización de inventario que calcula niveles óptimos de stock mínimo, máximo y punto de reorden basado en costos de mantener vs. costos de quiebre (modelo EOQ adaptado)', 3003, '1.5.0', '1.5.0', '{"costo_mantener": 0.25, "costo_quiebre": 2.0, "lead_time_dias": 7, "ventana_historica": 180, "nivel_servicio": 0.95, "estacionalidad": true, "factor_estacional": 1.1}'::jsonb, 2002, 1000, 1),
+(11, 'OPTCOMPRA', 'OPTIMIZADOR_COMPRAS', 1454, 'Modelo que optimiza las cantidades y fechas de compra considerando precios de proveedores, descuentos por volumen, costos de almacenamiento y restricciones de presupuesto', 3003, '1.0.0', '1.0.0', '{"ventana_optimizacion": 90, "costo_pedido": 50.0, "costo_mantener": 0.25, "descuentos_volumen": [[100, 0.05], [500, 0.10], [1000, 0.15]], "lead_time_proveedor": 5, "presupuesto_mensual": 10000.0, "minimo_pedido": 10}'::jsonb, 2002, 1000, 1),
+(12, 'ANOMALIAS', 'DETECTOR_ANOMALIAS', 1455, 'Modelo para detección de anomalías en patrones de consumo, ventas y stock, identificando comportamientos atípicos que requieren atención inmediata (picos, caídas bruscas, estacionalidades rotas)', 3001, '1.3.2', '1.3.2', '{"contamination": 0.05, "n_neighbors": 20, "algorithm": "auto", "metric": "minkowski", "p": 2, "ventana_deteccion": 30, "umbral_anomalia": 0.8, "metodo": "LOF"}'::jsonb, 2002, 1000, 1),
+(13, 'ALERTAS', 'ALERTAS_PREDICTIVAS', 1455, 'Modelo para generación de alertas tempranas basadas en desviaciones de los patrones esperados de demanda, stock y vencimientos. Detecta riesgo de quiebre de stock y excesos de inventario', 3003, '1.2.0', '1.2.0', '{"umbral_riesgo_alto": 0.8, "umbral_riesgo_medio": 0.5, "dias_proyeccion": 30, "ventana_historica": 90, "metricas_umbral": ["MAPE", "RMSE", "MAE"], "alertas": ["quiebre_stock", "exceso_stock", "vencimiento_proximo"]}'::jsonb, 2002, 1000, 1);
+
+SELECT setval('modelos_modelo_id_seq', COALESCE((SELECT MAX(modelo_id) FROM modelos), 0), (SELECT COUNT(*) > 0 FROM modelos));
+
+-- ================================================================================================
+
+DELETE FROM entrenamientos;
+ALTER SEQUENCE entrenamientos_entrenamiento_id_seq RESTART WITH 1;
+
+INSERT INTO entrenamientos (entrenamiento_id, modelo_id, fecha_ejecucion, fecha_inicio, fecha_fin, estado_ejecucion_id, duracion_segundos, registros_procesados, total_esperado, mensaje_error, estado_id, usuario_id_registro) VALUES
+(1, 1, '2026-07-16 14:00:00-04', '2026-07-16 13:55:00-04', '2026-07-16 14:00:00-04', 3051, 300, 15000, 15000, NULL, 1000, 1);
+
+SELECT setval('entrenamientos_entrenamiento_id_seq', COALESCE((SELECT MAX(entrenamiento_id) FROM entrenamientos), 0), (SELECT COUNT(*) > 0 FROM entrenamientos));
+
+-- ================================================================================================
+
+DELETE FROM metricas_rendimiento;
+ALTER SEQUENCE metricas_rendimiento_metrica_id_seq RESTART WITH 1;
+
+INSERT INTO metricas_rendimiento (metrica_id, entrenamiento_id, tipo_metrica_id, metrica_precision_id, version_metricas, modelo_version, periodo_evaluacion, error_absoluto_medio, raiz_error_cuadratico_medio, score_principal, detalles_metricas, estado_id, usuario_id_registro) VALUES
+(1, 1, 3103, 3600, 1, '0.0.0', CURRENT_DATE, 0.0000, 0.0000, 0.0000, '{"comodin": true}'::jsonb, 1000, 1);
+
+SELECT setval('metricas_rendimiento_metrica_id_seq', COALESCE((SELECT MAX(metrica_id) FROM metricas_rendimiento), 0), (SELECT COUNT(*) > 0 FROM metricas_rendimiento));
+
+-- ================================================================================================
+
+DELETE FROM patrones_consumo;
+ALTER SEQUENCE patrones_consumo_patron_id_seq RESTART WITH 1;
+
+INSERT INTO patrones_consumo (patron_id, producto_id, sucursal_id, entrenamiento_id, temporada_id, evento, factor_estacional, coeficiente_tendencia, fecha_inicio, fecha_fin, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 1, 1600, 'NINGUNO', 0.00, 0.00, NULL, NULL, 1000, 1);
+
+SELECT setval('patrones_consumo_patron_id_seq', COALESCE((SELECT MAX(patron_id) FROM patrones_consumo), 0), (SELECT COUNT(*) > 0 FROM patrones_consumo));
+
+-- ================================================================================================
+
+DELETE FROM variables_exogenas;
+ALTER SEQUENCE variables_exogenas_variable_exogena_id_seq RESTART WITH 1;
+
+INSERT INTO variables_exogenas (variable_exogena_id, producto_id, sucursal_id, fuente_exogena_id, nombre_variable, valor, fecha_variable, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 4250, 'NINGUNO', 0.0000, '2000-01-01', 1000, 1);
+
+SELECT setval('variables_exogenas_variable_exogena_id_seq', COALESCE((SELECT MAX(variable_exogena_id) FROM variables_exogenas), 0), (SELECT COUNT(*) > 0 FROM variables_exogenas));
+
+-- ================================================================================================
+
+DELETE FROM logs_ejecucion;
+ALTER SEQUENCE logs_ejecucion_log_id_seq RESTART WITH 1;
+
+INSERT INTO logs_ejecucion (log_id, entrenamiento_id, modulo, nivel_log_id, mensaje, detalle, fecha_log, estado_id, usuario_id_registro) VALUES
+(1, 1, 'PROCESAMIENTO_ARIMA', 3150, 'Inicio de analisis estacional', '{"productos": 12, "duracion_seg": 45}'::jsonb, CURRENT_TIMESTAMP, 1000, 1);
+
+SELECT setval('logs_ejecucion_log_id_seq', COALESCE((SELECT MAX(log_id) FROM logs_ejecucion), 0), (SELECT COUNT(*) > 0 FROM logs_ejecucion));
+
+-- ================================================================================================
+
+DELETE FROM analitica_productos;
+ALTER SEQUENCE analitica_productos_analitica_id_seq RESTART WITH 1;
+
+INSERT INTO analitica_productos (analitica_id, producto_id, sucursal_id, demanda_pronosticada, intervalo_inf, intervalo_sup, fecha_prediccion, periodo_inicio, periodo_fin, fecha_vencimiento_critico, nivel_urgencia_id, punto_reorden, stock_seguridad, lead_time_dias, cluster_abc, fecha_clasificacion, puntaje_total, estado_pronostico_id, motivo_outlier_id, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 120.50, 100.00, 140.00, CURRENT_TIMESTAMP, '2026-08-01', '2026-08-31', '2027-01-15', 1854, 45.00, 15.00, 5, 0, CURRENT_DATE, 85.50, 1553, NULL, 1000, 1);
+
+SELECT setval('analitica_productos_analitica_id_seq', COALESCE((SELECT MAX(analitica_id) FROM analitica_productos), 0), (SELECT COUNT(*) > 0 FROM analitica_productos));
+
+-- ================================================================================================
+
+DELETE FROM pedidos_online;
+ALTER SEQUENCE pedidos_online_pedido_online_id_seq RESTART WITH 1;
+
+INSERT INTO pedidos_online (pedido_online_id, cliente_id, sucursal_id, kardex_id, codigo, fecha_pedido, fecha_entrega_estimada, fecha_entrega_real, direccion_entrega, telefono_contacto, instrucciones_entrega, estado_pedido_online_id, estado_pago_id, subtotal, costo_envio, descuentos, total, ultima_actualizacion, observacion, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, NULL, 'WEB-0000', CURRENT_TIMESTAMP, NULL, NULL, 'NINGUNO', '00000000', NULL, 3700, 2555, 0.00, 0.00, 0.00, 0.00, NULL, NULL, 1000, 1);
+
+SELECT setval('pedidos_online_pedido_online_id_seq', COALESCE((SELECT MAX(pedido_online_id) FROM pedidos_online), 0), (SELECT COUNT(*) > 0 FROM pedidos_online));
+
+-- ================================================================================================
+
+DELETE FROM detalles_pedidos_online;
+ALTER SEQUENCE detalles_pedidos_online_detalle_pedido_online_id_seq RESTART WITH 1;
+
+INSERT INTO detalles_pedidos_online (detalle_pedido_online_id, pedido_online_id, producto_id, kardex_producto_id, codigo_producto, nombre_producto, cantidad, precio_unitario, descuento_unitario, subtotal, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, NULL, 'NIN', 'NINGUNO', 1.00, 0.00, 0.00, 0.00, 1000, 1);
+
+SELECT setval('detalles_pedidos_online_detalle_pedido_online_id_seq', COALESCE((SELECT MAX(detalle_pedido_online_id) FROM detalles_pedidos_online), 0), (SELECT COUNT(*) > 0 FROM detalles_pedidos_online));
+
+-- ================================================================================================
+
+DELETE FROM carritos_compra;
+ALTER SEQUENCE carritos_compra_carrito_id_seq RESTART WITH 1;
+
+INSERT INTO carritos_compra (carrito_id, sucursal_id, cliente_id, fecha_creacion, fecha_actualizacion_carrito, fecha_expiracion, cliente_nombre, cliente_documento, total_items, subtotal, estado_carrito_id, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '30 days', 'NINGUNO', '0', 0, 0.00, 4906, 1000, 1);
+
+SELECT setval('carritos_compra_carrito_id_seq', COALESCE((SELECT MAX(carrito_id) FROM carritos_compra), 0), (SELECT COUNT(*) > 0 FROM carritos_compra));
+
+-- ================================================================================================
+
+DELETE FROM detalles_carritos;
+ALTER SEQUENCE detalles_carritos_detalle_carrito_id_seq RESTART WITH 1;
+
+INSERT INTO detalles_carritos (detalle_carrito_id, carrito_id, producto_id, codigo_producto, nombre_producto, presentacion_producto, cantidad, precio_unitario, descuento_unitario, subtotal, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 'NIN', 'NINGUNO', NULL, 1.00, 0.00, 0.00, 0.00, 1000, 1);
+
+SELECT setval('detalles_carritos_detalle_carrito_id_seq', COALESCE((SELECT MAX(detalle_carrito_id) FROM detalles_carritos), 0), (SELECT COUNT(*) > 0 FROM detalles_carritos));
+
+-- ================================================================================================
+
+DELETE FROM listas_precios;
+ALTER SEQUENCE listas_precios_lista_precio_id_seq RESTART WITH 1;
+
+INSERT INTO listas_precios (lista_precio_id, codigo, nombre, descripcion, es_publica, prioridad, requiere_autorizacion, estado_id, usuario_id_registro) VALUES
+(1, 'NIN', 'NINGUNO', 'Lista de precios predeterminada para productos sin clasificar', 0, 999, 0, 1000, 1);
+
+SELECT setval('listas_precios_lista_precio_id_seq', COALESCE((SELECT MAX(lista_precio_id) FROM listas_precios), 0), (SELECT COUNT(*) > 0 FROM listas_precios));
+
+-- ================================================================================================
+
+DELETE FROM precios_productos;
+ALTER SEQUENCE precios_productos_precio_producto_id_seq RESTART WITH 1;
+
+INSERT INTO precios_productos (precio_producto_id, producto_id, lista_precio_id, precio_base, precio_oferta, precio_minimo, fecha_inicio, fecha_fin, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 0.00, NULL, NULL, '2000-01-01', NULL, 1000, 1);
+
+SELECT setval('precios_productos_precio_producto_id_seq', COALESCE((SELECT MAX(precio_producto_id) FROM precios_productos), 0), (SELECT COUNT(*) > 0 FROM precios_productos));
+
+-- ================================================================================================
+
+DELETE FROM costos_promedio;
+ALTER SEQUENCE costos_promedio_costo_promedio_id_seq RESTART WITH 1;
+
+INSERT INTO costos_promedio (costo_promedio_id, producto_id, costo_promedio, costo_ultima_compra, fecha_calculo, metodo_calculo_id, estado_id, usuario_id_registro) VALUES
+(1, 1, 0.00, NULL, '2000-01-01', 3750, 1000, 1);
+
+SELECT setval('costos_promedio_costo_promedio_id_seq', COALESCE((SELECT MAX(costo_promedio_id) FROM costos_promedio), 0), (SELECT COUNT(*) > 0 FROM costos_promedio));
+
+-- ================================================================================================
+
+DELETE FROM politicas_precios;
+ALTER SEQUENCE politicas_precios_politica_precio_id_seq RESTART WITH 1;
+
+INSERT INTO politicas_precios (politica_precio_id, codigo, nombre, tipo_aplicacion_id, entidad_id, margen_minimo, margen_maximo, redondeo, aplica_descuentos, descuento_maximo, estado_id, usuario_id_registro) VALUES
+(1, 'GLOBAL', 'POLÍTICA GLOBAL POR DEFECTO', 4350, NULL, 0.00, 100.00, 0, 1, 0.00, 1000, 1);
+
+SELECT setval('politicas_precios_politica_precio_id_seq', COALESCE((SELECT MAX(politica_precio_id) FROM politicas_precios), 0), (SELECT COUNT(*) > 0 FROM politicas_precios));
+
+-- ================================================================================================
+
+DELETE FROM asistencias;
+ALTER SEQUENCE asistencias_asistencia_id_seq RESTART WITH 1;
+
+INSERT INTO asistencias (asistencia_id, trabajador_id, sucursal_id, fecha, hora_entrada, hora_salida, hora_entrada_almuerzo, hora_salida_almuerzo, horas_trabajadas, horas_extras, tipo_asistencia_id, estado_asistencia_id, metodo_marcacion_id, dispositivo, ip_origen, observaciones, justificacion, justificacion_archivo, usuario_registro_id, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, CURRENT_DATE, CURRENT_TIMESTAMP, NULL, NULL, NULL, 0.00, 0.00, 4400, 4450, 4500, NULL, NULL, 'REGISTRO COMODIN INICIAL', NULL, NULL, 1, 1000, 1);
+
+SELECT setval('asistencias_asistencia_id_seq', COALESCE((SELECT MAX(asistencia_id) FROM asistencias), 0), (SELECT COUNT(*) > 0 FROM asistencias));
+
+-- ================================================================================================
+
+DELETE FROM planillas;
+ALTER SEQUENCE planillas_planilla_id_seq RESTART WITH 1;
+
+INSERT INTO planillas (planilla_id, sucursal_id, periodo_mes, periodo_gestion, fecha_inicio, fecha_fin, tipo_planilla_id, estado_planilla_id, estado_id, usuario_id_registro)
+VALUES (1, 1, 1, 2026, '2026-01-01', '2026-01-31', 4600, 4650, 1000, 1);
+
+SELECT setval('planillas_planilla_id_seq', COALESCE((SELECT MAX(planilla_id) FROM planillas), 0), (SELECT COUNT(*) > 0 FROM planillas));
+
+-- ================================================================================================
+
+DELETE FROM planillas_detalle;
+ALTER SEQUENCE planillas_detalle_planilla_detalle_id_seq RESTART WITH 1;
+
+INSERT INTO planillas_detalle (planilla_detalle_id, planilla_id, trabajador_id, cargo_id, sueldo_base, dias_trabajados, total_ingresos, neto_pagar, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 1, 0.00, 0, 0.00, 0.00, 1000, 1);
+
+SELECT setval('planillas_detalle_planilla_detalle_id_seq', COALESCE((SELECT MAX(planilla_detalle_id) FROM planillas_detalle), 0), (SELECT COUNT(*) > 0 FROM planillas_detalle));
+
+-- ================================================================================================
+
+DELETE FROM contratos;
+ALTER SEQUENCE contratos_contrato_id_seq RESTART WITH 1;
+
+INSERT INTO contratos (contrato_id, trabajador_id, tipo_contrato_id, fecha_inicio, sueldo_base, moneda_sueldo_id, tipo_jornada_id, estado_contrato_id, estado_id, usuario_id_registro)
+VALUES (1, 1, 4750, CURRENT_DATE, 0.00, 2300, 4800, 4700, 1000, 1);
+
+SELECT setval('contratos_contrato_id_seq', COALESCE((SELECT MAX(contrato_id) FROM contratos), 0), (SELECT COUNT(*) > 0 FROM contratos));
+
+-- ================================================================================================
+
+DELETE FROM historicos;
+ALTER SEQUENCE historicos_historico_id_seq RESTART WITH 1;
+
+INSERT INTO historicos (historico_id, kardex_id, cliente_id, sucursal_id, empresa_id, cliente_nombre, cliente_documento, cliente_documento_complemento, cliente_tipo_documento_abreviatura, cliente_razon_social, cliente_direccion, cliente_telefono, cliente_email, sucursal_nombre, sucursal_codigo, sucursal_telefono, sucursal_ubicacion, sucursal_codigo_sin, sucursal_punto_venta, empresa_nombre, empresa_codigo, empresa_nit, empresa_autorizacion, empresa_actividad_economica, numero_factura, fecha_emision, tipo_comprobante_abreviatura, tipo_factura_abreviatura, lugar_entrega, items, subtotal, descuento_total, iva, total, total_pagado, total_cambio, metodo_pago_abreviatura, tipo_moneda_abreviatura, factor_cambio, estado_id, usuario_id_registro) VALUES
+(1, 1, 1, 1, 1, 'NINGUNO', '0', NULL, 'NINGUNO', NULL, NULL, NULL, NULL, 'NINGUNO', 'NIN', NULL, NULL, 0, 0, 'NINGUNA', 'NIN', '000000000', '00000000000000000000', NULL, '0000000', '2026-01-01', 'NINGUNO', 'NINGUNO', NULL, '[]'::jsonb, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 'E', 'BOB', 1.0000, 1000, 1);
+
+SELECT setval('historicos_historico_id_seq', COALESCE((SELECT MAX(historico_id) FROM historicos), 0), (SELECT COUNT(*) > 0 FROM historicos));
+
+-- ================================================================================================

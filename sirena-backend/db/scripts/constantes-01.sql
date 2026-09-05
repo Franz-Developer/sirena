@@ -595,16 +595,18 @@ export enum EstadoPedido {
     PARCIAL = 2254,
     RECHAZADO = 2255,
     CANCELADO = 2256,
+    NINGUNO = 2257,
 }
 
 export const ESTADO_PEDIDO_METADATA: Record<EstadoPedido, ConstanteMetadata & { es_defecto?: boolean }> = {
-    [EstadoPedido.COTIZADO]: { id: EstadoPedido.COTIZADO, abreviatura: 'COTIZADO', prefijo: 'COT', valor: 1, descripcion: 'Pedido cotizado y en espera de aprobación administrativa. No afecta stock ni genera obligación de compra. Estado inicial del flujo. CONSTANTE POR DEFECTO.', es_defecto: true },
+    [EstadoPedido.COTIZADO]: { id: EstadoPedido.COTIZADO, abreviatura: 'COTIZADO', prefijo: 'COT', valor: 1, descripcion: 'Pedido cotizado y en espera de aprobación administrativa. No afecta stock ni genera obligación de compra. Estado inicial del flujo. CONSTANTE POR DEFECTO.' },
     [EstadoPedido.APROBADO]: { id: EstadoPedido.APROBADO, abreviatura: 'APROBADO', prefijo: 'APR', valor: 2, descripcion: 'Pedido aprobado por administración y enviado al proveedor. En proceso de gestión de compra. Aún no afecta stock ni inventario.' },
     [EstadoPedido.EN_RUTA]: { id: EstadoPedido.EN_RUTA, abreviatura: 'EN_RUTA', prefijo: 'RUT', valor: 3, descripcion: 'Pedido despachado por el proveedor y en tránsito hacia la farmacia. No afecta stock hasta su recepción física. Requiere seguimiento logístico.' },
     [EstadoPedido.RECIBIDO]: { id: EstadoPedido.RECIBIDO, abreviatura: 'RECIBIDO', prefijo: 'REC', valor: 4, descripcion: 'Pedido recibido completamente en almacén. Incrementa stock según los lotes y cantidades registradas. Estado final exitoso del flujo.' },
     [EstadoPedido.PARCIAL]: { id: EstadoPedido.PARCIAL, abreviatura: 'PARCIAL', prefijo: 'PAR', valor: 5, descripcion: 'Pedido recibido de forma parcial. Parte de la mercadería fue recibida, pero faltan productos por llegar. Genera incremento parcial de stock y requiere seguimiento de pendientes.' },
     [EstadoPedido.RECHAZADO]: { id: EstadoPedido.RECHAZADO, abreviatura: 'RECHAZADO', prefijo: 'RCH', valor: 6, descripcion: 'Pedido rechazado por problemas de calidad, incumplimiento de especificaciones o condiciones. No afecta stock. Requiere gestión de devolución o reclamo al proveedor.' },
     [EstadoPedido.CANCELADO]: { id: EstadoPedido.CANCELADO, abreviatura: 'CANCELADO', prefijo: 'CAN', valor: 7, descripcion: 'Pedido cancelado por decisión del proveedor o de la farmacia antes de su recepción. No afecta stock. Estado final sin ejecución.' },
+    [EstadoPedido.NINGUNO]: { id: EstadoPedido.NINGUNO, abreviatura: 'NINGUNO', prefijo: 'NIN', valor: 0, descripcion: 'Sin estado de pedido definido. Valor por defecto para eventos que no son solicitudes de compra (COMPRA, VENTA, PROFORMA, etc.).',  es_defecto: true },
 };
 
 // ==========================================
@@ -1133,7 +1135,6 @@ export enum MotivoDevolucion {
     DEVOLUCION_CLIENTE = 3505,
     NINGUNO = 3506,
     PRODUCTO_NO_SOLICITADO = 3507,
-    PRODUCTO_DEFECTUOSO = 3508,
 }
 
 export const MOTIVO_DEVOLUCION_METADATA: Record<MotivoDevolucion, ConstanteMetadata & { es_defecto?: boolean }> = {
@@ -1145,7 +1146,6 @@ export const MOTIVO_DEVOLUCION_METADATA: Record<MotivoDevolucion, ConstanteMetad
     [MotivoDevolucion.DEVOLUCION_CLIENTE]: { id: MotivoDevolucion.DEVOLUCION_CLIENTE, abreviatura: 'DEVOLUCION_CLIENTE', prefijo: 'DC', valor: 6, descripcion: 'Devolución por cliente. Producto devuelto voluntariamente por el comprador por insatisfacción, cambio de opinión o producto no deseado. Aplica para devoluciones de ventas.' },
     [MotivoDevolucion.NINGUNO]: { id: MotivoDevolucion.NINGUNO, abreviatura: 'NINGUNO', prefijo: 'NIN', valor: 0, descripcion: 'Sin motivo de devolución definido. Valor por defecto para transacciones que no requieren clasificación de devolución o cuando no aplica motivo específico. CONSTANTE POR DEFECTO.', es_defecto: true },
     [MotivoDevolucion.PRODUCTO_NO_SOLICITADO]: { id: MotivoDevolucion.PRODUCTO_NO_SOLICITADO, abreviatura: 'PRODUCTO_NO_SOLICITADO', prefijo: null, valor: 0, descripcion: 'Devolución por producto no solicitado o error en el pedido' },
-    [MotivoDevolucion.PRODUCTO_DEFECTUOSO]: { id: MotivoDevolucion.PRODUCTO_DEFECTUOSO, abreviatura: 'PRODUCTO_DEFECTUOSO', prefijo: null, valor: 0, descripcion: 'Devolución por producto defectuoso o dañado' },
 };
 
 // ==========================================
@@ -1632,4 +1632,46 @@ export const TIPO_JORNADA_METADATA: Record<TipoJornada, ConstanteMetadata & { es
     [TipoJornada.COMPLETA]: { id: TipoJornada.COMPLETA, abreviatura: 'COMPLETA', prefijo: null, valor: 0, descripcion: 'Jornada laboral completa (40 horas semanales). CONSTANTE POR DEFECTO.', es_defecto: true },
     [TipoJornada.MEDIA]: { id: TipoJornada.MEDIA, abreviatura: 'MEDIA', prefijo: null, valor: 1, descripcion: 'Jornada laboral media (20 horas semanales).' },
     [TipoJornada.POR_HORAS]: { id: TipoJornada.POR_HORAS, abreviatura: 'POR_HORAS', prefijo: null, valor: 2, descripcion: 'Jornada laboral por horas (trabajo por horas).' },
+};
+
+// ==========================================
+// ESTADO RESERVA
+// ==========================================
+export enum EstadoReserva {
+    NO_APLICA = 4850,
+    PENDIENTE = 4851,
+    CONFIRMADA = 4852,
+    CANCELADA = 4853,
+    EXPIRADA = 4854,
+}
+
+export const ESTADO_RESERVA_METADATA: Record<EstadoReserva, ConstanteMetadata & { es_defecto?: boolean }> = {
+    [EstadoReserva.NO_APLICA]: { id: EstadoReserva.NO_APLICA, abreviatura: 'NO_APLICA', prefijo: null, valor: 0, descripcion: 'Sin estado de reserva definido. Valor por defecto para transacciones que no son reservas.', es_defecto: true },
+    [EstadoReserva.PENDIENTE]: { id: EstadoReserva.PENDIENTE, abreviatura: 'PENDIENTE', prefijo: null, valor: 0, descripcion: 'Reserva creada y pendiente de confirmación por el cliente o de conversión a venta.' },
+    [EstadoReserva.CONFIRMADA]: { id: EstadoReserva.CONFIRMADA, abreviatura: 'CONFIRMADA', prefijo: null, valor: 0, descripcion: 'Reserva confirmada por el cliente. El stock está apartado y se procederá a la venta.' },
+    [EstadoReserva.CANCELADA]: { id: EstadoReserva.CANCELADA, abreviatura: 'CANCELADA', prefijo: null, valor: 0, descripcion: 'Reserva cancelada manualmente por el operador o por solicitud del cliente. Libera el stock automáticamente.' },
+    [EstadoReserva.EXPIRADA]: { id: EstadoReserva.EXPIRADA, abreviatura: 'EXPIRADA', prefijo: null, valor: 0, descripcion: 'Reserva expirada por tiempo de validez superado (TTL). Libera el stock automáticamente.' },
+};
+
+// ==========================================
+// ESTADO CARRITO
+// ==========================================
+export enum EstadoCarrito {
+    PENDIENTE = 4900,
+    PROCESADO = 4901,
+    EXPIRADO = 4902,
+    ABANDONADO = 4903,
+    EN_PROCESO = 4904,
+    RESERVADO = 4905,
+    NINGUNO = 4906,
+}
+
+export const ESTADO_CARRITO_METADATA: Record<EstadoCarrito, ConstanteMetadata & { es_defecto?: boolean }> = {
+    [EstadoCarrito.PENDIENTE]: { id: EstadoCarrito.PENDIENTE, abreviatura: 'PENDIENTE', prefijo: null, valor: 0, descripcion: 'Carrito activo pendiente de procesamiento. El cliente puede agregar o quitar productos.' },
+    [EstadoCarrito.PROCESADO]: { id: EstadoCarrito.PROCESADO, abreviatura: 'PROCESADO', prefijo: null, valor: 0, descripcion: 'Carrito ya convertido en pedido. No se pueden modificar sus productos.' },
+    [EstadoCarrito.EXPIRADO]: { id: EstadoCarrito.EXPIRADO, abreviatura: 'EXPIRADO', prefijo: null, valor: 0, descripcion: 'Carrito expirado por tiempo de inactividad (TTL).' },
+    [EstadoCarrito.ABANDONADO]: { id: EstadoCarrito.ABANDONADO, abreviatura: 'ABANDONADO', prefijo: null, valor: 0, descripcion: 'Carrito abandonado activamente por el cliente (cerró sesión, vació carrito, canceló).' },
+    [EstadoCarrito.EN_PROCESO]: { id: EstadoCarrito.EN_PROCESO, abreviatura: 'EN_PROCESO', prefijo: null, valor: 0, descripcion: 'Carrito en proceso de checkout. El cliente está en medio del flujo de compra.' },
+    [EstadoCarrito.RESERVADO]: { id: EstadoCarrito.RESERVADO, abreviatura: 'RESERVADO', prefijo: null, valor: 0, descripcion: 'Carrito con stock apartado. Pendiente de confirmación final.' },
+    [EstadoCarrito.NINGUNO]: { id: EstadoCarrito.NINGUNO, abreviatura: 'NINGUNO', prefijo: null, valor: 0, descripcion: 'Sin estado de carrito definido. Valor por defecto para registros comodín o casos excepcionales.', es_defecto: true },
 };

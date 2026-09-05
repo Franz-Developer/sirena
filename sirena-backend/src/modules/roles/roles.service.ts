@@ -127,21 +127,15 @@ export class RolesService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dtoNormalizado,
                 FindRolesQueryDto.getDependencias(),
-                this.campoPK
+                FindRolesQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindRolesQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dtoNormalizado) {
-                        delete (dtoNormalizado as any)[campo];
-                    }
-                });
-            }
 
             const validaciones: Promise<any>[] = [];
 

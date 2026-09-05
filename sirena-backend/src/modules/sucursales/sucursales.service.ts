@@ -197,21 +197,15 @@ export class SucursalesService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dtoNormalizado,
                 FindSucursalesQueryDto.getDependencias(),
-                this.campoPK
+                FindSucursalesQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindSucursalesQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dtoNormalizado) {
-                        delete (dtoNormalizado as any)[campo];
-                    }
-                });
-            }
 
             const validaciones: Promise<any>[] = [];
 

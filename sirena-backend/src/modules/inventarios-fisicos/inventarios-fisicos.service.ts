@@ -28,40 +28,55 @@ export class InventariosFisicosService extends BaseService {
         tablasDependientes: FindInventariosFisicosQueryDto.getDependencias(),
         joins: [
             {
-                table: 'sucursales',
-                alias: 's',
-                onCondition: 's.sucursal_id = t.sucursal_id',
-                selectColumns: [
-                    's.sucursal AS sucursal_nombre',
-                    's.codigo AS sucursal_codigo'
-                ],
-                type: 'INNER'
-            },
-            {
                 table: 'ubicaciones',
                 alias: 'u',
                 onCondition: 'u.ubicacion_id = t.ubicacion_id',
                 selectColumns: [
                     'u.codigo AS ubicacion_codigo',
-                    'u.descripcion AS ubicacion_descripcion'
+                    'u.descripcion AS ubicacion_descripcion',
+                    'u.almacen_id'
                 ],
                 type: 'INNER'
             },
             {
-                table: 'usuarios',
+                table: 'almacenes',
+                alias: 'a',
+                onCondition: 'a.almacen_id = u.almacen_id',
+                selectColumns: [
+                    'a.sucursal_id',
+                    'a.almacen AS almacen_nombre',
+                    'a.codigo AS almacen_codigo',
+                    'a.tipo_almacen_id',
+                    'a.tipo_operacion_almacen_id'
+                ],
+                type: 'INNER'
+            },
+            {
+                table: 'sucursales',
+                alias: 's',
+                onCondition: 's.sucursal_id = a.sucursal_id',
+                selectColumns: [
+                    's.sucursal AS sucursal_nombre',
+                    's.codigo AS sucursal_codigo',
+                    's.codigo_sin AS sucursal_codigo_sin'
+                ],
+                type: 'INNER'
+            },
+            {
+                table: 'trabajadores',
                 alias: 'tr',
-                onCondition: 'tr.usuario_id = t.trabajador_responsable_id',
+                onCondition: 'tr.trabajador_id = t.trabajador_responsable_id',
                 selectColumns: [
-                    `CONCAT_WS(' ', tr.nombres, tr.paterno, tr.materno) AS trabajador_responsable_nombre`
+                    `TRIM(CONCAT_WS(' ', tr.nombres, tr.paterno, tr.materno)) AS trabajador_responsable_nombre`
                 ],
                 type: 'INNER'
             },
             {
-                table: 'usuarios',
+                table: 'trabajadores',
                 alias: 'ts',
-                onCondition: 'ts.usuario_id = t.trabajador_supervisor_id',
+                onCondition: 'ts.trabajador_id = t.trabajador_supervisor_id',
                 selectColumns: [
-                    `CONCAT_WS(' ', ts.nombres, ts.paterno, ts.materno) AS trabajador_supervisor_nombre`
+                    `TRIM(CONCAT_WS(' ', ts.nombres, ts.paterno, ts.materno)) AS trabajador_supervisor_nombre`
                 ],
                 type: 'INNER'
             }
@@ -240,21 +255,15 @@ export class InventariosFisicosService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dtoNormalizado,
                 FindInventariosFisicosQueryDto.getDependencias(),
-                this.campoPK
+                FindInventariosFisicosQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindInventariosFisicosQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dtoNormalizado) {
-                        delete (dtoNormalizado as any)[campo];
-                    }
-                });
-            }
 
             const nuevoSucursalId = dtoNormalizado.sucursal_id ?? inventarioActual.sucursal_id;
             const nuevoUbicacionId = dtoNormalizado.ubicacion_id ?? inventarioActual.ubicacion_id;

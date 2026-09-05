@@ -188,21 +188,15 @@ export class EmpresasCuentasService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dto = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dto,
                 FindEmpresasCuentasQueryDto.getDependencias(),
-                this.campoPK
+                FindEmpresasCuentasQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindEmpresasCuentasQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dto) {
-                        delete (dto as any)[campo];
-                    }
-                });
-            }
 
             const validaciones: Promise<any>[] = [];
 

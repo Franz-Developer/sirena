@@ -79,6 +79,8 @@ import {
     TIPO_UMBRAL_METADATA,
     TIPO_DATO_METADATA,
     ESTADO_PEDIDO_ONLINE_METADATA,
+    ESTADO_RESERVA_METADATA,
+    ESTADO_CARRITO_METADATA,
 } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { PaginatedResult } from '../../common/interfaces/pagination.interface';
@@ -95,9 +97,6 @@ export class ConstantesService {
         private readonly tablaValidador: TablaValidadorService,
     ) {}
 
-    /**
-     * Mapa de todos los tipos de constantes con sus metadatos
-     */
     private readonly constantesMap: Record<string, Record<number, any>> = {
         estado_id: ESTADO_METADATA,
         tipo_moneda_id: TIPO_MONEDA_METADATA,
@@ -177,6 +176,8 @@ export class ConstantesService {
         tipo_umbral_id: TIPO_UMBRAL_METADATA,
         tipo_dato_id: TIPO_DATO_METADATA,
         estado_pedido_online_id: ESTADO_PEDIDO_ONLINE_METADATA,
+        estado_reserva_id: ESTADO_RESERVA_METADATA,
+        estado_carrito_id: ESTADO_CARRITO_METADATA,
     };
 
     async findAll(queryDto: FindConstantesQueryDto, usuarioId: number): Promise<PaginatedResult<any>> {

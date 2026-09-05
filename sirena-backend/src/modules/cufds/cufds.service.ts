@@ -223,21 +223,15 @@ export class CufdsService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dtoNormalizado,
                 FindCufdsQueryDto.getDependencias(),
-                this.campoPK
+                FindCufdsQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindCufdsQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dtoNormalizado) {
-                        delete (dtoNormalizado as any)[campo];
-                    }
-                });
-            }
 
             const nuevoSucursalId = dtoNormalizado.sucursal_id ?? cufdActual.sucursal_id;
             const nuevoPuntoVentaId = dtoNormalizado.punto_venta_id !== undefined ? dtoNormalizado.punto_venta_id : cufdActual.punto_venta_id;

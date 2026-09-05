@@ -260,21 +260,15 @@ export class AlmacenesPuntosVentaService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dto = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dto,
                 FindAlmacenesPuntosVentaQueryDto.getDependencias(),
-                this.campoPK
+                FindAlmacenesPuntosVentaQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindAlmacenesPuntosVentaQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dto) {
-                        delete (dto as any)[campo];
-                    }
-                });
-            }
 
             const nuevoSucursalId = dto.sucursal_id ?? registroActual.sucursal_id;
             const nuevoAlmacenId = dto.almacen_id ?? registroActual.almacen_id;

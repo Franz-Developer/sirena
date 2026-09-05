@@ -1,3 +1,4 @@
+// C:\sirena\sirena-backend\src\modules\trabajadores-cargos\trabajadores-cargos.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';

@@ -217,21 +217,15 @@ export class CuisService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dtoNormalizado,
                 FindCuisQueryDto.getDependencias(),
-                this.campoPK
+                FindCuisQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindCuisQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dtoNormalizado) {
-                        delete (dtoNormalizado as any)[campo];
-                    }
-                });
-            }
 
             const nuevoSucursalId = dtoNormalizado.sucursal_id ?? cuisActual.sucursal_id;
             const nuevoPuntoVentaId = dtoNormalizado.punto_venta_id !== undefined ? dtoNormalizado.punto_venta_id : cuisActual.punto_venta_id;

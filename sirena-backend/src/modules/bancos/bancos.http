@@ -22,6 +22,23 @@ Content-Type: application/json
 @authToken = {{login.response.body.token}}
 
 # ==============================================================================
+# AUTENTICACIÓN - USUARIO 3
+# ==============================================================================
+
+### 1.b OBTENER TOKEN USUARIO 3
+# @name loginUser3
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "GLADYS",
+    "password": "12345678"
+}
+
+### 2.b GUARDAR TOKEN USUARIO 3
+# @authToken = {{loginUser3.response.body.token}}
+
+# ==============================================================================
 # LISTAR BANCOS (GET)
 # ==============================================================================
 
@@ -31,10 +48,6 @@ Authorization: Bearer {{authToken}}
 
 ### b. LISTAR POR ESTADO ACTIVOS (1000)
 GET {{baseUrl_bancos}}?estado_id=1000&usuario_id=2
-Authorization: Bearer {{authToken}}
-
-### BORRADOS (1001)
-GET {{baseUrl_bancos}}?estado_id=1001
 Authorization: Bearer {{authToken}}
 
 ### HISTÓRICOS (1002)
@@ -150,7 +163,7 @@ GET {{baseUrl_bancos}}?sortField=banco_id&sortOrder=1
 # ==============================================================================
 
 ### g. OBTENER BANCO POR ID
-GET {{baseUrl_bancos}}/10
+GET {{baseUrl_bancos}}/3
 Authorization: Bearer {{authToken}}
 
 ### g. OBTENER BANCO POR ID
@@ -202,27 +215,26 @@ GET {{baseUrl_bancos}}
 Authorization: Bearer {{authToken}}
 
 ### Obtener banco específico
-GET {{baseUrl_bancos}}/2
+GET {{baseUrl_bancos}}/3
 Authorization: Bearer {{authToken}}
 
 ### ACTUALIZAR TODOS LOS CAMPOS
-PATCH {{baseUrl_bancos}}/14
+PATCH {{baseUrl_bancos}}/3
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-    "banco": "BAO4 CACkmESR DSWBOLIVI4A3",
-    "abreviatura": "Baional",
-    "descripcion": "Hola mundo a todos"
+    "banco": "BANCO MERCANTIL BOLIVIANO S.A",
+    "abreviatura": "BMB",
+    "descripcion": "Hola mundo a todos, como"
 }
 
 ### g. OBTENER BANCO POR ID
-GET {{baseUrl_bancos}}/14
+GET {{baseUrl_bancos}}/4
 Authorization: Bearer {{authToken}}
 
-
 ### ACTUALIZAR TODOS LOS CAMPOS
-PATCH {{baseUrl_bancos}}/15
+PATCH {{baseUrl_bancos}}/4
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
@@ -237,15 +249,16 @@ GET {{baseUrl_bancos}}/10
 Authorization: Bearer {{authToken}}
 
 ### LISTAR POR ESTADO ACTIVOS (1000)
-GET {{baseUrl_bancos}}
+GET {{baseUrl_bancos}}/13
 Authorization: Bearer {{authToken}}
 
 ### ACTUALIZAR TODOS LOS CAMPOS
-PATCH {{baseUrl_bancos}}/46
+PATCH {{baseUrl_bancos}}/13
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
+    "banco": "BANCO PYME DE LA COMUNIDAD MMM",
     "abreviatura": "ABAN1 arbolitos"
 }
 

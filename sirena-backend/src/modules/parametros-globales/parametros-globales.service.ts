@@ -192,7 +192,7 @@ export class ParametrosGlobalesService extends BaseService {
 
     async update(id: number, dto: UpdateParametroGlobalDto, usuarioId: number): Promise<ParametroGlobalResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            const dtoNormalizado = { ...dto };
+            let dtoNormalizado = { ...dto };
 
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
             this.validarReglasNegocio(dtoNormalizado);
@@ -208,27 +208,22 @@ export class ParametrosGlobalesService extends BaseService {
                 );
             }
 
+            // Centralización de dependencias y permisos de Administrador (1 sola línea)
+            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
+                this.nombreTabla,
+                id,
+                dtoNormalizado,
+                FindParametrosGlobalesQueryDto.getDependencias(),
+                FindParametrosGlobalesQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
+            );
+
             if (parametroActual.editable === 0) {
                 throw new DomainException(
                     `El parámetro "${parametroActual.clave}" no es editable.`,
                     { httpStatus: HttpStatus.FORBIDDEN }
                 );
-            }
-
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
-                this.nombreTabla,
-                id,
-                FindParametrosGlobalesQueryDto.getDependencias(),
-                this.campoPK
-            );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindParametrosGlobalesQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dtoNormalizado) {
-                        delete (dtoNormalizado as any)[campo];
-                    }
-                });
             }
 
             const validaciones: Promise<any>[] = [];

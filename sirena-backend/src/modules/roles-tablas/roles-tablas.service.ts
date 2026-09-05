@@ -218,21 +218,15 @@ export class RolesTablasService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dto = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dto,
                 FindRolesTablasQueryDto.getDependencias(),
-                this.campoPK
+                FindRolesTablasQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindRolesTablasQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dto) {
-                        delete (dto as any)[campo];
-                    }
-                });
-            }
 
             const nuevoRolId = dto.rol_id ?? registroActual.rol_id;
             const nuevaTabla = dto.tabla ?? registroActual.tabla;

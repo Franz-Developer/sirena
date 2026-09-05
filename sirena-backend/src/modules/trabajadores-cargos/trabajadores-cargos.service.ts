@@ -183,6 +183,16 @@ export class TrabajadoresCargosService extends BaseService {
                 );
             }
 
+            dto = await this.tablaValidador.procesarCamposProtegidos(
+                this.nombreTabla,
+                id,
+                dto,
+                FindTrabajadoresCargosQueryDto.getDependencias(),
+                FindTrabajadoresCargosQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
+            );
+
             const validaciones: Promise<any>[] = [];
 
             if (dto.trabajador_id !== undefined && dto.trabajador_id !== asignacionActual.trabajador_id) {

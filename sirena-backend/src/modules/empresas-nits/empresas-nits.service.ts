@@ -219,22 +219,15 @@ export class EmpresasNitsService extends BaseService {
                 );
             }
 
-            // Validar dependencias para bloquear campos protegidos si existen registros hijos
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dto = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dto,
                 FindEmpresasNitsQueryDto.getDependencias(),
-                this.campoPK
+                FindEmpresasNitsQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindEmpresasNitsQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dto) {
-                        delete (dto as any)[campo];
-                    }
-                });
-            }
 
             const validaciones: Promise<any>[] = [];
 

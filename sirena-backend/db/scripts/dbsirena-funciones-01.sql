@@ -1706,3 +1706,814 @@ END;
 $$ LANGUAGE plpgsql STABLE;
 
 -- ================================================================================================
+-- FUNCION MEJORADA 
+
+-- ================================================================================================
+-- Función: fn_validar_reglas_negocio (CORREGIDA)
+-- ================================================================================================
+
+/**
+ * @function fn_validar_reglas_negocio
+ * @description Valida TODAS las reglas de negocio del sistema en un solo lugar
+ *
+ * ?? CONTEXTOS SOPORTADOS:
+ *   - 'KARDEX': Validaci?n de cabecera de transacci?n
+ *   - 'KARDEX_PRODUCTO': Validaci?n de detalle de transacci?n
+ *   - 'DOMINIO': Validaci?n de dominios protegidos
+ *
+ * ?? REGLAS DE NEGOCIO APLICADAS:
+ *   - R.1: Registro Inicial Comod?n (ID=1) no modificable
+ *   - R.2: Control de Estados (ACTIVO, BORRADO, HISTORICO, ANULADO)
+ *   - R.8: Ventas al contado (estado_financiero_id = 2400)
+ *   - R.9: Cr?dito a proveedores (estado_financiero_id 2400-2402)
+ *   - R.14: Matriz de integridad de entidades por evento
+ *   - R.16: Validaci?n de estado de traspaso (OBS. 04)
+ *   - R.17: Validaci?n de estado de pedido
+ *   - R.18: Validaci?n de tipo de despacho
+ *   - R.19: Validaci?n de devoluciones (OBS. 11)
+ *   - R.G.6: Dominios protegidos (es_protegido = 1)
+ *   - R.42: Validaci?n de tipo_pago_id para DEVOLUCION_CLIENTE (OBS. 05)
+ *   - R.45: Validaci?n de tipo_pago_id para DEVOLUCION_PROVEEDOR (OBS. 05)
+ *   - R.32: Validaci?n de descuento en DEVOLUCION_CLIENTE (OBS. 06)
+ *   - R.35: Validaci?n de descuento en DEVOLUCION_PROVEEDOR (OBS. 06)
+ *   - R.38: Validaci?n de costo_venta en INGRESO_TRASPASO (OBS. 16)
+ *
+ * ================================================================================================
+ *
+ * @param {VARCHAR} p_contexto - Contexto de validaci?n
+ *   - 'KARDEX': Validaci?n de cabecera de transacci?n
+ *   - 'KARDEX_PRODUCTO': Validaci?n de detalle de transacci?n
+ *   - 'DOMINIO': Validaci?n de dominios protegidos
+ *
+ * @param {INTEGER} p_evento_id - ID del evento (dominio EventoID 1050-1070)
+ *   - 1050: COMPRA
+ *   - 1051: VENTA
+ *   - 1052: PROFORMA
+ *   - 1053: EGRESO_TRASPASO
+ *   - 1054: INGRESO_TRASPASO
+ *   - 1055: ANULACION
+ *   - 1056: AJUSTE_INGRESO
+ *   - 1057: AJUSTE_EGRESO
+ *   - 1058: SOLICITUD_COMPRA
+ *   - 1059: VENTA_RESERVA
+ *   - 1060: DEVOLUCION_CLIENTE
+ *   - 1061: DEVOLUCION_PROVEEDOR
+ *   - 1062: ROBO
+ *   - 1063: PERDIDA_CADUCIDAD
+ *   - 1064: MERMA_ROTURA
+ *   - 1065: INVENTARIO_FISICO_SOBRANTE
+ *   - 1066: INVENTARIO_FISICO_FALTANTE
+ *   - 1067: CONVERSION_UNIDADES
+ *   - 1068: RETIRO_CUARENTENA
+ *
+ * @param {BIGINT} p_cliente_id - ID del cliente (tabla clientes)
+ *   - 1: Cliente comod?n (an?nimo / sin identificar)
+ *   - >1: Cliente registrado
+ *
+ * @param {BIGINT} p_proveedor_id - ID del proveedor (tabla proveedores)
+ *   - 1: Proveedor comod?n
+ *   - >1: Proveedor registrado
+ *
+ * @param {INTEGER} p_estado_financiero_id - Estado financiero (dominio 2400-2404)
+ *   - 2400: CANCELADO
+ *   - 2401: PENDIENTE
+ *   - 2402: PARCIAL
+ *   - 2403: NINGUNO
+ *   - 2404: DEVOLUCION_GENERADA (NUEVO)
+ *
+ * @param {DECIMAL(12,2)} p_total_venta - Total de venta sin factura
+ * @param {DECIMAL(12,2)} p_total_venta_factura - Total de venta con factura
+ *
+ * @param {INTEGER} p_estado_id - Estado del registro (dominio EstadoID 1000-1003)
+ *   - 1000: ACTIVO
+ *   - 1001: BORRADO
+ *   - 1002: HISTORICO
+ *   - 1003: ANULADO
+ *
+ * @param {BIGINT} p_kardex_origen_id - ID del origen (para traspasos - OBS. 03)
+ *   - Obligatorio para INGRESO_TRASPASO (1054)
+ *   - Debe ser NULL para EGRESO_TRASPASO (1053)
+ *   - Debe ser NULL para otros eventos
+ *
+ * @param {BIGINT} p_kardex_referencia_id - ID de la transacci?n original (para devoluciones)
+ *   - Obligatorio para DEVOLUCION_CLIENTE (1060) y DEVOLUCION_PROVEEDOR (1061)
+ *   - Debe ser NULL para otros eventos
+ *
+ * @param {BIGINT} p_sucursal_id - ID de la sucursal origen
+ * @param {BIGINT} p_sucursal_destino_id - ID de la sucursal destino
+ *   - Obligatorio para traspasos (1053, 1054)
+ *   - Debe ser diferente a sucursal_id
+ *
+ * @param {INTEGER} p_estado_traspaso_id - Estado del traspaso (dominio 2100-2103 - OBS. 04)
+ *   - 2100: EN_TRANSITO
+ *   - 2101: RECIBIDO
+ *   - 2102: RECHAZADO
+ *   - 2103: NO_APLICA
+ *
+ * @param {BIGINT} p_kardex_pedido_compra_id - ID del pedido de compra (OBS. 14)
+ *   - Obligatorio para SOLICITUD_COMPRA (1058)
+ *   - Debe ser NULL para otros eventos
+ *
+ * @param {BIGINT} p_kardex_id - ID de la cabecera (tabla kardex)
+ *   - Obligatorio para contexto 'KARDEX_PRODUCTO'
+ *
+ * @param {DECIMAL(12,2)} p_cantidad - Cantidad de entrada
+ * @param {DECIMAL(12,2)} p_cantidad_salida - Cantidad de salida
+ * @param {DECIMAL(12,2)} p_pcompra - Precio de compra unitario
+ * @param {DECIMAL(12,2)} p_precio_venta - Precio de venta sin factura
+ * @param {DECIMAL(12,2)} p_precio_venta_factura - Precio de venta con factura (con IVA)
+ * @param {BIGINT} p_tipo_pago_id - Tipo de pago (dominio 1400-1409 - OBS. 06)
+ *   - 1400: NINGUNO (tipo neutral para proformas, ajustes y traspasos)
+ *   - 1401-1409: Tipos definidos solo para VENTA (1051)
+ *   - 1406: SIN_PAGO (obligatorio para DEVOLUCION_CLIENTE - OBS. 05)
+ *
+ * @param {INTEGER} p_tipo_venta_id - Tipo de venta (dominio 1350-1352 - OBS. 07)
+ *   - 1350: NINGUNO (tipo neutral para proformas, ajustes y traspasos)
+ *   - 1351: CON_FACTURA (solo para VENTA)
+ *   - 1352: SIN_FACTURA (solo para VENTA)
+ *
+ * @param {BIGINT} p_lote_id - ID del lote afectado (tabla lotes_productos - OBS. 01)
+ *   - Debe ser > 1 para DEVOLUCION_CLIENTE (1060) y DEVOLUCION_PROVEEDOR (1061)
+ *   - Debe ser el mismo que el origen para INGRESO_TRASPASO (1054 - OBS. 09)
+ *   - Puede ser 1 (comod?n) para otros eventos
+ *
+ * @param {DECIMAL(12,2)} p_costo_venta - Costo de venta (OBS. 16)
+ *   - Debe ser 0 para INGRESO_TRASPASO (1054)
+ *   - Debe ser > 0 para VENTA (1051)
+ *   - Debe ser = costo_venta de la venta original para DEVOLUCION_CLIENTE (OBS. 16)
+ *
+ * @param {BIGINT} p_sucursal_detalle_id - ID de la sucursal en detalle (OBS. 10)
+ *   - Debe coincidir con sucursal_id para EGRESO_TRASPASO (1053)
+ *   - Debe coincidir con sucursal_destino_id para INGRESO_TRASPASO (1054)
+ *
+ * @param {DECIMAL(12,2)} p_descuento - Descuento aplicado (OBS. 10)
+ *   - Solo permitido para VENTA (1051)
+ *   - Debe ser 0 para ajustes, traspasos y otros eventos
+ *   - Debe ser 0 para DEVOLUCION_CLIENTE (OBS. 06) y DEVOLUCION_PROVEEDOR (OBS. 06)
+ *
+ * @param {INTEGER} p_motivo_anulacion_id - Motivo de anulaci?n (dominio 2450-2455 - OBS. 13)
+ *   - 2450-2454: Motivos permitidos solo para ANULACION (1055)
+ *   - 2455: NINGUNO para otros eventos
+ *   - Debe ser 2455 para DEVOLUCION_CLIENTE y DEVOLUCION_PROVEEDOR (OBS. 09)
+ *
+ * @param {INTEGER} p_motivo_devolucion_id - Motivo de devoluci?n (dominio 3500-3508 - OBS. 12)
+ *   - 3500: PRODUCTO_VENCIDO
+ *   - 3501: PRODUCTO_DA?ADO
+ *   - 3502: ERROR_PEDIDO
+ *   - 3503: EXCESO_STOCK
+ *   - 3504: DESCONTINUADO
+ *   - 3505: DEVOLUCION_CLIENTE
+ *   - 3506: NINGUNO (para ajustes y otros eventos)
+ *   - 3507: PRODUCTO_NO_SOLICITADO
+ *   - 3508: PRODUCTO_DEFECTUOSO
+ *   - Debe ser distinto de 3506 para DEVOLUCION_CLIENTE y DEVOLUCION_PROVEEDOR (OBS. 11)
+ *
+ * @param {VARCHAR} p_comprobante_referencia - Comprobante de referencia (OBS. 11)
+ *   - Obligatorio para DEVOLUCION_CLIENTE
+ *   - Debe ser NULL para otros eventos
+ *
+ * @param {DECIMAL(12,2)} p_total_compra - Total de compra
+ *   - Debe ser > 0 para COMPRA (1050)
+ *   - Debe ser >= 0 para DEVOLUCION_PROVEEDOR (OBS. 11)
+ *
+ * @param {BIGINT} p_dominio_id - ID del dominio a validar (tabla dominios)
+ *   - Obligatorio para contexto 'DOMINIO'
+ *   - Verifica que es_protegido != 1 (R.G.6)
+ *
+ * @returns {VOID} - No retorna valor
+ *
+ * @throws {EXCEPTION} Con mensajes descriptivos en los siguientes casos:
+ *   - Evento no v?lido para el contexto
+ *   - Cantidades inconsistentes con el tipo de evento (OBS. 05)
+ *   - Precios incorrectos para el tipo de evento (OBS. 11)
+ *   - Tipos de pago/venta no permitidos (OBS. 06, 07)
+ *   - Descuento no permitido para ajustes (OBS. 10)
+ *   - Descuento no permitido para DEVOLUCION_CLIENTE (OBS. 06)
+ *   - Descuento no permitido para DEVOLUCION_PROVEEDOR (OBS. 06)
+ *   - Motivos de anulaci?n/devoluci?n no permitidos (OBS. 12, 13)
+ *   - Lote comod?n usado en devoluciones (OBS. 01)
+ *   - Lote incorrecto en traspasos (OBS. 09)
+ *   - Sucursal incorrecta en traspasos (OBS. 10)
+ *   - costo_venta incorrecto en traspasos (OBS. 16)
+ *   - Estado de traspaso incorrecto (OBS. 04, 13)
+ *   - kardex_pedido_compra_id incorrecto (OBS. 14)
+ *   - kardex_referencia_id obligatorio en devoluciones (OBS. 11)
+ *   - comprobante_referencia obligatorio en DEVOLUCION_CLIENTE (OBS. 11)
+ *   - Dominio protegido (es_protegido = 1 - R.G.6)
+ *   - Contexto desconocido
+ *
+ * @since 4.3
+ * @see kardex, kardex_productos, dominios
+ * @see Reglas de Negocio R.1 a R.21 en la documentaci?n
+ */
+CREATE OR REPLACE FUNCTION fn_validar_reglas_negocio(
+    -- Contexto
+    p_contexto VARCHAR,
+
+    -- Par?metros para KARDEX (Cabecera)
+    p_evento_id INTEGER DEFAULT NULL,
+    p_cliente_id BIGINT DEFAULT NULL,
+    p_proveedor_id BIGINT DEFAULT NULL,
+    p_estado_financiero_id INTEGER DEFAULT NULL,
+    p_total_venta DECIMAL(12,2) DEFAULT NULL,
+    p_total_venta_factura DECIMAL(12,2) DEFAULT NULL,
+    p_estado_id INTEGER DEFAULT NULL,
+
+    -- Par?metros para TRASPASOS
+    p_kardex_origen_id BIGINT DEFAULT NULL,
+    p_sucursal_id BIGINT DEFAULT NULL,
+    p_sucursal_destino_id BIGINT DEFAULT NULL,
+    p_estado_traspaso_id INTEGER DEFAULT NULL,
+    p_kardex_pedido_compra_id BIGINT DEFAULT NULL,
+    p_kardex_referencia_id BIGINT DEFAULT NULL,
+    p_comprobante_referencia VARCHAR DEFAULT NULL,
+    p_total_compra DECIMAL(12,2) DEFAULT NULL,
+
+    -- Par?metros para KARDEX_PRODUCTO (Detalle)
+    p_kardex_id BIGINT DEFAULT NULL,
+    p_cantidad DECIMAL(12,2) DEFAULT NULL,
+    p_cantidad_salida DECIMAL(12,2) DEFAULT NULL,
+    p_pcompra DECIMAL(12,2) DEFAULT NULL,
+    p_precio_venta DECIMAL(12,2) DEFAULT NULL,
+    p_precio_venta_factura DECIMAL(12,2) DEFAULT NULL,
+    p_tipo_pago_id BIGINT DEFAULT NULL,
+    p_tipo_venta_id INTEGER DEFAULT NULL,
+    p_lote_id BIGINT DEFAULT NULL,
+    p_costo_venta DECIMAL(12,2) DEFAULT NULL,
+    p_sucursal_detalle_id BIGINT DEFAULT NULL,
+
+    -- Par?metros adicionales
+    p_descuento DECIMAL(12,2) DEFAULT NULL,
+    p_motivo_anulacion_id INTEGER DEFAULT NULL,
+    p_motivo_devolucion_id INTEGER DEFAULT NULL,
+
+    -- Par?metros para DOMINIO
+    p_dominio_id BIGINT DEFAULT NULL
+) RETURNS VOID AS $$
+DECLARE
+    v_evento_id INTEGER;
+    v_es_protegido INTEGER;
+    v_estado_actual INTEGER;
+    v_origen_evento_id INTEGER;
+    v_origen_estado_id INTEGER;
+    v_origen_sucursal_id BIGINT;
+    v_origen_lote_id BIGINT;
+    v_origen_costo_venta DECIMAL(12,2);
+    v_referencia_tipo INTEGER;
+    v_monto_devolucion DECIMAL(12,2);
+BEGIN
+    ------------------------------------------------------------------
+    -- CONTEXTO 1: VALIDACI?N PARA KARDEX (CABECERA)
+    ------------------------------------------------------------------
+    IF p_contexto = 'KARDEX' THEN
+
+        -- ============================================================
+        -- 1.1: VALIDACI?N DE EVENTOS DE AJUSTE
+        -- ============================================================
+        IF p_evento_id IN (1056, 1057, 1062, 1063, 1064, 1065, 1066, 1067, 1068) THEN
+            IF p_total_venta <> 0 OR p_total_venta_factura <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: Evento % requiere total_venta = 0 y total_venta_factura = 0', p_evento_id;
+            END IF;
+            IF p_cliente_id <> 1 OR p_proveedor_id <> 1 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: Evento % requiere cliente_id = 1 y proveedor_id = 1', p_evento_id;
+            END IF;
+            IF p_motivo_devolucion_id IS NOT NULL AND p_motivo_devolucion_id <> 3506 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: Evento ajuste % no permite motivo_devolucion_id', p_evento_id;
+            END IF;
+            IF p_motivo_anulacion_id IS NOT NULL AND p_motivo_anulacion_id <> 2455 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: Evento ajuste % no permite motivo_anulacion_id', p_evento_id;
+            END IF;
+        END IF;
+
+        -- ============================================================
+        -- 1.2: VENTA debe ser CANCELADO
+        -- ============================================================
+        IF p_evento_id = 1051 AND p_estado_financiero_id <> 2400 THEN
+            RAISE EXCEPTION 'Regla de Negocio [Kardex]: VENTA (1051) requiere estado_financiero_id = 2400 (CANCELADO)';
+        END IF;
+
+        -- ============================================================
+        -- 1.3: COMPRA puede tener cualquier estado financiero
+        -- ============================================================
+        IF p_evento_id = 1050 AND p_estado_financiero_id NOT IN (2400, 2401, 2402) THEN
+            RAISE EXCEPTION 'Regla de Negocio [Kardex]: COMPRA (1050) requiere estado_financiero_id en (2400, 2401, 2402)';
+        END IF;
+
+        -- ============================================================
+        -- 1.4: DEVOLUCION_CLIENTE y DEVOLUCION_PROVEEDOR deben tener estado_financiero_id = 2404
+        -- ============================================================
+        IF p_evento_id IN (1060, 1061) AND p_estado_financiero_id <> 2404 THEN
+            RAISE EXCEPTION 'Regla de Negocio [Kardex]: Devoluci?n % requiere estado_financiero_id = 2404 (DEVOLUCION_GENERADA)', p_evento_id;
+        END IF;
+
+        -- ============================================================
+        -- 1.5: OTROS EVENTOS deben tener estado_financiero_id = 2403
+        -- ============================================================
+        IF p_evento_id NOT IN (1050, 1051, 1060, 1061) AND p_estado_financiero_id <> 2403 THEN
+            RAISE EXCEPTION 'Regla de Negocio [Kardex]: Evento % requiere estado_financiero_id = 2403 (NINGUNO)', p_evento_id;
+        END IF;
+
+        -- ============================================================
+        -- 1.6: VALIDACI?N DE ESTADOS
+        -- ============================================================
+        IF p_estado_id IS NOT NULL AND p_estado_id NOT IN (1000, 1001, 1002, 1003) THEN
+            RAISE EXCEPTION 'Regla de Negocio [Kardex]: Estado % no v?lido', p_estado_id;
+        END IF;
+
+        -- ============================================================
+        -- 1.7: VALIDACI?N DE ESTADO_TRASPASO_ID (OBS. 04)
+        -- ============================================================
+        IF p_evento_id IN (1053, 1054) THEN
+            IF p_estado_traspaso_id IS NULL OR p_estado_traspaso_id NOT IN (2100, 2101, 2102) THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: Traspaso % requiere estado_traspaso_id en (2100, 2101, 2102)', p_evento_id;
+            END IF;
+        ELSE
+            IF p_estado_traspaso_id IS NOT NULL AND p_estado_traspaso_id != 2103 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: Evento % debe tener estado_traspaso_id = 2103 (NO_APLICA)', p_evento_id;
+            END IF;
+        END IF;
+
+        -- ============================================================
+        -- 1.8: VALIDACI?N DE KARDEX_PEDIDO_COMPRA_ID (OBS. 14)
+        -- ============================================================
+        IF p_evento_id = 1058 THEN
+            IF p_kardex_pedido_compra_id IS NULL THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: SOLICITUD_COMPRA (1058) requiere kardex_pedido_compra_id no nulo';
+            END IF;
+            -- Validar que el pedido exista y sea una solicitud de compra
+            IF NOT EXISTS (
+                SELECT 1 FROM kardex
+                WHERE kardex_id = p_kardex_pedido_compra_id
+                AND evento_id = 1058
+                AND estado_id = 1000
+            ) THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: kardex_pedido_compra_id % debe ser una SOLICITUD_COMPRA (1058) activa',
+                    p_kardex_pedido_compra_id;
+            END IF;
+        ELSE
+            IF p_kardex_pedido_compra_id IS NOT NULL THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: Evento % no debe tener kardex_pedido_compra_id', p_evento_id;
+            END IF;
+        END IF;
+
+        -- ============================================================
+        -- 1.9: VALIDACI?N DE TRASPASOS (OBS. 03 y 13)
+        -- ============================================================
+        -- Solo traspasos pueden tener origen y sucursal_destino
+        IF p_evento_id NOT IN (1053, 1054) THEN
+            IF p_kardex_origen_id IS NOT NULL THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: Evento % no debe tener kardex_origen_id', p_evento_id;
+            END IF;
+            IF p_sucursal_destino_id IS NOT NULL THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: Evento % no debe tener sucursal_destino_id', p_evento_id;
+            END IF;
+        END IF;
+
+        -- Traspasos requieren sucursal_destino_id diferente
+        IF p_evento_id IN (1053, 1054) THEN
+            IF p_sucursal_destino_id IS NULL OR p_sucursal_destino_id = p_sucursal_id THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: Traspaso requiere sucursal_destino_id diferente a sucursal_id';
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM sucursales WHERE sucursal_id = p_sucursal_destino_id AND estado_id = 1000) THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: Sucursal destino % no existe o no est? ACTIVA', p_sucursal_destino_id;
+            END IF;
+        END IF;
+
+        -- INGRESO_TRASPASO (1054) - OBS. 13: Debe empezar en EN_TRANSITO (2100)
+        IF p_evento_id = 1054 THEN
+            -- Validar que el estado sea EN_TRANSITO al crear
+            IF p_estado_traspaso_id != 2100 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: INGRESO_TRASPASO (1054) debe crearse con estado_traspaso_id = 2100 (EN_TRANSITO)';
+            END IF;
+
+            -- Validar origen
+            IF p_kardex_origen_id IS NULL THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: INGRESO_TRASPASO (1054) requiere kardex_origen_id no nulo';
+            END IF;
+
+            SELECT evento_id, estado_id, sucursal_id
+            INTO v_origen_evento_id, v_origen_estado_id, v_origen_sucursal_id
+            FROM kardex
+            WHERE kardex_id = p_kardex_origen_id;
+
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: kardex_origen_id % no existe', p_kardex_origen_id;
+            END IF;
+
+            IF v_origen_evento_id != 1053 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: kardex_origen_id % debe ser EGRESO_TRASPASO (1053). Es %',
+                    p_kardex_origen_id, v_origen_evento_id;
+            END IF;
+
+            IF v_origen_estado_id != 1000 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: EGRESO_TRASPASO % debe estar ACTIVO (1000). Est? %',
+                    p_kardex_origen_id, v_origen_estado_id;
+            END IF;
+
+            IF v_origen_sucursal_id = p_sucursal_destino_id THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: Sucursal origen % no puede ser igual a destino %',
+                    v_origen_sucursal_id, p_sucursal_destino_id;
+            END IF;
+
+            IF (
+                SELECT 1 FROM kardex
+                WHERE kardex_origen_id = p_kardex_origen_id
+                AND evento_id = 1054
+                AND estado_id != 1001
+            ) THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: EGRESO_TRASPASO % ya vinculado a otro INGRESO_TRASPASO',
+                    p_kardex_origen_id;
+            END IF;
+        END IF;
+
+        -- EGRESO_TRASPASO (1053) NO debe tener origen
+        IF p_evento_id = 1053 AND p_kardex_origen_id IS NOT NULL THEN
+            RAISE EXCEPTION 'Regla de Negocio [Kardex]: EGRESO_TRASPASO (1053) no debe tener kardex_origen_id';
+        END IF;
+
+        -- ============================================================
+        -- 1.10: VALIDACI?N DE DEVOLUCIONES (OBS. 11)
+        -- ============================================================
+        -- DEVOLUCION_CLIENTE (1060)
+        IF p_evento_id = 1060 THEN
+            -- Validar kardex_referencia_id
+            IF p_kardex_referencia_id IS NULL THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: DEVOLUCION_CLIENTE (1060) requiere kardex_referencia_id no nulo';
+            END IF;
+
+            -- Validar que la referencia exista y sea una VENTA (1051)
+            SELECT evento_id INTO v_referencia_tipo
+            FROM kardex
+            WHERE kardex_id = p_kardex_referencia_id;
+
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: kardex_referencia_id % no existe', p_kardex_referencia_id;
+            END IF;
+
+            IF v_referencia_tipo != 1051 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: kardex_referencia_id % debe ser una VENTA (1051). Es %',
+                    p_kardex_referencia_id, v_referencia_tipo;
+            END IF;
+
+            -- Validar comprobante_referencia
+            IF p_comprobante_referencia IS NULL OR TRIM(p_comprobante_referencia) = '' THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: DEVOLUCION_CLIENTE (1060) requiere comprobante_referencia no nulo';
+            END IF;
+
+            -- Validar motivo_devolucion_id
+            IF p_motivo_devolucion_id IS NULL OR p_motivo_devolucion_id = 3506 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: DEVOLUCION_CLIENTE (1060) requiere motivo_devolucion_id distinto de NINGUNO (3506)';
+            END IF;
+
+            -- Validar totales
+            IF p_total_venta < 0 OR p_total_venta_factura < 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: DEVOLUCION_CLIENTE (1060) requiere totales >= 0';
+            END IF;
+
+            -- Validar motivo_anulacion_id (OBS. 09)
+            IF p_motivo_anulacion_id IS NOT NULL AND p_motivo_anulacion_id != 2455 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: DEVOLUCION_CLIENTE (1060) requiere motivo_anulacion_id = 2455 (NINGUNO)';
+            END IF;
+        END IF;
+
+        -- DEVOLUCION_PROVEEDOR (1061)
+        IF p_evento_id = 1061 THEN
+            -- Validar kardex_referencia_id
+            IF p_kardex_referencia_id IS NULL THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: DEVOLUCION_PROVEEDOR (1061) requiere kardex_referencia_id no nulo';
+            END IF;
+
+            -- Validar que la referencia exista y sea una COMPRA (1050)
+            SELECT evento_id INTO v_referencia_tipo
+            FROM kardex
+            WHERE kardex_id = p_kardex_referencia_id;
+
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: kardex_referencia_id % no existe', p_kardex_referencia_id;
+            END IF;
+
+            IF v_referencia_tipo != 1050 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: kardex_referencia_id % debe ser una COMPRA (1050). Es %',
+                    p_kardex_referencia_id, v_referencia_tipo;
+            END IF;
+
+            -- Validar motivo_devolucion_id
+            IF p_motivo_devolucion_id IS NULL OR p_motivo_devolucion_id = 3506 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: DEVOLUCION_PROVEEDOR (1061) requiere motivo_devolucion_id distinto de NINGUNO (3506)';
+            END IF;
+
+            -- Validar totales
+            IF p_total_compra < 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: DEVOLUCION_PROVEEDOR (1061) requiere total_compra >= 0';
+            END IF;
+
+            -- Validar motivo_anulacion_id (OBS. 09)
+            IF p_motivo_anulacion_id IS NOT NULL AND p_motivo_anulacion_id != 2455 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex]: DEVOLUCION_PROVEEDOR (1061) requiere motivo_anulacion_id = 2455 (NINGUNO)';
+            END IF;
+        END IF;
+
+        -- OTROS EVENTOS: no deben tener kardex_referencia_id
+        IF p_evento_id NOT IN (1060, 1061) AND p_kardex_referencia_id IS NOT NULL THEN
+            RAISE EXCEPTION 'Regla de Negocio [Kardex]: Evento % no debe tener kardex_referencia_id', p_evento_id;
+        END IF;
+
+    ------------------------------------------------------------------
+    -- CONTEXTO 2: VALIDACI?N PARA KARDEX_PRODUCTOS (DETALLE)
+    ------------------------------------------------------------------
+    ELSIF p_contexto = 'KARDEX_PRODUCTO' THEN
+        -- 2.1: Obtener el evento_id y estado_id de la cabecera
+        SELECT evento_id, estado_id INTO v_evento_id, v_estado_actual
+        FROM kardex
+        WHERE kardex_id = p_kardex_id;
+
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Cabecera con ID % no existe', p_kardex_id;
+        END IF;
+
+        -- 2.2: No permitir modificar ANULADAS
+        IF v_estado_actual = 1003 THEN
+            RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: No se puede modificar transacci?n ANULADA (estado_id = 1003)';
+        END IF;
+
+        -- ============================================================
+        -- 2.3: VALIDACI?N DE CANTIDADES POR EVENTO (OBS. 05)
+        -- ============================================================
+        -- INGRESO (1050, 1054, 1056, 1060, 1065, 1069)
+        IF v_evento_id IN (1050, 1056, 1060, 1065, 1069) OR v_evento_id = 1054 THEN
+            IF p_cantidad <= 0 OR p_cantidad_salida <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Evento % (INGRESO) requiere cantidad > 0 y cantidad_salida = 0', v_evento_id;
+            END IF;
+
+        -- EGRESO (1051, 1053, 1057, 1062, 1063, 1064, 1066, 1068)
+        ELSIF v_evento_id IN (1051, 1057, 1062, 1063, 1064, 1066, 1068) OR v_evento_id = 1053 OR v_evento_id = 1061 THEN
+            -- 1061 (DEVOLUCION_PROVEEDOR) es egreso
+            IF p_cantidad <> 0 OR p_cantidad_salida <= 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Evento % (EGRESO) requiere cantidad = 0 y cantidad_salida > 0', v_evento_id;
+            END IF;
+
+        -- PROFORMA (1052), SOLICITUD_COMPRA (1058)
+        ELSIF v_evento_id IN (1052, 1058) THEN
+            IF p_cantidad <> 0 OR p_cantidad_salida <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Evento % requiere cantidad = 0 y cantidad_salida = 0', v_evento_id;
+            END IF;
+
+        -- VENTA_RESERVA (1059)
+        ELSIF v_evento_id = 1059 THEN
+            IF p_cantidad <> 0 OR p_cantidad_salida <= 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: VENTA_RESERVA (1059) requiere cantidad = 0 y cantidad_salida > 0';
+            END IF;
+
+        -- MIXTOS (1055)
+        ELSIF v_evento_id IN (1055) THEN
+            IF p_cantidad < 0 OR p_cantidad_salida < 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Evento % requiere cantidades >= 0', v_evento_id;
+            END IF;
+            IF p_cantidad = 0 AND p_cantidad_salida = 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Evento % requiere al menos una cantidad > 0', v_evento_id;
+            END IF;
+
+        -- CONVERSION_UNIDADES (1067)
+        ELSIF v_evento_id = 1067 THEN
+            IF p_cantidad <= 0 OR p_cantidad_salida <= 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: CONVERSION_UNIDADES (1067) requiere cantidad > 0 y cantidad_salida > 0';
+            END IF;
+
+        -- Evento desconocido
+        ELSE
+            IF p_cantidad <> 0 OR p_cantidad_salida <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Evento % no contemplado. Solo cantidades = 0', v_evento_id;
+            END IF;
+        END IF;
+
+        -- ============================================================
+        -- 2.4: VALIDACI?N DE PRECIOS POR EVENTO (OBS. 11)
+        -- ============================================================
+        -- COMPRA (1050)
+        IF v_evento_id = 1050 THEN
+            IF p_pcompra <= 0 OR p_precio_venta <> 0 OR p_precio_venta_factura <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: COMPRA (1050) requiere pcompra > 0 y precios venta = 0';
+            END IF;
+
+        -- VENTA (1051)
+        ELSIF v_evento_id = 1051 THEN
+            IF p_precio_venta <= 0 OR p_precio_venta_factura <= 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: VENTA (1051) requiere precios > 0';
+            END IF;
+
+        -- TRASPASOS (1053, 1054) - OBS. 11: precios deben ser 0
+        ELSIF v_evento_id IN (1053, 1054) THEN
+            IF p_precio_venta <> 0 OR p_precio_venta_factura <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Traspaso % requiere precio_venta = 0 y precio_venta_factura = 0', v_evento_id;
+            END IF;
+            IF p_descuento IS NOT NULL AND p_descuento <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Traspaso % no permite descuentos', v_evento_id;
+            END IF;
+
+        -- AJUSTES INTERNOS
+        ELSIF v_evento_id IN (1056, 1057, 1062, 1063, 1064, 1065, 1066, 1067, 1068) THEN
+            IF p_pcompra <> 0 OR p_precio_venta <> 0 OR p_precio_venta_factura <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Ajuste % requiere TODOS los precios = 0', v_evento_id;
+            END IF;
+            IF p_descuento IS NOT NULL AND p_descuento <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Ajuste % no permite descuentos', v_evento_id;
+            END IF;
+
+        -- PROFORMA (1052)
+        ELSIF v_evento_id = 1052 THEN
+            IF p_pcompra <> 0 OR p_precio_venta <> 0 OR p_precio_venta_factura <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: PROFORMA (1052) requiere TODOS los precios = 0';
+            END IF;
+            IF p_descuento IS NOT NULL AND p_descuento <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: PROFORMA no permite descuentos';
+            END IF;
+
+        -- SOLICITUD_COMPRA (1058)
+        ELSIF v_evento_id = 1058 THEN
+            IF p_pcompra < 0 OR p_precio_venta <> 0 OR p_precio_venta_factura <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: SOLICITUD_COMPRA requiere pcompra >= 0 y dem?s precios = 0';
+            END IF;
+            IF p_descuento IS NOT NULL AND p_descuento <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: SOLICITUD_COMPRA no permite descuentos';
+            END IF;
+
+        -- VENTA_RESERVA (1059)
+        ELSIF v_evento_id = 1059 THEN
+            IF p_precio_venta <= 0 OR p_precio_venta_factura <= 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: VENTA_RESERVA requiere precios > 0';
+            END IF;
+            IF p_descuento IS NOT NULL AND p_descuento <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: VENTA_RESERVA no permite descuentos';
+            END IF;
+
+        -- DEVOLUCION_CLIENTE (1060)
+        ELSIF v_evento_id = 1060 THEN
+            IF p_precio_venta < 0 OR p_precio_venta_factura < 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: DEVOLUCION_CLIENTE requiere precios >= 0';
+            END IF;
+            IF p_descuento IS NOT NULL AND p_descuento <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: DEVOLUCION_CLIENTE no permite descuentos. Debe ser 0.00';
+            END IF;
+
+        -- DEVOLUCION_PROVEEDOR (1061)
+        ELSIF v_evento_id = 1061 THEN
+            IF p_pcompra < 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: DEVOLUCION_PROVEEDOR requiere pcompra >= 0';
+            END IF;
+            IF p_descuento IS NOT NULL AND p_descuento <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: DEVOLUCION_PROVEEDOR no permite descuentos. Debe ser 0.00';
+            END IF;
+
+        -- ANULACION (1055)
+        ELSIF v_evento_id = 1055 THEN
+            IF p_descuento IS NOT NULL AND p_descuento <> 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: ANULACION no permite descuentos';
+            END IF;
+        END IF;
+
+        -- ============================================================
+        -- 2.5: VALIDACI?N DE TIPOS DE PAGO Y VENTA (OBS. 06 y 07)
+        -- ============================================================
+        -- Eventos NEUTRALES (incluye traspasos)
+        IF v_evento_id IN (1052, 1053, 1054, 1055, 1056, 1057, 1058, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068) THEN
+            IF p_tipo_pago_id <> 1400 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Evento % requiere tipo_pago_id = 1400', v_evento_id;
+            END IF;
+            IF p_tipo_venta_id <> 1350 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Evento % requiere tipo_venta_id = 1350', v_evento_id;
+            END IF;
+        END IF;
+
+        -- VENTA (1051): tipos definidos
+        IF v_evento_id = 1051 THEN
+            IF p_tipo_pago_id = 1400 OR p_tipo_venta_id = 1350 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: VENTA (1051) requiere tipo_pago_id != 1400 y tipo_venta_id != 1350';
+            END IF;
+        END IF;
+
+        -- VENTA_RESERVA (1059)
+        IF v_evento_id = 1059 THEN
+            IF p_tipo_pago_id <> 1400 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: VENTA_RESERVA requiere tipo_pago_id = 1400';
+            END IF;
+            IF p_tipo_venta_id = 1350 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: VENTA_RESERVA requiere tipo_venta_id != 1350';
+            END IF;
+        END IF;
+
+        -- DEVOLUCION_CLIENTE (1060) - OBS. 05
+        IF v_evento_id = 1060 THEN
+            IF p_tipo_pago_id <> 1406 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: DEVOLUCION_CLIENTE (1060) requiere tipo_pago_id = 1406 (SIN_PAGO)';
+            END IF;
+            IF p_tipo_venta_id <> 1350 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: DEVOLUCION_CLIENTE (1060) requiere tipo_venta_id = 1350 (NINGUNO)';
+            END IF;
+        END IF;
+
+        -- DEVOLUCION_PROVEEDOR (1061) - OBS. 05
+        IF v_evento_id = 1061 THEN
+            IF p_tipo_pago_id <> 1400 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: DEVOLUCION_PROVEEDOR (1061) requiere tipo_pago_id = 1400 (NINGUNO)';
+            END IF;
+            IF p_tipo_venta_id <> 1350 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: DEVOLUCION_PROVEEDOR (1061) requiere tipo_venta_id = 1350 (NINGUNO)';
+            END IF;
+        END IF;
+
+        -- ============================================================
+        -- 2.6: VALIDACI?N DE SUCURSAL_ID EN DETALLE (OBS. 10)
+        -- ============================================================
+        IF v_evento_id = 1053 THEN
+            -- EGRESO_TRASPASO: sucursal del detalle debe ser la sucursal origen
+            IF p_sucursal_detalle_id IS NOT NULL AND p_sucursal_detalle_id != p_sucursal_id THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: EGRESO_TRASPASO requiere sucursal_detalle_id = sucursal_id origen (%)',
+                    p_sucursal_id;
+            END IF;
+        END IF;
+
+        IF v_evento_id = 1054 THEN
+            -- INGRESO_TRASPASO: sucursal del detalle debe ser la sucursal destino
+            IF p_sucursal_detalle_id IS NOT NULL AND p_sucursal_detalle_id != p_sucursal_destino_id THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: INGRESO_TRASPASO requiere sucursal_detalle_id = sucursal_destino_id (%)',
+                    p_sucursal_destino_id;
+            END IF;
+        END IF;
+
+        -- ============================================================
+        -- 2.7: VALIDACI?N DE LOTE_ID (OBS. 09)
+        -- ============================================================
+        IF v_evento_id = 1054 AND p_kardex_origen_id IS NOT NULL THEN
+            -- Obtener el lote del origen
+            SELECT kp.lote_id INTO v_origen_lote_id
+            FROM kardex_productos kp
+            WHERE kp.kardex_id = p_kardex_origen_id
+            LIMIT 1;
+
+            IF v_origen_lote_id IS NOT NULL AND p_lote_id IS NOT NULL AND v_origen_lote_id != p_lote_id THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: INGRESO_TRASPASO debe usar el mismo lote que el origen (%). Lote destino: %',
+                    v_origen_lote_id, p_lote_id;
+            END IF;
+        END IF;
+
+        -- ============================================================
+        -- 2.8: VALIDACI?N DE COSTO_VENTA (OBS. 16)
+        -- ============================================================
+        IF v_evento_id = 1054 THEN
+            IF p_costo_venta IS NOT NULL AND p_costo_venta != 0 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: INGRESO_TRASPASO (1054) requiere costo_venta = 0. Recibido: %',
+                    p_costo_venta;
+            END IF;
+        END IF;
+
+        -- ============================================================
+        -- 2.9: VALIDACI?N DE LOTE_ID Y MOTIVO PARA DEVOLUCIONES (OBS. 01)
+        -- ============================================================
+        IF v_evento_id IN (1060, 1061) THEN
+            -- Validar que el lote no sea el comod?n (1)
+            IF p_lote_id IS NULL OR p_lote_id = 1 THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Devoluci?n (%) requiere un lote real (lote_id > 1). No puede usar el lote comod?n (1)',
+                    v_evento_id;
+            END IF;
+
+            -- Validar que el lote exista y est? ACTIVO y VIGENTE
+            IF NOT EXISTS (
+                SELECT 1 FROM lotes_productos
+                WHERE lote_id = p_lote_id
+                AND estado_id = 1000
+                AND estado_lote_id = 2500  -- VIGENTE
+            ) THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: El lote % no existe, no est? ACTIVO o no est? VIGENTE',
+                    p_lote_id;
+            END IF;
+
+            -- Validar motivo_devolucion_id para DEVOLUCIONES
+            IF p_motivo_devolucion_id IS NULL OR p_motivo_devolucion_id NOT IN (3500, 3501, 3502, 3503, 3504, 3505, 3507, 3508) THEN
+                RAISE EXCEPTION 'Regla de Negocio [Kardex Producto]: Devoluci?n (%) requiere motivo_devolucion_id v?lido (3500-3505, 3507, 3508). Recibido: %',
+                    v_evento_id, p_motivo_devolucion_id;
+            END IF;
+        END IF;
+    ------------------------------------------------------------------
+    -- CONTEXTO 3: VALIDACI?N DE DOMINIOS PROTEGIDOS
+    ------------------------------------------------------------------
+    ELSIF p_contexto = 'DOMINIO' THEN
+        SELECT es_protegido INTO v_es_protegido
+        FROM dominios
+        WHERE dominio_id = p_dominio_id;
+
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'Regla de Seguridad [Dominios]: Dominio ID % no existe', p_dominio_id;
+        END IF;
+
+        IF v_es_protegido = 1 THEN
+            RAISE EXCEPTION 'Regla de Seguridad [Dominios]: Dominio ID % est? protegido (es_protegido = 1)', p_dominio_id;
+        END IF;
+
+    ------------------------------------------------------------------
+    -- CONTEXTO DESCONOCIDO
+    ------------------------------------------------------------------
+    ELSE
+        RAISE EXCEPTION 'Regla de Negocio: Contexto desconocido: %. Contextos v?lidos: KARDEX, KARDEX_PRODUCTO, DOMINIO', p_contexto;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;

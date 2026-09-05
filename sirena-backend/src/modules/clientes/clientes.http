@@ -1,0 +1,205 @@
+# C:\sirena\sirena-backend\src\modules\clientes\clientes.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_clientes = {{baseUrl}}/clientes
+@baseUrl_bancos = {{baseUrl}}/bancos
+@baseUrl_constantes = {{baseUrl}}/constantes
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# EXTRAS
+
+### BANCOS (ACTIVOS)
+GET {{baseUrl_bancos}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: ESTADOS
+GET {{baseUrl_constantes}}?tipo=tipo_cliente_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: ESTADOS
+GET {{baseUrl_constantes}}?tipo=tipo_documento_id
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR CLIENTES (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Paginado por defecto)
+GET {{baseUrl_clientes}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_clientes}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO DE CLIENTE NATURAL (1150)
+GET {{baseUrl_clientes}}?tipo_cliente_id=1150
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO DE CLIENTE JURÍDICA (1151)
+GET {{baseUrl_clientes}}?tipo_cliente_id=1151
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO DE DOCUMENTO CÉDULA DE IDENTIDAD (2200)
+GET {{baseUrl_clientes}}?tipo_documento_id=2200
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO DE DOCUMENTO NIT (2204)
+GET {{baseUrl_clientes}}?tipo_documento_id=2204
+Authorization: Bearer {{authToken}}
+
+### LISTAR CLIENTES HABILITADOS PARA VENTAS (1)
+GET {{baseUrl_clientes}}?habilitado_ventas=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BÚSQUEDA FLEXIBLE (Por cliente, nit, razón social, documento, email, teléfono o banco)
+GET {{baseUrl_clientes}}?q=VAIN
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA POR COINCIDENCIA EXACTA DE NIT / DOCUMENTO
+GET {{baseUrl_clientes}}?q=1023456021&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 15
+GET {{baseUrl_clientes}}?offset=0&limit=15
+Authorization: Bearer {{authToken}}
+
+### PAGINACIÓN CON FILTROS COMBINADOS
+GET {{baseUrl_clientes}}?tipo_cliente_id=1150&estado_id=1000&offset=0&limit=10
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR NOMBRE DE CLIENTE (Ascendente)
+GET {{baseUrl_clientes}}?sortField=cliente&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR FECHA DE REGISTRO (Descendente)
+GET {{baseUrl_clientes}}?sortField=fecha_registro&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR LÍMITE DE CRÉDITO (Descendente)
+GET {{baseUrl_clientes}}?sortField=limite_credito&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER CLIENTE POR ID
+GET {{baseUrl_clientes}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD CLIENTES
+# ==============================================================================
+
+### CREAR NUEVO CLIENTE (PERSONA NATURAL)
+POST {{baseUrl_clientes}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "tipo_cliente_id": 1150,
+    "cliente": "JUAN PEREZ MAMANI",
+    "nit": null,
+    "razon_social": null,
+    "documento": "12345678",
+    "documento_complemento": "1A",
+    "tipo_documento_id": 2200,
+    "direccion": "AV. 6 DE MARZO #100, EL ALTO",
+    "telefono": "71234567",
+    "email": "juan.perez@email.com",
+    "banco_base_id": 1,
+    "numero_cuenta": "100000123456",
+    "habilitado_ventas": 1,
+    "limite_credito": 5000.00
+}
+
+### BANCOS (ACTIVOS)
+GET {{baseUrl_bancos}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: ESTADOS
+GET {{baseUrl_constantes}}?tipo=tipo_cliente_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR TIPO: ESTADOS
+GET {{baseUrl_constantes}}?tipo=tipo_documento_id
+Authorization: Bearer {{authToken}}
+
+
+### CREAR NUEVO CLIENTE (PERSONA JURÍDICA)
+POST {{baseUrl_clientes}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "tipo_cliente_id": 1151,
+    "cliente": "COMERCIAL IMPORTADORA VAIN S.R.L.",
+    "nit": "1023456021",
+    "razon_social": "COMERCIAL IMPORTADORA VAIN S.R.L.",
+    "documento": "1023456021",
+    "documento_complemento": null,
+    "tipo_documento_id": 2204,
+    "direccion": "CALLE MERCADO #456, ZONA CENTRAL",
+    "telefono": "22405060",
+    "email": "contacto@importadoravain.com",
+    "banco_base_id": 3,
+    "numero_cuenta": "100000987654",
+    "habilitado_ventas": 1,
+    "limite_credito": 50000.00
+}
+
+### ACTUALIZAR CLIENTE
+PATCH {{baseUrl_clientes}}/22
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "direccion": "CALLE MURILLO #789, ZONA CENTRAL",
+    "telefono": "77788990",
+    "limite_credito": 7500.00
+}
+
+### ELIMINAR CLIENTE (BORRADO LÓGICO: ACTIVO → BORRADO)
+DELETE {{baseUrl_clientes}}/22
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (CAMBIO DE ESTADO)
+# ==============================================================================
+
+### ARCHIVAR CLIENTE (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_clientes}}/23/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR CLIENTE (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_clientes}}/23/desarchivar
+Authorization: Bearer {{authToken}}

@@ -37,7 +37,7 @@ import { RolesTablasModule } from './modules/roles-tablas/roles-tablas.module';
 import { MenusModule } from './modules/menus/menus.module';
 import { RolesMenusModule } from './modules/roles-menus/roles-menus.module';
 import { InventariosFisicosModule } from './modules/inventarios-fisicos/inventarios-fisicos.module';
-
+import { ClientesModule } from './modules/clientes/clientes.module';
 
 
 import { ParametrosGlobalesModule } from './modules/parametros-globales/parametros-globales.module';
@@ -91,6 +91,7 @@ import { ParametrosGlobalesModule } from './modules/parametros-globales/parametr
         MenusModule,
         RolesMenusModule,
         InventariosFisicosModule,
+        ClientesModule,
     ],
     controllers: [],
     providers: [

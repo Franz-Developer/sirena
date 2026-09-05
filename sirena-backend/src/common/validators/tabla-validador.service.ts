@@ -645,33 +645,32 @@ export class TablaValidadorService {
         accion: string,
         eventos?: number[],
     ): Promise<boolean> {
-        // 1. Validaciones básicas.
         if (!usuarioId || usuarioId <= 0) {
             throw new DomainException(
-            `El ID de usuario proporcionado (${usuarioId}) es inválido. El ID debe ser un número entero positivo.`,
-            {
-                httpStatus: HttpStatus.BAD_REQUEST,
-                usuarioId,
-            }
-        );
+                `El ID de usuario proporcionado (${usuarioId}) es inválido. El ID debe ser un número entero positivo.`,
+                {
+                    httpStatus: HttpStatus.BAD_REQUEST,
+                    usuarioId,
+                }
+            );
         }
 
         const tablaNormalizada = tabla.toLowerCase().trim();
         const accionNormalizada = accion.toLowerCase().trim();
 
-        // 2. Mapeo de acciones (más legible que CASE en SQL).
         const columnasPermisoMap: Record<string, string> = {
-            leer: 'rt.leer',
-            crear: 'rt.crear',
-            editar: 'rt.editar',
-            eliminar: 'rt.eliminar',
-            anular: 'rt.anular',
-            archivar: 'rt.archivar',
-            desarchivar: 'rt.desarchivar',
+            leer: 'rpt.leer',
+            crear: 'rpt.crear',
+            editar: 'rpt.editar',
+            eliminar: 'rpt.eliminar',
+            anular: 'rpt.anular',
+            archivar: 'rpt.archivar',
+            desarchivar: 'rpt.desarchivar',
         };
 
         const columnaPermiso = columnasPermisoMap[accionNormalizada];
         const accionesValidas = Object.keys(columnasPermisoMap).join(', ');
+
         if (!columnaPermiso) {
             throw new DomainException(
                 `La acción "${accion}" no es válida para la validación de permisos. Las acciones permitidas son: ${accionesValidas}.`,
@@ -683,7 +682,6 @@ export class TablaValidadorService {
             );
         }
 
-        // 3. Verificar caché (mejora de rendimiento).
         const cacheKey = `${usuarioId}:${tablaNormalizada}:${accionNormalizada}`;
         const cached = this.permisoCache.get(cacheKey);
         const now = Date.now();
@@ -692,50 +690,57 @@ export class TablaValidadorService {
             this.logger.debug(`Usando caché de permiso: ${cacheKey}`);
 
             if (!cached.tienePermiso) {
-                const eventosStr = eventos && eventos.length > 0 ? ` para los eventos: ${eventos.join(', ')}` : '';
-                    throw new DomainException(
-                        `Acceso denegado: El usuario con ID ${usuarioId} no tiene permiso de "${accionNormalizada}"${eventosStr} en la tabla "${tablaNormalizada}". Contacte al administrador del sistema para solicitar los permisos necesarios.`,
-                        {
-                            httpStatus: HttpStatus.FORBIDDEN,
-                            usuarioId,
-                            tabla: tablaNormalizada,
-                            accion: accionNormalizada,
-                            eventos,
-                        }
-                    );
+                const eventosStr = eventos && eventos.length > 0
+                    ? ` para los eventos: ${eventos.join(', ')}`
+                    : '';
+                throw new DomainException(
+                    `Acceso denegado: El usuario con ID ${usuarioId} no tiene permiso de "${accionNormalizada}"${eventosStr} en la tabla "${tablaNormalizada}". Contacte al administrador del sistema para solicitar los permisos necesarios.`,
+                    {
+                        httpStatus: HttpStatus.FORBIDDEN,
+                        usuarioId,
+                        tabla: tablaNormalizada,
+                        accion: accionNormalizada,
+                        eventos,
+                    }
+                );
             }
             return true;
         }
 
-        // 4. Consulta optimizada con columna mapeada.
         const query = `
             SELECT
                 ${columnaPermiso} AS tiene_permiso,
-                rt.eventos_permitidos,
-                u.login
-            FROM roles_tablas rt
-            INNER JOIN usuarios u ON u.rol_id = rt.rol_id
+                u.login,
+                COALESCE(
+                    ARRAY_AGG(rps.suceso_id) FILTER (WHERE rps.suceso_id IS NOT NULL),
+                    ARRAY[]::integer[]
+                ) AS eventos_permitidos
+            FROM usuarios u
+            INNER JOIN roles r ON r.rol_id = u.rol_id AND r.estado_id = $3
+            INNER JOIN roles_permisos_tablas rpt ON rpt.rol_id = r.rol_id AND rpt.estado_id = $3
+            INNER JOIN tablas t ON t.tabla_id = rpt.tabla_id AND t.estado_id = $3
+            LEFT JOIN roles_permisos_sucesos rps ON rps.rol_permiso_tabla_id = rpt.rol_permiso_tabla_id AND rps.estado_id = $3
             WHERE u.usuario_id = $1
-                AND rt.tabla = $2
-                AND rt.estado_id = $3
-                AND u.estado_id = $3
+                AND t.nombre = $2
+                AND u.estado_id = ANY($4::int[])
+            GROUP BY u.usuario_id, u.login, ${columnaPermiso}
             LIMIT 1
         `;
 
-        const params = [Number(usuarioId), tablaNormalizada, ESTADO_ACTIVO];
-        logSqlQuery(query, params, `validarPermisoTabla - roles_tablas`);
+        const params = [Number(usuarioId), tablaNormalizada, ESTADO_ACTIVO, ESTADOS_VIVOS];
+        logSqlQuery(query, params, `validarPermisoTabla - roles_permisos_tablas`);
 
         try {
             const permisosRes = await this.dataSource.query(query, params);
 
-            // 5. Validar resultado y guardar en caché.
             const tienePermiso = permisosRes?.[0]?.tiene_permiso === 1;
 
-            // Guardar en caché (tanto positivo como negativo).
             this.permisoCache.set(cacheKey, { tienePermiso, timestamp: now });
 
             if (!tienePermiso || !permisosRes || permisosRes.length === 0) {
-                const eventosStr = eventos && eventos.length > 0 ? ` para los eventos: ${eventos.join(', ')}` : '';
+                const eventosStr = eventos && eventos.length > 0
+                    ? ` para los eventos: ${eventos.join(', ')}`
+                    : '';
                 throw new DomainException(
                     `Acceso denegado: El usuario con ID ${usuarioId} no tiene permiso de "${accionNormalizada}"${eventosStr} en la tabla "${tablaNormalizada}". Contacte al administrador del sistema para solicitar los permisos necesarios.`,
                     {
@@ -751,7 +756,6 @@ export class TablaValidadorService {
 
             const login = permisosRes[0].login || `ID #${usuarioId}`;
 
-            // 6. Validación específica para Kardex (extraída para claridad).
             if (tablaNormalizada === 'kardex' && eventos && eventos.length > 0) {
                 await this.validarEventosKardex(
                     eventos,
@@ -796,26 +800,12 @@ export class TablaValidadorService {
         tabla: string,
         login: string
     ): Promise<void> {
-        // Validar que los eventos sean números positivos.
-        const eventosValidos = eventos.every(ev => Number.isInteger(ev) && ev > 0);
-        if (!eventosValidos) {
-            throw new DomainException(
-                `Los eventos proporcionados (${eventos.join(', ')}) no son válidos. Los eventos deben ser números enteros positivos (ej. 1050 para COMPRA, 1051 para VENTA).`,
-                {
-                    httpStatus: HttpStatus.BAD_REQUEST,
-                    eventos,
-                    motivo: 'EVENTOS_INVALIDOS'
-                }
-            );
-        }
-
-        const eventosPermitidosObj = permiso.eventos_permitidos || {};
-        const listaPermitida = eventosPermitidosObj[accion] || [];
+        const listaPermitida = permiso.eventos_permitidos || [];
         const eventosNoPermitidos = eventos.filter(ev => !listaPermitida.includes(ev));
 
         if (eventosNoPermitidos.length > 0) {
             throw new DomainException(
-                `Acceso denegado: El usuario "${login}" no tiene permisos para realizar "${accion}" sobre los eventos: ${eventosNoPermitidos.join(', ')}. Eventos permitidos: ${listaPermitida.join(', ') || 'ninguno'}.`,
+                `Acceso denegado: El usuario "${login}" no tiene permisos para realizar "${accion}" sobre los eventos: ${eventosNoPermitidos.join(', ')}.`,
                 {
                     httpStatus: HttpStatus.FORBIDDEN,
                     usuarioId,
@@ -830,20 +820,17 @@ export class TablaValidadorService {
         }
     }
 
-    /**
-     * Invalida caché de permisos (cuando se actualizan roles/permisos).
-     */
     invalidarPermisoCache(usuarioId?: number, tabla?: string): void {
         if (usuarioId && tabla) {
-            const prefix = `${usuarioId}:${tabla.toLowerCase().trim()}`;
+            const prefix = `${Number(usuarioId)}:${tabla.toLowerCase().trim()}:`;
             for (const key of this.permisoCache.keys()) {
                 if (key.startsWith(prefix)) {
                     this.permisoCache.delete(key);
                 }
             }
-            this.logger.debug(`Caché invalidado para ${prefix}.`);
+            this.logger.debug(`Caché invalidado para usuario ${usuarioId} y tabla "${tabla.toLowerCase().trim()}".`);
         } else if (usuarioId) {
-            const prefix = `${usuarioId}:`;
+            const prefix = `${Number(usuarioId)}:`;
             for (const key of this.permisoCache.keys()) {
                 if (key.startsWith(prefix)) {
                     this.permisoCache.delete(key);
@@ -854,5 +841,50 @@ export class TablaValidadorService {
             this.permisoCache.clear();
             this.logger.debug('Caché de permisos limpiado completamente.');
         }
+    }
+
+    async esUsuarioAdministrador(usuarioId: number): Promise<boolean> {
+        const res = await this.dataSource.query(
+            `SELECT 1
+            FROM usuarios u
+            INNER JOIN roles r ON u.rol_id = r.rol_id
+            WHERE u.usuario_id = $1
+            AND u.estado_id = $2
+            AND r.estado_id = $2
+            AND (r.codigo = 'ADM' OR r.rol_id = 2)
+            LIMIT 1`,
+            [usuarioId, ESTADO_ACTIVO]
+        );
+        return res.length > 0;
+    }
+
+    async procesarCamposProtegidos<T extends object>(
+        tabla: string,
+        id: number,
+        dto: T,
+        dependencias: Array<string | { tabla: string; campoFk: string }>,
+        camposProtegidos: string[],
+        campoPk: string,
+        usuarioId: number
+    ): Promise<T> {
+        const tieneDependencias = await this.validarDependencias(tabla, id, dependencias, campoPk);
+        if (!tieneDependencias) return dto;
+
+        const esAdmin = await this.esUsuarioAdministrador(usuarioId);
+        if (esAdmin) {
+            this.logger.warn(
+                `[BYPASS ADMIN] El usuario_id=${usuarioId} está modificando campos protegidos (${camposProtegidos.join(', ')}) en la tabla "${tabla}" id=${id} que posee dependencias activas.`
+            );
+            return dto;
+        }
+
+        const dtoFiltrado = { ...dto };
+        camposProtegidos.forEach(campo => {
+            if (campo in dtoFiltrado) {
+                delete (dtoFiltrado as any)[campo];
+            }
+        });
+
+        return dtoFiltrado;
     }
 }

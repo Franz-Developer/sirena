@@ -153,10 +153,12 @@ export class TrabajadoresService extends BaseService {
 
     async update(id: number, dto: UpdateTrabajadorDto, usuarioId: number): Promise<TrabajadorResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            let dtoNormalizado = { ...dto };
+
             await this.tablaValidador.validarPreUpdate(
                 this.nombreTabla,
                 id,
-                dto,
+                dtoNormalizado,
                 this.campoPK,
                 usuarioId,
             );
@@ -171,93 +173,85 @@ export class TrabajadoresService extends BaseService {
                 });
             }
 
-            if (dto.genero_id && dto.estado_civil_id) {
-                await this.validarEstadoCivilPorGenero(dto.genero_id, dto.estado_civil_id);
-            } else if (dto.genero_id && trabajadorActual.genero_id) {
-                await this.validarEstadoCivilPorGenero(dto.genero_id, trabajadorActual.estado_civil_id);
-            } else if (dto.estado_civil_id && trabajadorActual.genero_id) {
-                await this.validarEstadoCivilPorGenero(trabajadorActual.genero_id, dto.estado_civil_id);
+            if (dtoNormalizado.genero_id && dtoNormalizado.estado_civil_id) {
+                await this.validarEstadoCivilPorGenero(dtoNormalizado.genero_id, dtoNormalizado.estado_civil_id);
+            } else if (dtoNormalizado.genero_id && trabajadorActual.genero_id) {
+                await this.validarEstadoCivilPorGenero(dtoNormalizado.genero_id, trabajadorActual.estado_civil_id);
+            } else if (dtoNormalizado.estado_civil_id && trabajadorActual.genero_id) {
+                await this.validarEstadoCivilPorGenero(trabajadorActual.genero_id, dtoNormalizado.estado_civil_id);
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dtoNormalizado,
                 FindTrabajadoresQueryDto.getDependencias(),
+                FindTrabajadoresQueryDto.getCamposProtegidosConDependencias(),
                 this.campoPK,
+                usuarioId
             );
 
-            const dtoParaActualizar = { ...dto };
+            const validaciones: Promise<any>[] = [];
 
-            if (tieneDependencias) {
-                const camposProtegidos = FindTrabajadoresQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach((campo: string) => {
-                    if (Object.keys(dtoParaActualizar).includes(campo)) {
-                        delete (dtoParaActualizar as any)[campo];
-                    }
-                });
-            } else {
-                const validaciones: Promise<any>[] = [];
+            if (dtoNormalizado.nombres || dtoNormalizado.paterno || dtoNormalizado.materno !== undefined) {
+                validaciones.push(
+                    this.unicidadValidador.validarUnicidad({
+                        tabla: this.nombreTabla,
+                        campoPk: this.campoPK,
+                        idExcluir: id,
+                        campos: [
+                            {
+                                nombre: 'nombres',
+                                valor: dtoNormalizado.nombres ?? trabajadorActual.nombres,
+                            },
+                            {
+                                nombre: 'paterno',
+                                valor: dtoNormalizado.paterno ?? trabajadorActual.paterno,
+                            },
+                            {
+                                nombre: 'materno',
+                                valor: dtoNormalizado.materno ?? trabajadorActual.materno ?? '',
+                            },
+                        ],
+                        estadosValidos: [...ESTADOS_VIVOS],
+                    }),
+                );
+            }
 
-                if (dto.nombres || dto.paterno || dto.materno !== undefined) {
-                    validaciones.push(
-                        this.unicidadValidador.validarUnicidad({
-                            tabla: this.nombreTabla,
-                            campoPk: this.campoPK,
-                            idExcluir: id,
-                            campos: [
-                                {
-                                    nombre: 'nombres',
-                                    valor: dto.nombres ?? trabajadorActual.nombres,
-                                },
-                                {
-                                    nombre: 'paterno',
-                                    valor: dto.paterno ?? trabajadorActual.paterno,
-                                },
-                                {
-                                    nombre: 'materno',
-                                    valor: dto.materno ?? trabajadorActual.materno ?? '',
-                                },
-                            ],
-                            estadosValidos: [...ESTADOS_VIVOS],
-                        }),
-                    );
-                }
+            if (dtoNormalizado.dni) {
+                validaciones.push(
+                    this.unicidadValidador.validarUnicidad({
+                        tabla: this.nombreTabla,
+                        campoPk: this.campoPK,
+                        idExcluir: id,
+                        campos: [{ nombre: 'dni', valor: dtoNormalizado.dni }],
+                        estadosValidos: [...ESTADOS_VIVOS],
+                    }),
+                );
+            }
 
-                if (dto.dni) {
-                    validaciones.push(
-                        this.unicidadValidador.validarUnicidad({
-                            tabla: this.nombreTabla,
-                            campoPk: this.campoPK,
-                            idExcluir: id,
-                            campos: [{ nombre: 'dni', valor: dto.dni }],
-                            estadosValidos: [...ESTADOS_VIVOS],
-                        }),
-                    );
-                }
+            if (validaciones.length > 0) {
+                await Promise.all(validaciones);
+            }
 
-                if (validaciones.length > 0) {
-                    await Promise.all(validaciones);
+            if (dtoNormalizado.foto) {
+                if (dtoNormalizado.foto === trabajadorActual.foto) {
+                    delete dtoNormalizado.foto;
                 }
             }
 
-            if (dtoParaActualizar.foto) {
-                if (dtoParaActualizar.foto === trabajadorActual.foto) {
-                    delete dtoParaActualizar.foto;
-                }
-            }
-
-            const camposAfectados = Object.keys(dtoParaActualizar).filter(
+            const camposAfectados = Object.keys(dtoNormalizado).filter(
                 key => key !== 'foto' && key !== 'qr',
             );
 
-            if (camposAfectados.length > 0 || dtoParaActualizar.foto !== undefined) {
-                manager.merge(Trabajador, trabajadorActual, dtoParaActualizar);
+            if (camposAfectados.length > 0 || dtoNormalizado.foto !== undefined) {
+                manager.merge(Trabajador, trabajadorActual, dtoNormalizado);
                 trabajadorActual.update(usuarioId);
                 await manager.save(trabajadorActual);
             }
 
-            const nombreCambio = dto.nombres || dto.paterno || dto.materno !== undefined;
-            if (dto.dni || nombreCambio) {
+            const nombreCambio = dtoNormalizado.nombres || dtoNormalizado.paterno || dtoNormalizado.materno !== undefined;
+            if (dtoNormalizado.dni || nombreCambio) {
                 await this.generarQRUtil.regenerarQR(id, manager);
             }
 

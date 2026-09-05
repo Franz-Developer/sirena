@@ -31,28 +31,69 @@ export class UsuariosService extends BaseService {
             {
                 table: 'trabajadores',
                 alias: 'tr',
-                onCondition: 'tr.trabajador_id = t.trabajador_id',
+                onCondition: 'tr.trabajador_id = t.trabajador_id AND tr.estado_id = t.estado_id',
                 selectColumns: [
                     "TRIM(CONCAT_WS(' ', tr.nombres, tr.paterno, tr.materno)) AS trabajador_nombre_completo",
-                    'tr.dni AS trabajador_dni'
+                    'tr.nombres AS trabajador_nombres',
+                    'tr.paterno AS trabajador_paterno',
+                    'tr.materno AS trabajador_materno',
+                    'tr.dni AS trabajador_dni',
+                    'tr.foto AS trabajador_foto'
+                ],
+                type: 'INNER'
+            },
+            {
+                table: 'trabajadores_cargos',
+                alias: 'tc',
+                onCondition: 'tc.trabajador_id = tr.trabajador_id AND tc.estado_id = t.estado_id AND tc.es_activo = 1',
+                selectColumns: [],
+                type: 'INNER'
+            },
+            {
+                table: 'cargos',
+                alias: 'c',
+                onCondition: 'c.cargo_id = tc.cargo_id AND c.estado_id = t.estado_id',
+                selectColumns: [
+                    'c.cargo_id AS cargo_id',
+                    'c.cargo AS cargo_nombre',
+                    'c.codigo AS cargo_codigo'
                 ],
                 type: 'INNER'
             },
             {
                 table: 'sucursales',
                 alias: 's',
-                onCondition: 's.sucursal_id = t.sucursal_id',
+                onCondition: 's.sucursal_id = t.sucursal_id AND s.estado_id = t.estado_id',
                 selectColumns: [
                     's.sucursal AS sucursal_nombre',
                     's.codigo AS sucursal_codigo',
-                    's.codigo_sin AS sucursal_codigo_sin'
+                    's.codigo_sin AS sucursal_codigo_sin',
+                    's.telefono AS sucursal_telefono',
+                    's.ubicacion AS sucursal_ubicacion',
+                    's.horario_atencion AS sucursal_horario',
+                    's.empresa_id AS sucursal_empresa_id'
+                ],
+                type: 'INNER'
+            },
+            {
+                table: 'empresas',
+                alias: 'e',
+                onCondition: 'e.empresa_id = s.empresa_id AND e.estado_id = t.estado_id',
+                selectColumns: [
+                    'e.empresa_id AS empresa_id',
+                    'e.empresa AS empresa_nombre',
+                    'e.codigo AS empresa_codigo',
+                    'e.logo AS empresa_logo',
+                    'e.eslogan AS empresa_eslogan',
+                    'e.direccion AS empresa_direccion',
+                    'e.telefono AS empresa_telefono'
                 ],
                 type: 'INNER'
             },
             {
                 table: 'roles',
                 alias: 'r',
-                onCondition: 'r.rol_id = t.rol_id',
+                onCondition: 'r.rol_id = t.rol_id AND r.estado_id = t.estado_id',
                 selectColumns: [
                     'r.rol AS rol_nombre',
                     'r.codigo AS rol_codigo'
@@ -76,6 +117,18 @@ export class UsuariosService extends BaseService {
             {
                 nombreCampo: 'trabajador_id',
                 nombreColumna: 'trabajador_id',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+            {
+                nombreCampo: 'empresa_id',
+                nombreColumna: 'e.empresa_id',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+            {
+                nombreCampo: 'cargo_id',
+                nombreColumna: 'c.cargo_id',
                 tipoDatoFiltro: 'number',
                 operador: 'eq',
             },
@@ -152,32 +205,24 @@ export class UsuariosService extends BaseService {
                 throw new DomainException('Usuario no encontrado.', { httpStatus: HttpStatus.NOT_FOUND });
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            const dtoParaActualizar = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dto,
                 FindUsuariosQueryDto.getDependencias(),
-                this.campoPK
+                FindUsuariosQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
 
-            const dtoParaActualizar = { ...dto };
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindUsuariosQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dtoParaActualizar) {
-                        delete (dtoParaActualizar as any)[campo];
-                    }
+            if (dtoParaActualizar.login !== undefined) {
+                await this.unicidadValidador.validarUnicidad({
+                    tabla: this.nombreTabla,
+                    campos: [{ nombre: 'login', valor: dtoParaActualizar.login }],
+                    idExcluir: id,
+                    campoPk: this.campoPK,
+                    estadosValidos: [...ESTADOS_VIVOS],
                 });
-            } else {
-                if (dto.login !== undefined) {
-                    await this.unicidadValidador.validarUnicidad({
-                        tabla: this.nombreTabla,
-                        campos: [{ nombre: 'login', valor: dto.login }],
-                        idExcluir: id,
-                        campoPk: this.campoPK,
-                        estadosValidos: [...ESTADOS_VIVOS],
-                    });
-                }
             }
 
             if (dtoParaActualizar.avatar && dtoParaActualizar.avatar === usuarioActual.avatar) {

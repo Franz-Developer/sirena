@@ -38,7 +38,6 @@ Authorization: Bearer {{authToken}}
 GET {{baseUrl_roles}}?estado_id=1000
 Authorization: Bearer {{authToken}}
 
-
 # ----------------------------------------------------------------------
 # ENDPOINTS DE USUARIOS
 # ----------------------------------------------------------------------
@@ -84,7 +83,7 @@ GET {{baseUrl_usuarios}}/1
 Authorization: Bearer {{authToken}}
 
 ###
-GET {{baseUrl_usuarios}}/2
+GET {{baseUrl_usuarios}}/3
 Authorization: Bearer {{authToken}}
 
 ### g. SUBIR AVATAR (Retorna el nombre del archivo generado)

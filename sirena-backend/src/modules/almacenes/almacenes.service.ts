@@ -228,6 +228,16 @@ export class AlmacenesService extends BaseService {
                 );
             }
 
+            dto = await this.tablaValidador.procesarCamposProtegidos(
+                this.nombreTabla,
+                id,
+                dto,
+                FindAlmacenesQueryDto.getDependencias(),
+                FindAlmacenesQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
+            );
+
             const validaciones: Promise<any>[] = [];
 
             if (dto.sucursal_id !== undefined && dto.sucursal_id !== almacenActual.sucursal_id) {

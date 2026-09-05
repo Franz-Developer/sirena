@@ -165,21 +165,15 @@ export class RolesMenusService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dto = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dto,
                 FindRolesMenusQueryDto.getDependencias(),
-                this.campoPK
+                FindRolesMenusQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindRolesMenusQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dto) {
-                        delete (dto as any)[campo];
-                    }
-                });
-            }
 
             const nuevoRolId = dto.rol_id ?? registroActual.rol_id;
             const nuevoMenuId = dto.menu_id ?? registroActual.menu_id;

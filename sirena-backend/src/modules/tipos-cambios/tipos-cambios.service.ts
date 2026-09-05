@@ -211,21 +211,15 @@ export class TiposCambiosService extends BaseService {
                 );
             }
 
-            const tieneDependencias = await this.tablaValidador.validarDependencias(
+            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
+                dtoNormalizado,
                 FindTiposCambiosQueryDto.getDependencias(),
-                this.campoPK
+                FindTiposCambiosQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
             );
-
-            if (tieneDependencias) {
-                const camposProtegidos = FindTiposCambiosQueryDto.getCamposProtegidosConDependencias();
-                camposProtegidos.forEach(campo => {
-                    if (campo in dtoNormalizado) {
-                        delete (dtoNormalizado as any)[campo];
-                    }
-                });
-            }
 
             if (dtoNormalizado.origen_moneda_id !== undefined || dtoNormalizado.destino_moneda_id !== undefined || dtoNormalizado.fecha_cotizacion !== undefined) {
                 await this.unicidadValidador.validarUnicidad({

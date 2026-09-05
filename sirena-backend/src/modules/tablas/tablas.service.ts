@@ -14,5 +14,5 @@ export class TablasService {
         }
 
         return tablas.sort();
-    }
+		}
 }
