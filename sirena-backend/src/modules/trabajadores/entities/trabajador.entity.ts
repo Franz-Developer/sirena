@@ -28,9 +28,14 @@ import { BaseAuditEntity } from '../../../common/base/base-audit.entity';
 @Check('chk_trabajadores_fechacontratacion', 'fecha_contratacion IS NULL OR fecha_contratacion <= CURRENT_DATE')
 @Index('uix_trabajadores_dni_unique', ['dni'], { unique: true, where: 'estado_id IN (1000, 1002)' })
 @Index('uix_trabajadores_nombre_completo_unique', ['nombres', 'paterno', 'materno'], { unique: true, where: 'estado_id IN (1000, 1002)' })
+@Index('uix_trabajadores_trabajador_unique', ['trabajador_id', 'sucursal_id'], { unique: true, where: 'estado_id = 1000' })
+@Index('idx_trabajadores_sucursal', ['sucursal_id'], { where: 'estado_id = 1000' })
 export class Trabajador extends BaseAuditEntity {
     @PrimaryGeneratedColumn({ name: 'trabajador_id', type: 'bigint' })
     trabajador_id!: number;
+
+    @Column({ name: 'sucursal_id', type: 'bigint', nullable: false, default: 1 })
+    sucursal_id!: number;
 
     @Column({ name: 'genero_id', type: 'smallint', nullable: false, default: 1200 })
     genero_id!: number;

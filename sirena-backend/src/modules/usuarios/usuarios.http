@@ -4,7 +4,6 @@
 @baseUrl = http://localhost:3010/api
 @baseUrl_usuarios = {{baseUrl}}/usuarios
 @baseUrl_trabajadores = {{baseUrl}}/trabajadores
-@baseUrl_sucursales = {{baseUrl}}/sucursales
 @baseUrl_roles = {{baseUrl}}/roles
 
 ### 1. OBTENER TOKEN DE AUTENTICACIÓN.
@@ -22,16 +21,29 @@ Content-Type: application/json
 # No se debe presionar es automatico.
 @authToken = {{login.response.body.token}}
 
+# ==============================================================================
+# AUTENTICACIÓN - USUARIO 3
+# ==============================================================================
+
+### 1.b OBTENER TOKEN USUARIO 3
+# @name loginUser3
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "GLADYS",
+    "password": "12345678"
+}
+
+### 2.b GUARDAR TOKEN USUARIO 3
+# @authToken = {{loginUser3.response.body.token}}
+
 # ----------------------------------------------------------------------
 # EXTRAS
 # ----------------------------------------------------------------------
 
 ### LISTAR TODOS (Activos + Históricos por defecto)
 GET {{baseUrl_trabajadores}}?estado_id=1000
-Authorization: Bearer {{authToken}}
-
-### LISTAR POR ESTADO ACTIVOS (1000)
-GET {{baseUrl_sucursales}}?estado_id=1000
 Authorization: Bearer {{authToken}}
 
 ### b. LISTAR POR ESTADO ACTIVOS (1000)
@@ -103,10 +115,6 @@ Content-Type: image/png
 GET {{baseUrl_trabajadores}}?estado_id=1000
 Authorization: Bearer {{authToken}}
 
-### LISTAR POR ESTADO ACTIVOS (1000)
-GET {{baseUrl_sucursales}}?estado_id=1000
-Authorization: Bearer {{authToken}}
-
 ### b. LISTAR POR ESTADO ACTIVOS (1000)
 GET {{baseUrl_roles}}?estado_id=1000
 Authorization: Bearer {{authToken}}
@@ -117,9 +125,8 @@ Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-    "trabajador_id": 18,
-    "sucursal_id": 2,
-    "rol_id": 12,
+    "trabajador_id": 17,
+    "rol_id": 5,
     "login": "TESTUSER2",
     "contrasena": "12345678",
     "avatar": "avatar.png"

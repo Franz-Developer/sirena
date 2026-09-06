@@ -1,7 +1,5 @@
 FALTA. ARREGLAR EL modulo trabajador. POR QUE SE CAMBIO los campos de ubicaciones se cambio 
 FALTA. Eliminar cada 24 horas a las 3 am las fotos de logos de empresas, usuarios avatar y trabajador foto 
-FALTA. Estandarizar lo mismo de bancos .http 
-FALTA. Mejorar servicios de bancos aplicar la misma logica en todos los servicios.
 FALTA. Crear UN TRIGGER QUE NO permita modificar ni eliminar todos los registros pk_id=1
 FALTA. Crear UN TRIGGER QUE NO permita modificar ni eliminar el usuario_id=2
 FALTA. Crear UN trigger que no permita eliminar nada que tenga que ver con usuario_id=2
@@ -18,6 +16,12 @@ FALTA. Hacer el modulo roles_permisos_sucesos
 FALTA. Arreglar el modulo menus.
 FALTA. Arreglar el modulo roles_menus.
 FALTA. Ubicaciones
+FALTA. revisar el modulo sucursal se eliminio de usuarios sucursal_id 
+--FALTA. MEJORAR usuarios eliminar FK sucursal_id
+--FALTA. MEJORAR AUTENTIFICACION 
+--FALTA. MEJORAR tabla y modulo trabajadores ADD sucursal_id
+--FALTA. Estandarizar lo mismo de bancos .http 
+--FALTA. Mejorar servicios de bancos aplicar la misma logica en todos los servicios.
 --FALTA. Arreglar tabla-validador.service.ts arreglar validarPermisoTabla()
 --FALTA. Arreglar tabla-validador.service.ts arreglar validarEventosKardex() Motivo: La validación de eventos usaba eventos_permitidos (JSONB) de roles_tablas, que ya no existe. Cambio: Debe consultar roles_permisos_sucesos usando rol_permiso_tabla_id.
 --FALTA. Arreglar tabla-validador.service.ts arreglar invalidarPermisoCache() (opcional) Motivo: Si se modifica la estructura de permisos, puede ser necesario ajustar la lógica de invalidación.
@@ -61,3 +65,23 @@ FALTA. Ubicaciones
 -- contratos: Requieren 1002. Los contratos laborales finalizados o rescindidos pasan a histórico, nunca deben borrarse físicamente.
 -- precios_productos y costos_promedio: Requieren 1002. Las listas de precios anteriores y costos históricos de inventario deben congelarse con 1002 para que las transacciones pasadas mantengan su congruencia financiera.
 -- analitica_productos: Requieren 1002. Los resultados de pronósticos estadísticos (como corridas de modelos ARIMA/SARIMA) de meses anteriores deben archivarse como históricos para comparar la precisión del modelo frente a la realidad.
+
+
+
+SELECT
+    kcu.table_name AS tabla_dependiente,
+    kcu.column_name AS columna_fk,
+    ccu.table_name AS tabla_referenciada,
+    ccu.column_name AS columna_pk,
+    tc.constraint_name AS nombre_restriccion
+FROM information_schema.table_constraints AS tc
+JOIN information_schema.key_column_usage AS kcu
+    ON tc.constraint_name = kcu.constraint_name
+    AND tc.table_schema = kcu.table_schema
+JOIN information_schema.constraint_column_usage AS ccu
+    ON ccu.constraint_name = tc.constraint_name
+    AND ccu.table_schema = tc.table_schema
+WHERE tc.constraint_type = 'FOREIGN KEY'
+    AND tc.table_schema = 'public'
+ORDER BY kcu.table_name, ccu.table_name;
+

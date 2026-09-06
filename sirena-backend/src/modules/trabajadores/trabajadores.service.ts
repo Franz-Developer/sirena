@@ -38,6 +38,24 @@ export class TrabajadoresService extends BaseService {
                 tipoDatoFiltro: 'number',
                 operador: 'eq',
             },
+            {
+                nombreCampo: 'sucursal_id',
+                nombreColumna: 'sucursal_id',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+            {
+                nombreCampo: 'cargo_id',
+                nombreColumna: 'cargo_id',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+            {
+                nombreCampo: 'empresa_id',
+                nombreColumna: 'empresa_id',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
         ],
         configuracionOrden: {
             campoOrdenPorDefecto: 'trabajador_id',

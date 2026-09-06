@@ -1,120 +1,242 @@
--- ================================================================================================
--- OTORGAR TODOS LOS PERMISOS EN LA TABLA 'bancos' AL ROL COMPRADOR (rol_id = 5)
--- ================================================================================================
-
--- ================================================================================================
--- 1. OTORGAR PERMISOS EN LAS TABLAS QUE AÚN NO TIENEN REGISTRO PARA EL ROL COMPRADOR (rol_id = 5)
--- ================================================================================================
-
-INSERT INTO roles_permisos_tablas (
-    rol_id,
-    tabla_id,
-    leer,
-    crear,
-    editar,
-    eliminar,
-    anular,
-    archivar,
-    desarchivar,
-    estado_id,
-    usuario_id_registro
-)
 SELECT
-    5,                  -- ROL COMPRADOR
-    t.tabla_id,         -- Recorre las tablas activas
-    1,                  -- leer
-    1,                  -- crear
-    1,                  -- editar
-    1,                  -- eliminar
-    1,                  -- anular
-    1,                  -- archivar
-    1,                  -- desarchivar
-    1000,               -- estado_id ACTIVO
-    2                   -- usuario_id_registro
-FROM tablas t
-WHERE t.estado_id = 1000
-  AND NOT EXISTS (
-      SELECT 1
-      FROM roles_permisos_tablas rpt_exist
-      WHERE rpt_exist.rol_id = 5
-        AND rpt_exist.tabla_id = t.tabla_id
-        AND rpt_exist.estado_id = 1000
-  );
+    kcu.table_name AS tabla_dependiente,
+    kcu.column_name AS columna_fk,
+    ccu.table_name AS tabla_referenciada,
+    ccu.column_name AS columna_pk
+FROM information_schema.table_constraints AS tc
+JOIN information_schema.key_column_usage AS kcu
+    ON tc.constraint_name = kcu.constraint_name
+    AND tc.table_schema = kcu.table_schema
+JOIN information_schema.constraint_column_usage AS ccu
+    ON ccu.constraint_name = tc.constraint_name
+    AND ccu.table_schema = ccu.table_schema
+WHERE tc.constraint_type = 'FOREIGN KEY'
+    AND tc.table_schema = 'public'
+    AND ccu.table_name = 'clientes'
+ORDER BY kcu.table_name;
 
 
--- ================================================================================================
--- 2. OTORGAR SUCESOS ACTIVOS QUE AÚN NO ESTÉN ASOCIADOS A LOS PERMISOS DEL ROL COMPRADOR (rol_id = 5)
--- ================================================================================================
 
-INSERT INTO roles_permisos_sucesos (
-    rol_permiso_tabla_id,
-    suceso_id,
-    estado_id,
-    usuario_id_registro
-)
+
 SELECT
-    rpt.rol_permiso_tabla_id,
-    s.suceso_id,
-    1000,
-    2
-FROM roles_permisos_tablas rpt
-CROSS JOIN sucesos s
-WHERE rpt.rol_id = 5
-  AND rpt.estado_id = 1000
-  AND s.estado_id = 1000
-  AND NOT EXISTS (
-      SELECT 1
-      FROM roles_permisos_sucesos rps_exist
-      WHERE rps_exist.rol_permiso_tabla_id = rpt.rol_permiso_tabla_id
-        AND rps_exist.suceso_id = s.suceso_id
-        AND rps_exist.estado_id = 1000
+    ccu.table_name AS tabla_destino,
+    c.column_name AS columna_sin_auditoria,
+    c.data_type AS tipo_dato,
+    CASE
+        WHEN EXISTS (
+            SELECT 1
+            FROM information_schema.table_constraints tc_pk
+            JOIN information_schema.key_column_usage kcu_pk
+                ON tc_pk.constraint_name = kcu_pk.constraint_name
+                AND tc_pk.table_schema = kcu_pk.table_schema
+            WHERE tc_pk.constraint_type = 'PRIMARY KEY'
+              AND tc_pk.table_schema = c.table_schema
+              AND tc_pk.table_name = c.table_name
+              AND kcu_pk.column_name = c.column_name
+        )
+        THEN 'PK'
+        WHEN EXISTS (
+            SELECT 1
+            FROM information_schema.table_constraints tc_fk
+            JOIN information_schema.key_column_usage kcu_fk
+                ON tc_fk.constraint_name = kcu_fk.constraint_name
+                AND tc_fk.table_schema = kcu_fk.table_schema
+            WHERE tc_fk.constraint_type = 'FOREIGN KEY'
+              AND tc_fk.table_schema = c.table_schema
+              AND tc_fk.table_name = c.table_name
+              AND kcu_fk.column_name = c.column_name
+        )
+        THEN 'FK'
+        ELSE ''
+    END AS tipo_clave,
+    (
+        SELECT
+            ccu_ref.table_name || '.' || ccu_ref.column_name
+        FROM information_schema.table_constraints tc_ref
+        JOIN information_schema.key_column_usage kcu_ref
+            ON tc_ref.constraint_name = kcu_ref.constraint_name
+            AND tc_ref.table_schema = kcu_ref.table_schema
+        JOIN information_schema.constraint_column_usage ccu_ref
+            ON ccu_ref.constraint_name = tc_ref.constraint_name
+            AND ccu_ref.table_schema = tc_ref.table_schema
+        WHERE tc_ref.constraint_type = 'FOREIGN KEY'
+          AND tc_ref.table_schema = c.table_schema
+          AND tc_ref.table_name = c.table_name
+          AND kcu_ref.column_name = c.column_name
+        LIMIT 1
+    ) AS referencia_fk
+FROM information_schema.table_constraints AS tc
+JOIN information_schema.key_column_usage AS kcu
+    ON tc.constraint_name = kcu.constraint_name
+    AND tc.table_schema = kcu.table_schema
+JOIN information_schema.constraint_column_usage AS ccu
+    ON ccu.constraint_name = tc.constraint_name
+    AND ccu.table_schema = tc.table_schema
+JOIN information_schema.columns AS c
+    ON c.table_name = ccu.table_name
+    AND c.table_schema = ccu.table_schema
+WHERE tc.constraint_type = 'FOREIGN KEY'
+    AND tc.table_schema = 'public'
+    AND tc.table_name = 'usuarios'
+    AND c.column_name NOT IN (
+        'estado_id',
+        'usuario_id_registro',
+        'usuario_id_actualizacion',
+        'usuario_id_baja',
+        'fecha_registro',
+        'fecha_actualizacion',
+        'fecha_baja'
+    )
+ORDER BY ccu.table_name, c.ordinal_position;
+
+
+
+
+
+
+SELECT
+    ccu.table_name AS tabla_destino,
+    c.column_name AS columna_sin_auditoria,
+    c.data_type AS tipo_dato,
+    CASE
+        WHEN EXISTS (
+            SELECT 1
+            FROM information_schema.table_constraints tc_pk
+            JOIN information_schema.key_column_usage kcu_pk
+                ON tc_pk.constraint_name = kcu_pk.constraint_name
+                AND tc_pk.table_schema = kcu_pk.table_schema
+            WHERE tc_pk.constraint_type = 'PRIMARY KEY'
+              AND tc_pk.table_schema = c.table_schema
+              AND tc_pk.table_name = c.table_name
+              AND kcu_pk.column_name = c.column_name
+        )
+        THEN 'PK'
+        WHEN EXISTS (
+            SELECT 1
+            FROM information_schema.table_constraints tc_fk
+            JOIN information_schema.key_column_usage kcu_fk
+                ON tc_fk.constraint_name = kcu_fk.constraint_name
+                AND tc_fk.table_schema = kcu_fk.table_schema
+            WHERE tc_fk.constraint_type = 'FOREIGN KEY'
+              AND tc_fk.table_schema = c.table_schema
+              AND tc_fk.table_name = c.table_name
+              AND kcu_fk.column_name = c.column_name
+        )
+        THEN 'FK'
+        ELSE ''
+    END AS tipo_clave,
+    (
+        SELECT
+            ccu_ref.table_name || '.' || ccu_ref.column_name
+        FROM information_schema.table_constraints tc_ref
+        JOIN information_schema.key_column_usage kcu_ref
+            ON tc_ref.constraint_name = kcu_ref.constraint_name
+            AND tc_ref.table_schema = kcu_ref.table_schema
+        JOIN information_schema.constraint_column_usage ccu_ref
+            ON ccu_ref.constraint_name = tc_ref.constraint_name
+            AND ccu_ref.table_schema = tc_ref.table_schema
+        WHERE tc_ref.constraint_type = 'FOREIGN KEY'
+          AND tc_ref.table_schema = c.table_schema
+          AND tc_ref.table_name = c.table_name
+          AND kcu_ref.column_name = c.column_name
+        LIMIT 1
+    ) AS referencia_fk
+FROM information_schema.table_constraints AS tc
+JOIN information_schema.key_column_usage AS kcu
+    ON tc.constraint_name = kcu.constraint_name
+    AND tc.table_schema = kcu.table_schema
+JOIN information_schema.constraint_column_usage AS ccu
+    ON ccu.constraint_name = tc.constraint_name
+    AND ccu.table_schema = tc.table_schema
+JOIN information_schema.columns AS c
+    ON c.table_name = ccu.table_name
+    AND c.table_schema = ccu.table_schema
+WHERE tc.constraint_type = 'FOREIGN KEY'
+    AND tc.table_schema = 'public'
+    AND tc.table_name IN ('usuarios', 'trabajadores_cargos', 'cargos', 'sucursales', 'empresas')
+    AND c.column_name NOT IN (
+        'estado_id',
+        'usuario_id_registro',
+        'usuario_id_actualizacion',
+        'usuario_id_baja',
+        'fecha_registro',
+        'fecha_actualizacion',
+        'fecha_baja'
+    )
+ORDER BY ccu.table_name, c.ordinal_position;
+
+
+
+
+/*
+SELECT
+    c.table_name AS tabla,
+    c.column_name AS columna,
+    c.data_type AS tipo_dato,
+
+    CASE
+        WHEN EXISTS (
+            SELECT 1
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+                ON tc.constraint_name = kcu.constraint_name
+                AND tc.table_schema = kcu.table_schema
+            WHERE tc.constraint_type = 'PRIMARY KEY'
+              AND tc.table_schema = c.table_schema
+              AND tc.table_name = c.table_name
+              AND kcu.column_name = c.column_name
+        )
+        THEN 'PK'
+
+        WHEN EXISTS (
+            SELECT 1
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+                ON tc.constraint_name = kcu.constraint_name
+                AND tc.table_schema = kcu.table_schema
+            WHERE tc.constraint_type = 'FOREIGN KEY'
+              AND tc.table_schema = c.table_schema
+              AND tc.table_name = c.table_name
+              AND kcu.column_name = c.column_name
+        )
+        THEN 'FK'
+
+        ELSE ''
+    END AS tipo_clave,
+
+    (
+        SELECT
+            ccu.table_name || '.' || ccu.column_name
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu
+            ON tc.constraint_name = kcu.constraint_name
+            AND tc.table_schema = kcu.table_schema
+        JOIN information_schema.constraint_column_usage ccu
+            ON ccu.constraint_name = tc.constraint_name
+            AND ccu.table_schema = tc.table_schema
+        WHERE tc.constraint_type = 'FOREIGN KEY'
+          AND tc.table_schema = c.table_schema
+          AND tc.table_name = c.table_name
+          AND kcu.column_name = c.column_name
+        LIMIT 1
+    ) AS referencia_fk
+FROM information_schema.columns AS c
+WHERE c.table_schema = 'public'
+  AND c.table_name IN (
+      'empresas',
+      'sucursales',
+      'cargos',
+      'trabajadores',
+      'trabajadores_cargos',
+      'usuarios'
+  )
+  AND c.column_name NOT IN (
+      'estado_id',
+      'usuario_id_registro',
+      'usuario_id_actualizacion',
+      'usuario_id_baja',
+      'fecha_registro',
+      'fecha_actualizacion',
+      'fecha_baja'
   );
-
-
--- ================================================================================================
--- 3. ACTUALIZAR SECUENCIAS
--- ================================================================================================
-
-SELECT setval('roles_permisos_tablas_rol_permiso_tabla_id_seq', COALESCE((SELECT MAX(rol_permiso_tabla_id) FROM roles_permisos_tablas), 0), (SELECT COUNT(*) > 0 FROM roles_permisos_tablas));
-SELECT setval('roles_permisos_sucesos_rol_permiso_suceso_id_seq', COALESCE((SELECT MAX(rol_permiso_suceso_id) FROM roles_permisos_sucesos), 0), (SELECT COUNT(*) > 0 FROM roles_permisos_sucesos));
-
-SELECT *
-FROM roles_permisos_tablas
-;
-
-
-            SELECT
-                u.usuario_id,
-                u.login,
-                u.sucursal_id,
-                u.avatar,
-                u.rol_id,
-                u.contrasena,
-                p.trabajador_id AS trabajador_id,
-                p.nombres,
-                r.codigo AS rol_codigo,
-                r.rol AS rol_nombre,
-                c.cargo_id AS cargo_id,
-                c.cargo AS cargo_nombre,
-                c.codigo AS cargo_codigo,
-                TRIM(p.nombres || ' ' || p.paterno || ' ' || COALESCE(p.materno, '')) AS trabajador_nombre_completo,
-                p.nombres AS trabajador_nombres,
-                p.paterno AS trabajador_paterno,
-                p.materno AS trabajador_materno,
-                p.dni AS trabajador_dni,
-                s.sucursal AS sucursal_nombre,
-                s.codigo AS sucursal_codigo,
-                e.empresa_id AS empresa_id,
-                e.empresa AS empresa_nombre,
-                e.codigo AS empresa_codigo
-            FROM usuarios u
-            INNER JOIN roles r ON r.rol_id = u.rol_id
-            INNER JOIN trabajadores p ON p.trabajador_id = u.trabajador_id
-            INNER JOIN trabajadores_cargos tc ON tc.trabajador_id = p.trabajador_id
-                AND tc.es_activo = 1
-                AND tc.estado_id = 1000
-            INNER JOIN cargos c ON c.cargo_id = tc.cargo_id
-            INNER JOIN sucursales s ON s.sucursal_id = u.sucursal_id
-            INNER JOIN empresas e ON e.empresa_id = s.empresa_id
-            WHERE u.login = 'ADMIN'
-                AND u.estado_id = 1000
+*/

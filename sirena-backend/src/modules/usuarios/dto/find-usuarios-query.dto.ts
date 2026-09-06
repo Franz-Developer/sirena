@@ -39,12 +39,6 @@ export class FindUsuariosQueryDto extends BasePaginationQueryDto {
 
     @IsOptional()
     @Type(() => Number)
-    @IsInt({ message: 'sucursal_id debe ser un número entero.' })
-    @Min(1, { message: 'sucursal_id debe ser mayor a 0.' })
-    sucursal_id?: number;
-
-    @IsOptional()
-    @Type(() => Number)
     @IsInt({ message: 'rol_id debe ser un número entero.' })
     @Min(1, { message: 'rol_id debe ser mayor a 0.' })
     rol_id?: number;
@@ -54,6 +48,12 @@ export class FindUsuariosQueryDto extends BasePaginationQueryDto {
     @IsInt({ message: 'empresa_id debe ser un número entero.' })
     @Min(1, { message: 'empresa_id debe ser mayor a 0.' })
     empresa_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'sucursal_id debe ser un número entero.' })
+    @Min(1, { message: 'sucursal_id debe ser mayor a 0.' })
+    sucursal_id?: number;
 
     @IsOptional()
     @Type(() => Number)
@@ -71,7 +71,6 @@ export class FindUsuariosQueryDto extends BasePaginationQueryDto {
         return [
             `${alias}.usuario_id`,
             `${alias}.trabajador_id`,
-            `${alias}.sucursal_id`,
             `${alias}.rol_id`,
             `${alias}.login`,
             `${alias}.contrasena`,
@@ -124,7 +123,6 @@ export class FindUsuariosQueryDto extends BasePaginationQueryDto {
         return [
             'usuario_id',
             'trabajador_id',
-            'sucursal_id',
             'rol_id',
             'empresa_id',
             'cargo_id',
@@ -519,7 +517,7 @@ export class FindUsuariosQueryDto extends BasePaginationQueryDto {
     }
 
     static getCamposProtegidosConDependencias(): string[] {
-        return ['login', 'trabajador_id', 'sucursal_id', 'rol_id'];
+        return ['login', 'trabajador_id', 'rol_id'];
     }
 
     static getEquivalenciasMapeo(): Record<string, string> {
@@ -532,7 +530,6 @@ export class FindUsuariosQueryDto extends BasePaginationQueryDto {
         return {
             'usuario_id': `${alias}.usuario_id`,
             'trabajador_id': `${alias}.trabajador_id`,
-            'sucursal_id': `${alias}.sucursal_id`,
             'rol_id': `${alias}.rol_id`,
             'empresa_id': `${aliasEmpresa}.empresa_id`,
             'cargo_id': `${aliasCargo}.cargo_id`,

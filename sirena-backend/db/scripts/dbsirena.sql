@@ -721,6 +721,7 @@ R.0: La tabla cargos define los puestos de trabajo o roles laborales dentro de l
 
 CREATE TABLE trabajadores (
     trabajador_id BIGSERIAL PRIMARY KEY,
+	sucursal_id BIGINT NOT NULL DEFAULT 1,
     genero_id SMALLINT NOT NULL DEFAULT 1200,  		-- 1200=MASCULINO, 1201=FEMENINO
     estado_civil_id SMALLINT NOT NULL DEFAULT 1250, -- 1250=SOLTERO, 1251=CASADO, 1252=DIVORCIADO, 1253=VIUDO, 1254=UNION_LIBRE y 1300=SOLTERA, 1301=CASADA, 1302=DIVORCIADA, 1303=VIUDA, 1304=UNION_LIBRE
     nombres VARCHAR(150) NOT NULL,
@@ -741,6 +742,7 @@ CREATE TABLE trabajadores (
     fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMPTZ NULL,
     fecha_baja TIMESTAMPTZ NULL,
+	CONSTRAINT fk_trabajadores_sucursal_id FOREIGN KEY (sucursal_id) REFERENCES sucursales(sucursal_id),
     CONSTRAINT chk_trabajadores_generoid CHECK (genero_id IN (1200, 1201)),
     CONSTRAINT chk_trabajadores_estadocivil CHECK (
         (genero_id = 1200 AND estado_civil_id IN (1250, 1251, 1252, 1253, 1254)) OR
@@ -766,7 +768,9 @@ CREATE TABLE trabajadores (
     CONSTRAINT chk_trabajadores_fechacontratacion CHECK (fecha_contratacion IS NULL OR fecha_contratacion <= CURRENT_DATE)
 );
 CREATE UNIQUE INDEX uix_trabajadores_dni_unique ON trabajadores (dni) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_trabajadores_trabajador_unique ON trabajadores (trabajador_id, sucursal_id) WHERE estado_id = 1000;
 CREATE UNIQUE INDEX uix_trabajadores_nombre_completo_unique ON trabajadores (nombres, paterno, COALESCE(materno, '')) WHERE estado_id IN (1000, 1002);
+CREATE INDEX idx_trabajadores_sucursal ON trabajadores (sucursal_id) WHERE estado_id = 1000;
 
 COMMENT ON TABLE trabajadores IS 'Reglas de la tabla - trabajadores
 R.0: La tabla trabajadores actúa como el registro maestro de individuos, centralizando la información demográfica básica de todos los actores del sistema, incluyendo empleados, clientes eventuales y contactos. Su propósito es servir como la entidad raíz de identificación personal, evitando la duplicación de datos y proporcionando una base de datos unificada para la creación de usuarios del sistema, gestión de clientes y cualquier otra interacción que requiera datos personales.
@@ -852,8 +856,7 @@ R.4: Unicidad Operativa del Catálogo. Se restringe la duplicidad semántica de 
 CREATE TABLE usuarios (
     usuario_id BIGSERIAL PRIMARY KEY,
     trabajador_id BIGINT NOT NULL DEFAULT 1,
-    sucursal_id BIGINT NOT NULL DEFAULT 1,
-	rol_id BIGINT NOT NULL DEFAULT 1,
+    rol_id BIGINT NOT NULL DEFAULT 1,
     login VARCHAR(10) NOT NULL,
     contrasena VARCHAR(500) NOT NULL,
     avatar VARCHAR(255) NOT NULL,
@@ -865,7 +868,6 @@ CREATE TABLE usuarios (
     fecha_actualizacion TIMESTAMPTZ NULL,
     fecha_baja TIMESTAMPTZ NULL,
     CONSTRAINT fk_usuarios_trabajador_id FOREIGN KEY (trabajador_id) REFERENCES trabajadores(trabajador_id),
-    CONSTRAINT fk_usuarios_sucursal_id FOREIGN KEY (sucursal_id) REFERENCES sucursales(sucursal_id),
     CONSTRAINT fk_usuarios_rol_id FOREIGN KEY (rol_id) REFERENCES roles(rol_id),
     CONSTRAINT chk_usuarios_estadoid CHECK (estado_id IN (1000, 1002)),
     CONSTRAINT chk_usuarios_login_notempty CHECK (TRIM(login) <> ''),
@@ -879,12 +881,10 @@ CREATE UNIQUE INDEX uix_usuarios_login_unique ON usuarios (login) WHERE estado_i
 CREATE INDEX idx_usuarios_usuario_id_registro ON usuarios(usuario_id_registro);
 CREATE INDEX idx_usuarios_usuario_id_actualizacion ON usuarios(usuario_id_actualizacion) WHERE usuario_id_actualizacion IS NOT NULL;
 CREATE INDEX idx_usuarios_operacion_covering ON usuarios(usuario_id_registro, usuario_id_actualizacion, login) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_usuarios_sucursalid ON usuarios(sucursal_id);
-CREATE INDEX idx_usuarios_trabajadorid ON usuarios(trabajador_id);
 CREATE INDEX idx_usuarios_rolid ON usuarios(rol_id);
 
 COMMENT ON TABLE usuarios IS 'Reglas de la tabla - usuarios
-R.0: La tabla usuarios gestiona las credenciales de acceso al sistema, vinculando a un trabajador con un rol específico y una sucursal operativa. Su propósito es autenticar y autorizar a los operadores de la plataforma, controlando el inicio de sesión y, mediante el rol_id asociado, determinando los menús y acciones permitidas para cada usuario.
+R.0: La tabla usuarios gestiona las credenciales de acceso al sistema, vinculando a un trabajador con un rol específico. Su propósito es autenticar y autorizar a los operadores de la plataforma, controlando el inicio de sesión y, mediante el rol_id asociado, determinando los menús y acciones permitidas para cada usuario.
 R.1: Restricción Estricta de Identidad (login). El identificador login debe registrarse obligatoriamente en mayúsculas sostenidas, con una longitud mínima de 4 caracteres. Se permiten únicamente letras, números, puntos (.) y guiones bajos (_), prohibiendo espacios o caracteres especiales mediante expresiones regulares nativas.
 R.3: Criptografía Asimétrica Obligatoria. Toda contraseña debe ser procesada y almacenada mandatoriamente utilizando funciones de hash seguras de una sola vía (como Bcrypt con un factor de costo mínimo de 10 o Argon2) en el servidor backend, quedando estrictamente prohibido el almacenamiento en texto plano.
 R.4: Inmutabilidad del Superusuario Técnico. Las credenciales de la cuenta con identificador ADMIN (vinculadas a la infraestructura central) están protegidas mediante restricciones lógicas en la capa de servicios, impidiendo su eliminación física o la transición de su estado operativo a BORRADO o HISTORICO.
@@ -917,7 +917,7 @@ R.0: La tabla tablas define los nombres de las tablas que pertenecen a la base d
 
 CREATE TABLE sucesos (
     suceso_id INT PRIMARY KEY,
-    tabla_id BIGINT NOT NULL,
+    tabla_id BIGINT NOT NULL DEFAULT 1,
     codigo VARCHAR(15) NOT NULL,
     suceso VARCHAR(30) NOT NULL,
     descripcion VARCHAR(200) NOT NULL,
@@ -3723,7 +3723,7 @@ CREATE TABLE pedidos_online (
     CONSTRAINT fk_pedidosonline_cliente_id FOREIGN KEY (cliente_id) REFERENCES clientes(cliente_id),
     CONSTRAINT fk_pedidosonline_sucursal_id FOREIGN KEY (sucursal_id) REFERENCES sucursales(sucursal_id),
     CONSTRAINT fk_pedidosonline_kardex_id FOREIGN KEY (kardex_id) REFERENCES kardex(kardex_id),
-    CONSTRAINT fk_pedidosonline_repartidor_id FOREIGN KEY (repartidor_id) REFERENCES trabajador(trabajador_id),
+    CONSTRAINT fk_pedidosonline_repartidor_id FOREIGN KEY (repartidor_id) REFERENCES trabajadores(trabajador_id),
     CONSTRAINT chk_pedidosonline_estadopedidoonlineid CHECK (estado_pedido_online_id IN (3700, 3701, 3702, 3703, 3704, 3705, 3706)),
     CONSTRAINT chk_pedidosonline_estadopagoid CHECK (estado_pago_id IN (2550, 2551, 2552, 2553, 2554, 2555)),
     CONSTRAINT chk_pedidosonline_estadoid CHECK (estado_id IN (1000, 1001, 1003)),

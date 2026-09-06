@@ -1,12 +1,17 @@
 // C:\sirena\sirena-backend\src\modules\trabajadores\dto\create-trabajador.dto.ts
 import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsOptional, IsString, IsIn, MaxLength, MinLength, IsDate, IsEmail } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString, IsIn, MaxLength, Min, MinLength, IsDate, IsEmail } from 'class-validator';
 import { Type } from 'class-transformer';
 import { IsSafeText } from '../../../common/decorators/safe-text.decorator';
 import { Genero, GENERO_METADATA, EstadoCivilMasculino, EstadoCivilFemenino } from '../../../common/constants/estados.constant';
 import { getEnumValues, createEnumMessage } from '../../../common/utils/validation-helper.util';
 
 export class CreateTrabajadorDto {
+    @IsOptional()
+    @IsInt({ message: 'sucursal_id debe ser un número entero.' })
+    @Min(1, { message: 'sucursal_id debe ser válido.' })
+    sucursal_id?: number;
+
     @IsInt({ message: 'genero_id debe ser un número entero.' })
     @IsIn(getEnumValues(Genero), {
         message: createEnumMessage(GENERO_METADATA, getEnumValues(Genero), 'genero_id')

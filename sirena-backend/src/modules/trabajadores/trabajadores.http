@@ -4,6 +4,9 @@
 # ----------------------------------------------------------------------
 @baseUrl = http://localhost:3010/api
 @baseUrl_trabajadores = {{baseUrl}}/trabajadores
+@baseUrl_cargos = {{baseUrl}}/cargos
+@baseUrl_empresas = {{baseUrl}}/empresas
+@baseUrl_sucursales = {{baseUrl}}/sucursales
 @baseUrl_constantes = {{baseUrl}}/constantes
 @rest-client.previewOption = body
 
@@ -23,6 +26,23 @@ Content-Type: application/json
 @authToken = {{login.response.body.token}}
 
 # ==============================================================================
+# AUTENTICACIÓN - USUARIO 3
+# ==============================================================================
+
+### 1.b OBTENER TOKEN USUARIO 3
+# @name loginUser3
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "GLADYS",
+    "password": "12345678"
+}
+
+### 2.b GUARDAR TOKEN USUARIO 3
+# @authToken = {{loginUser3.response.body.token}}
+
+# ==============================================================================
 # EXTRAS
 # ==============================================================================
 
@@ -36,6 +56,18 @@ Authorization: Bearer {{authToken}}
 
 ### LISTAR POR TIPO
 GET {{baseUrl_constantes}}?tipo=estado_civil_femenino_id
+Authorization: Bearer {{authToken}}
+
+### LISTAR CARGOS ACTIVOS
+GET {{baseUrl_cargos}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_empresas}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR EMPRESA Y ESTADO ACTIVO
+GET {{baseUrl_sucursales}}?empresa_id=2&estado_id=1000
 Authorization: Bearer {{authToken}}
 
 # ==============================================================================
@@ -169,12 +201,14 @@ Content-Type: image/jpeg
 < {{foto_path}}
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
 
+
 ### 2. CREAR TRABAJADOR (con foto)
 POST {{baseUrl_trabajadores}}
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
+    "sucursal_id": 2,
     "genero_id": 1200,
     "estado_civil_id": 1250,
     "nombres": "JUAN PABLO",

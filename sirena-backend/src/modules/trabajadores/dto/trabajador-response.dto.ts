@@ -23,17 +23,30 @@ const transformEstadoCivil = ({ obj }: { obj: TrabajadorRawResult }) => {
 };
 
 const transformNombreCompleto = ({ obj }: { obj: TrabajadorRawResult }) => {
-    const partes = [obj.nombres, obj.paterno, obj.materno].filter(Boolean);
+    const partes = [
+        obj.nombres,
+        obj.paterno,
+        obj.materno
+    ].filter(val => val !== null && val !== undefined && String(val).trim() !== '');
+
     return partes.join(' ');
 };
 
 export interface TrabajadorRawResult {
     trabajador_id: string | number;
+    sucursal_id: string | number;
+    sucursal?: string;
+    sucursal_codigo?: string;
+    empresa?: string;
+    empresa_codigo?: string;
+    cargo?: string;
+    cargo_codigo?: string;
     genero_id: string | number;
     estado_civil_id: string | number;
     nombres: string;
     paterno: string;
     materno?: string | null;
+    trabajador_nombre_completo?: string;
     dni: string;
     telefono?: string | null;
     direccion?: string | null;
@@ -58,6 +71,22 @@ export interface TrabajadorRawResult {
 
 export class TrabajadorResponseDto {
     @Expose() trabajador_id!: number;
+    @Expose() sucursal_id!: number;
+
+    @Expose() sucursal!: string;
+
+    @Expose()
+    @Transform(({ obj }) => obj.sucursal_codigo || obj.codigo_sucursal)
+    sucursal_codigo!: string;
+
+    @Expose()
+    @Transform(({ obj }) => obj.empresa || obj.empesa)
+    empresa!: string;
+
+    @Expose() empresa_codigo!: string;
+    @Expose() cargo!: string;
+    @Expose() cargo_codigo!: string;
+
     @Expose() genero_id!: number;
 
     @Expose()
@@ -77,6 +106,10 @@ export class TrabajadorResponseDto {
     @Expose()
     @Transform(transformNombreCompleto)
     nombre_completo!: string;
+
+    @Expose()
+    @Transform(transformNombreCompleto)
+    trabajador_nombre_completo!: string;
 
     @Expose() dni!: string;
     @Expose() telefono?: string | null;
@@ -99,8 +132,7 @@ export class TrabajadorResponseDto {
     @Transform(transformEstado)
     estado_registro!: string;
 
-    @Expose()
-    usuario_operacion!: string;
+    @Expose() usuario_operacion!: string;
 
     @Expose() usuario_id_registro!: number;
     @Expose() usuario_id_actualizacion?: number | null;
@@ -118,9 +150,6 @@ export class TrabajadorResponseDto {
     @Transform(({ value }) => formatLocalDate(value))
     fecha_baja?: string | null;
 
-    @Expose()
-    tiene_dependencias!: boolean;
-
-    @Expose()
-    campos_protegidos?: string[];
+    @Expose() tiene_dependencias!: boolean;
+    @Expose() campos_protegidos?: string[];
 }

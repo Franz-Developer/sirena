@@ -16,6 +16,7 @@ import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { Usuario } from './entities/usuario.entity';
 import { verifyPassword, hashPassword } from '../../common/utils/crypto.util';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { logSqlQuery } from '../../common/utils/sql-logger.util';
 
 @Injectable()
 export class UsuariosService extends BaseService {
@@ -31,40 +32,24 @@ export class UsuariosService extends BaseService {
             {
                 table: 'trabajadores',
                 alias: 'tr',
-                onCondition: 'tr.trabajador_id = t.trabajador_id AND tr.estado_id = t.estado_id',
+                onCondition: 'tr.trabajador_id = t.trabajador_id',
                 selectColumns: [
                     "TRIM(CONCAT_WS(' ', tr.nombres, tr.paterno, tr.materno)) AS trabajador_nombre_completo",
                     'tr.nombres AS trabajador_nombres',
                     'tr.paterno AS trabajador_paterno',
                     'tr.materno AS trabajador_materno',
                     'tr.dni AS trabajador_dni',
-                    'tr.foto AS trabajador_foto'
-                ],
-                type: 'INNER'
-            },
-            {
-                table: 'trabajadores_cargos',
-                alias: 'tc',
-                onCondition: 'tc.trabajador_id = tr.trabajador_id AND tc.estado_id = t.estado_id AND tc.es_activo = 1',
-                selectColumns: [],
-                type: 'INNER'
-            },
-            {
-                table: 'cargos',
-                alias: 'c',
-                onCondition: 'c.cargo_id = tc.cargo_id AND c.estado_id = t.estado_id',
-                selectColumns: [
-                    'c.cargo_id AS cargo_id',
-                    'c.cargo AS cargo_nombre',
-                    'c.codigo AS cargo_codigo'
+                    'tr.foto AS trabajador_foto',
+                    'tr.sucursal_id AS trabajador_sucursal_id'
                 ],
                 type: 'INNER'
             },
             {
                 table: 'sucursales',
                 alias: 's',
-                onCondition: 's.sucursal_id = t.sucursal_id AND s.estado_id = t.estado_id',
+                onCondition: 's.sucursal_id = tr.sucursal_id',
                 selectColumns: [
+                    's.sucursal_id AS sucursal_id',
                     's.sucursal AS sucursal_nombre',
                     's.codigo AS sucursal_codigo',
                     's.codigo_sin AS sucursal_codigo_sin',
@@ -78,7 +63,7 @@ export class UsuariosService extends BaseService {
             {
                 table: 'empresas',
                 alias: 'e',
-                onCondition: 'e.empresa_id = s.empresa_id AND e.estado_id = t.estado_id',
+                onCondition: 'e.empresa_id = s.empresa_id',
                 selectColumns: [
                     'e.empresa_id AS empresa_id',
                     'e.empresa AS empresa_nombre',
@@ -91,9 +76,27 @@ export class UsuariosService extends BaseService {
                 type: 'INNER'
             },
             {
+                table: 'trabajadores_cargos',
+                alias: 'tc',
+                onCondition: 'tc.trabajador_id = tr.trabajador_id AND tc.es_activo = 1',
+                selectColumns: [],
+                type: 'INNER'
+            },
+            {
+                table: 'cargos',
+                alias: 'c',
+                onCondition: 'c.cargo_id = tc.cargo_id',
+                selectColumns: [
+                    'c.cargo_id AS cargo_id',
+                    'c.cargo AS cargo_nombre',
+                    'c.codigo AS cargo_codigo'
+                ],
+                type: 'INNER'
+            },
+            {
                 table: 'roles',
                 alias: 'r',
-                onCondition: 'r.rol_id = t.rol_id AND r.estado_id = t.estado_id',
+                onCondition: 'r.rol_id = t.rol_id',
                 selectColumns: [
                     'r.rol AS rol_nombre',
                     'r.codigo AS rol_codigo'
@@ -102,12 +105,6 @@ export class UsuariosService extends BaseService {
             }
         ],
         configuracionFiltros: [
-            {
-                nombreCampo: 'sucursal_id',
-                nombreColumna: 'sucursal_id',
-                tipoDatoFiltro: 'number',
-                operador: 'eq',
-            },
             {
                 nombreCampo: 'rol_id',
                 nombreColumna: 'rol_id',
@@ -123,6 +120,12 @@ export class UsuariosService extends BaseService {
             {
                 nombreCampo: 'empresa_id',
                 nombreColumna: 'e.empresa_id',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+            {
+                nombreCampo: 'sucursal_id',
+                nombreColumna: 's.sucursal_id',
                 tipoDatoFiltro: 'number',
                 operador: 'eq',
             },
@@ -154,7 +157,11 @@ export class UsuariosService extends BaseService {
 
     async create(dto: CreateUsuarioDto, usuarioId: number): Promise<UsuarioResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            await this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear');
+            await Promise.all([
+                this.tablaValidador.validarPermisoTabla(usuarioId, 'usuarios', 'crear'),
+                dto.rol_id ? this.tablaValidador.validarRegistrosActivos('roles', 'rol_id', dto.rol_id) : Promise.resolve(),
+                dto.trabajador_id ? this.tablaValidador.validarRegistrosActivos('trabajadores', 'trabajador_id', dto.trabajador_id) : Promise.resolve()
+            ]);
 
             if (!dto.avatar) {
                 throw new DomainException(
@@ -172,17 +179,35 @@ export class UsuariosService extends BaseService {
                 }),
             ]);
 
-            const usuario = manager.create(Usuario, {
-                ...dto,
-                contrasena: await hashPassword(dto.contrasena),
-                avatar: dto.avatar,
-                usuario_id_registro: Number(usuarioId),
-            });
+            const query = `
+                INSERT INTO ${this.nombreTabla} (trabajador_id, rol_id, login, contrasena, avatar, estado_id, usuario_id_registro, fecha_registro)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+                RETURNING ${this.campoPK}
+            `;
+            const params = [
+                dto.trabajador_id,
+                dto.rol_id,
+                dto.login,
+                await hashPassword(dto.contrasena),
+                dto.avatar,
+                ESTADO_ACTIVO,
+                Number(usuarioId)
+            ];
+            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const saved = await manager.save(usuario);
-                return this.findOne<UsuarioResponseDto>(saved.usuario_id, usuarioId, manager);
+                const insertResult = await manager.query(query, params);
+                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
+
+                if (newId === 0) {
+                    throw new DomainException(
+                        `Error al insertar el usuario "${dto.login}".`,
+                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
+                    );
+                }
+
+                return this.findOne<UsuarioResponseDto>(newId, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;

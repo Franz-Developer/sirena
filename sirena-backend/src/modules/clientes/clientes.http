@@ -12,6 +12,22 @@
 # @name login
 POST {{baseUrl}}/auth/validar
 Content-Type: application/json
+# ==============================================================================
+# AUTENTICACIÓN - USUARIO 3
+# ==============================================================================
+
+### 1.b OBTENER TOKEN USUARIO 3
+# @name loginUser3
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "GLADYS",
+    "password": "12345678"
+}
+
+### 2.b GUARDAR TOKEN USUARIO 3
+# @authToken = {{loginUser3.response.body.token}}
 
 {
     "username": "ADMIN",
@@ -20,6 +36,23 @@ Content-Type: application/json
 
 ### 2. GUARDAR TOKEN EN VARIABLE.
 @authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# AUTENTICACIÓN - USUARIO 3
+# ==============================================================================
+
+### 1.b OBTENER TOKEN USUARIO 3
+# @name loginUser3
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "GLADYS",
+    "password": "12345678"
+}
+
+### 2.b GUARDAR TOKEN USUARIO 3
+# @authToken = {{loginUser3.response.body.token}}
 
 # ==============================================================================
 # EXTRAS

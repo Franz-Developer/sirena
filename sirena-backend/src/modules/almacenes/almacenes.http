@@ -21,7 +21,7 @@ Content-Type: application/json
 
 ### 2. GUARDAR TOKEN EN VARIABLE.
 # No se debe presionar es automático.
-# @authToken = {{login.response.body.token}}
+@authToken = {{login.response.body.token}}
 
 # ==============================================================================
 # AUTENTICACIÓN - USUARIO 3
@@ -38,7 +38,7 @@ Content-Type: application/json
 }
 
 ### 2.b GUARDAR TOKEN USUARIO 3
-@authToken = {{loginUser3.response.body.token}}
+# @authToken = {{loginUser3.response.body.token}}
 
 # ==============================================================================
 # ENDPOINT EXTRAS
@@ -79,6 +79,12 @@ Authorization: Bearer {{authToken}}
 ### HISTÓRICOS (1002)
 GET {{baseUrl_almacenes}}?sucursal_id=2&estado_id=1002
 Authorization: Bearer {{authToken}}
+
+
+### Obtener almacén específico (ID = 2)
+GET {{baseUrl_almacenes}}/9
+Authorization: Bearer {{authToken}}
+
 
 # ==============================================================================
 # FILTROS POR SUCURSAL Y CÓDIGO

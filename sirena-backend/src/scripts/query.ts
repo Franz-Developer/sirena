@@ -55,7 +55,7 @@ function formatAsciiTable(rows: any[]): string {
         result += rowLine + '\n';
     });
 
-    result += separatorLine + `\n\nTotal de filas: ${processedRows.length}\n`;
+    result += separatorLine + `\nTotal de filas: ${processedRows.length}\n\n\n`;
     return result;
 }
 

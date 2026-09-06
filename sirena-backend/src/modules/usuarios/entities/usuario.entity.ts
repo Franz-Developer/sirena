@@ -14,7 +14,6 @@ import { BaseAuditEntity } from '../../../common/base/base-audit.entity';
 @Index('idx_usuarios_usuario_id_registro', ['usuario_id_registro'])
 @Index('idx_usuarios_usuario_id_actualizacion', ['usuario_id_actualizacion'], { where: 'usuario_id_actualizacion IS NOT NULL' })
 @Index('idx_usuarios_operacion_covering', ['usuario_id_registro', 'usuario_id_actualizacion', 'login'], { where: 'estado_id IN (1000, 1002)' })
-@Index('idx_usuarios_sucursalid', ['sucursal_id'])
 @Index('idx_usuarios_trabajadorid', ['trabajador_id'])
 @Index('idx_usuarios_rolid', ['rol_id'])
 export class Usuario extends BaseAuditEntity {
@@ -23,9 +22,6 @@ export class Usuario extends BaseAuditEntity {
 
     @Column({ name: 'trabajador_id', type: 'bigint', nullable: false, default: 1 })
     trabajador_id!: number;
-
-    @Column({ name: 'sucursal_id', type: 'bigint', nullable: false, default: 1 })
-    sucursal_id!: number;
 
     @Column({ name: 'rol_id', type: 'bigint', nullable: false, default: 1 })
     rol_id!: number;

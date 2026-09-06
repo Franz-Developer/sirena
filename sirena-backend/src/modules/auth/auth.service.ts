@@ -39,17 +39,11 @@ export class AuthService {
 
         this.logger.debug(`Iniciando proceso de autenticación para usuario: ${username}`);
 
-        // 1. OBTENER USUARIO
+        // 1. OBTENER USUARIO (Sin sucursal_id directo en usuarios)
         const sqlUsuario = `
             SELECT
                 u.usuario_id,
                 u.login,
-                e.empresa_id AS empresa_id,
-                e.empresa AS empresa_nombre,
-                e.codigo AS empresa_codigo,
-                u.sucursal_id,
-                s.sucursal AS sucursal_nombre,
-                s.codigo AS sucursal_codigo,
                 u.avatar,
                 u.rol_id,
                 r.codigo AS rol_codigo,
@@ -69,8 +63,6 @@ export class AuthService {
             INNER JOIN trabajadores t ON t.trabajador_id = u.trabajador_id AND t.estado_id = $2
             INNER JOIN trabajadores_cargos tc ON tc.trabajador_id = t.trabajador_id AND tc.estado_id = $2 AND tc.es_activo = 1
             INNER JOIN cargos c ON c.cargo_id = tc.cargo_id AND c.estado_id = $2
-            INNER JOIN sucursales s ON s.sucursal_id = u.sucursal_id AND s.estado_id = $2
-            INNER JOIN empresas e ON e.empresa_id = s.empresa_id AND e.estado_id = $2
             WHERE u.login = $1
             AND u.estado_id = $2
         `;
@@ -105,7 +97,7 @@ export class AuthService {
             excludeExtraneousValues: true
         });
 
-        // 3. CONSULTA DE MENÚS (Vía la nueva tabla relacional roles_menus)
+        // 3. CONSULTA DE MENÚS
         const sqlMenu = `
             SELECT
                 m.menu_id,
@@ -131,7 +123,7 @@ export class AuthService {
 
         const menuEstructurado = estructurarMenu(rawMenu);
 
-        // 4. CONSULTA DE PERMISOS GRANULARES (Vía roles_permisos_tablas y la tabla tablas)
+        // 4. CONSULTA DE PERMISOS GRANULARES
         const sqlPermisosTablas = `
             SELECT
                 t.nombre AS tabla_nombre,
@@ -148,7 +140,7 @@ export class AuthService {
                 AND rpt.estado_id = $2
         `;
         param = [usuarioDto.rol_id, Estado.ACTIVO];
-        logSqlQuery(sqlMenu, param, 'Consulta Menu');
+        logSqlQuery(sqlPermisosTablas, param, 'Consulta Permisos');
 
         const permisosStart = Date.now();
         const rawPermisos = await this.dataSource.query(sqlPermisosTablas, param);

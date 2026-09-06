@@ -35,7 +35,7 @@ export class ClientesService extends BaseService {
                     'b.banco AS banco_base_nombre',
                     'b.abreviatura AS banco_base_abreviatura'
                 ],
-                type: 'LEFT'
+                type: 'INNER'
             }
         ],
         configuracionFiltros: [

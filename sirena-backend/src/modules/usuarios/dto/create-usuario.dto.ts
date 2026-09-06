@@ -8,10 +8,6 @@ export class CreateUsuarioDto {
     @IsPositive({ message: 'trabajador_id debe ser un número positivo.' })
     trabajador_id: number;
 
-    @IsInt({ message: 'sucursal_id debe ser un número entero.' })
-    @IsPositive({ message: 'sucursal_id debe ser un número positivo.' })
-    sucursal_id: number;
-
     @IsInt({ message: 'rol_id debe ser un número entero.' })
     @IsPositive({ message: 'rol_id debe ser un número positivo.' })
     rol_id: number;

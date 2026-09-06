@@ -25,6 +25,24 @@ export class FindTrabajadoresQueryDto extends BasePaginationQueryDto {
 
     @IsOptional()
     @Type(() => Number)
+    @IsInt({ message: 'sucursal_id debe ser un número entero.' })
+    @Min(1, { message: 'sucursal_id debe ser mayor a 0.' })
+    sucursal_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'cargo_id debe ser un número entero.' })
+    @Min(1, { message: 'cargo_id debe ser mayor a 0.' })
+    cargo_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'empresa_id debe ser un número entero.' })
+    @Min(1, { message: 'empresa_id debe ser mayor a 0.' })
+    empresa_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
     @IsInt({ message: 'El estado_id debe ser un número entero.' })
     @IsIn(ESTADOS_CONSULTA, {
         message: createEnumMessage(ESTADO_METADATA, ESTADOS_CONSULTA, 'estado_id')
@@ -67,11 +85,24 @@ export class FindTrabajadoresQueryDto extends BasePaginationQueryDto {
     }
 
     static getCamposParaQ(): string[] {
-        return ['nombres', 'paterno', 'materno', 'dni', 'telefono', 'email'];
+        return [
+            'nombres',
+            'paterno',
+            'materno',
+            'dni',
+            'telefono',
+            'email',
+            'cargo',
+            'cargo_codigo',
+            'sucursal',
+            'sucursal_codigo',
+            'empresa',
+            'empresa_codigo'
+        ];
     }
 
     static getCamposPermitidosParaOrdenar(): string[] {
-        return ['trabajador_id', 'nombres', 'paterno', 'materno', 'dni'];
+        return ['trabajador_id', 'nombres', 'paterno', 'materno', 'dni', 'cargo', 'sucursal', 'empresa'];
     }
 
     static getDependencias(): Array<string | { tabla: string; campoFk: string }> {
@@ -80,12 +111,23 @@ export class FindTrabajadoresQueryDto extends BasePaginationQueryDto {
             { tabla: 'trabajadores_cargos', campoFk: 'trabajador_id' },
             { tabla: 'planillas_detalle', campoFk: 'trabajador_id' },
             { tabla: 'contratos', campoFk: 'trabajador_id' },
-            { tabla: 'asistencias', campoFk: 'trabajador_id' }
+            { tabla: 'asistencias', campoFk: 'trabajador_id' },
+            { tabla: 'inventarios_fisicos', campoFk: 'trabajador_responsable_id' },
+            { tabla: 'inventarios_fisicos', campoFk: 'trabajador_supervisor_id' },
+            { tabla: 'ubicaciones_historial', campoFk: 'trabajador_id' },
+            { tabla: 'cajas', campoFk: 'apertura_trabajador_id' },
+            { tabla: 'cajas', campoFk: 'cierre_trabajador_id' },
+            { tabla: 'cajas', campoFk: 'autorizacion_trabajador_id' },
+            { tabla: 'movimientos', campoFk: 'trabajador_id' },
+            { tabla: 'alertas_notificaciones', campoFk: 'trabajador_asignado_id' },
+            { tabla: 'alertas_notificaciones', campoFk: 'trabajador_resolutor_id' },
+            { tabla: 'planillas', campoFk: 'trabajador_aprobacion_id' },
+            { tabla: 'planillas', campoFk: 'trabajador_pago_id' }
         ];
     }
 
     static getCamposProtegidosConDependencias(): string[] {
-        return ['dni', 'nombres', 'paterno', 'materno'];
+        return ['dni', 'nombres', 'paterno', 'materno', 'sucursal_id'];
     }
 
     static getEquivalenciasMapeo(): Record<string, string> {
@@ -111,7 +153,14 @@ export class FindTrabajadoresQueryDto extends BasePaginationQueryDto {
             'usuario_id_baja': `${alias}.usuario_id_baja`,
             'fecha_registro': `${alias}.fecha_registro`,
             'fecha_actualizacion': `${alias}.fecha_actualizacion`,
-            'fecha_baja': `${alias}.fecha_baja`
+            'fecha_baja': `${alias}.fecha_baja`,
+            'sucursal_id': `${alias}.sucursal_id`,
+            'cargo': 'c.cargo',
+            'cargo_codigo': 'c.codigo',
+            'sucursal': 's.sucursal',
+            'sucursal_codigo': 's.codigo',
+            'empresa': 'e.empresa',
+            'empresa_codigo': 'e.codigo'
         };
     }
 }
