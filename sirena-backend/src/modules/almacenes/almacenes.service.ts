@@ -135,6 +135,7 @@ export class AlmacenesService extends BaseService {
         return runInTransaction(this.dataSource, async (manager) => {
             await Promise.all([
                 this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dto.sucursal_id),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId),
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
@@ -298,6 +299,20 @@ export class AlmacenesService extends BaseService {
 
             try {
                 await manager.save(almacenActual);
+
+                const updatedRecord = await manager.findOne(Almacen, {
+                    where: { [this.campoPK]: id }
+                });
+
+                if (!updatedRecord) {
+                    throw new DomainException('No se pudo recuperar el registro actualizado.', {
+                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
+                    });
+                }
+
+                const responseDto = new AlmacenResponseDto();
+                Object.assign(responseDto, updatedRecord);
+
                 return this.findOne(id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {

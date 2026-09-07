@@ -6,7 +6,7 @@ import { formatLocalDate } from '../../../common/utils/date-formatter.util';
 const transformEstado = ({ obj }: { obj: BancoRawResult }) => {
     const estadoId = Number(obj.estado_id);
     const metadata = ESTADO_METADATA[estadoId as Estado];
-    return metadata ? metadata.abreviatura : '';
+    return metadata ? metadata.abreviatura : 'DESCONOCIDO';
 };
 
 export interface BancoRawResult {

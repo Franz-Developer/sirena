@@ -184,10 +184,10 @@ Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-    "banco": "arbdomob Ba4 sse 8",
-    "codigo_asfi": "21",
-    "abreviatura": "Asss NíÑOsm BA3",
-    "descripcion": ""
+    "banco": "arbdomob Ba4 ssse 8",
+    "codigo_asfi": "23",
+    "abreviatura": "Ase NíÑOsm BA3",
+    "descripcion": "mmm bd"
 }
 
 ### Búsqueda exacta con acentos

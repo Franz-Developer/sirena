@@ -1002,7 +1002,7 @@ CREATE TABLE roles_permisos_sucesos (
 );
 CREATE UNIQUE INDEX uix_rps_unique ON roles_permisos_sucesos (rol_permiso_tabla_id, suceso_id) WHERE estado_id = 1000;
 
- -- ================================================================================================
+-- ================================================================================================
  
 CREATE TABLE menus (
     menu_id BIGSERIAL PRIMARY KEY,

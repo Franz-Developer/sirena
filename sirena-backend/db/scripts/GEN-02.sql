@@ -1,109 +1,85 @@
-Actúa como un Desarrollador Senior Full-Stack experto en NestJS, TypeORM y TypeScript. Tu objetivo es generar exactamente 4 archivos de código backend para un nuevo módulo basándote de manera estricta en el código DDL y las constantes que se te proporcionarán.
+Actúa como un desarrollador experto en NestJS, TypeORM y PostgreSQL. Tu tarea es generar tres archivos fundamentales para un módulo del backend del sistema "Sirena", basándote en el DDL de la base de datos y la configuración de dependencias que te proporcionaré.
 
-### REGLAS DE FORMATO Y ESTILO OBLIGATORIAS:
-1. **Bloques de código separados:** Todos los archivos generados deben estar completamente separados y escritos estrictamente dentro de bloques de código de Markdown (con comillas invertidas o backticks ```typescript ... ```). No agrupes varios archivos en un solo bloque.
-2. **Imports en una sola línea:** Cada sentencia `import` debe escribirse en una sola fila (línea), sin saltos de línea internos dentro de las llaves del import.
-3. **Ruta como comentario:** Cada archivo debe incluir obligatoriamente como primera línea su ruta absoluta de archivo exacta en formato de comentario, tal como se especifica en la estructura de salida.
+### 1. INSTRUCCIONES DE ANÁLISIS PREVIO
+Antes de escribir cualquier línea de código, debes ANALIZAR EN PROFUNDIDAD los siguientes elementos que te proporcionaré:
+- **El DDL de la tabla principal:** Presta especial atención a los tipos de datos, valores por defecto (DEFAULT), restricciones `CHECK`, llaves foráneas (`FOREIGN KEY`) e índices únicos (`UNIQUE INDEX`).
+- **Tablas dependientes:** Para saber qué entidades restringen la edición o eliminación de registros.
+- **Tablas para response:** Para identificar qué joins son necesarios.
+- **Archivos de arquitectura subyacente (implícitos o provistos):** Ten en mente cómo funcionan `estados.constant.ts`, `unicidad-validador.service.ts` y `tabla-validador.service.ts`.
+
+**Reglas de negocio extraídas del DDL:**
+Al analizar en profundidad, si encuentras restricciones `CHECK` complejas (por ejemplo, validaciones de coherencia entre dos campos, como un límite de crédito que requiere que el cliente esté habilitado para ventas), DEBES crear en el archivo `[modulo].service.ts` validaciones explícitas o funciones extra para aplicar esas reglas de negocio antes de insertar o actualizar, ya que `unicidad-validador.service.ts` y `tabla-validador.service.ts` no validan lógica condicional compleja de negocio.
+
+### 2. FORMACIÓN DE LOS ARCHIVOS Y RUTAS
+Debes estructurar y generar las rutas dinámicamente basándote en el nombre de la tabla principal (en plural y singular). Por ejemplo, si la tabla es `clientes`, las rutas serán:
+- `C:\sirena\sirena-backend\src\modules\[modulo-plural]\[modulo-plural].service.ts`
+- `C:\sirena\sirena-backend\src\modules\[modulo-plural]\dto\find-[modulo-plural]-query.dto.ts`
+- `C:\sirena\sirena-backend\src\modules\[modulo-plural]\dto\[entidad-singular]-response.dto.ts`
+
+### 3. REGLAS PARA LA CONSTRUCCIÓN DE LOS DTOs Y SERVICIOS
+
+**A. `find-[modulo-plural]-query.dto.ts`:**
+- **Herencia y Configuración de Filtros:**
+  - Debe extender de `BasePaginationQueryDto`.
+  - Debe incluir los filtros generales obligatorios: `q` (búsqueda flexible), `exactMatch` (0: flexible, 1: exacta), `usuario_id` y `estado_id` (validado con `ESTADOS_CONSULTA` y `ESTADO_METADATA`).
+  - Debe parametrizar filtros opcionales para constantes de negocio (ej. `tipo_cliente_id`, `tipo_documento_id`, `genero_id`), utilizando `getEnumValues()` y `createEnumMessage()`.
+  - Debe parametrizar filtros FK numéricos para tablas relacionadas (`@IsInt`, `@Min(1)`).
+  - En caso de existir campos de fecha de negocio (no auditoría), debe incluir pares de rango de fechas con sufijos `_desde` y `_hasta` validados con `@IsDateString()`.
+- **Coherencia Técnica con Response DTO:**
+  - Garantiza alineación 1:1 entre los campos proyectados en la consulta SQL y las propiedades expuestas en `[entidad-singular]-response.dto.ts`.
+- **Métodos Estáticos OBLIGATORIOS:**
+  - `getCampos()`: Proyecta la lista completa de columnas de la tabla principal (con alias `c`) y las columnas seleccionadas de joins (ej. `b.banco AS banco_base_nombre`).
+  - `getCamposParaQ()`: Retorna exclusivamente columnas textuales (`VARCHAR`, `TEXT`, `CHAR`) aptas para operadores `ILIKE` / `LIKE`, incluyendo tablas de JOIN.
+  - `getCamposPermitidosParaOrdenar()`: Define la lista blanca de propiedades ordenables desde el cliente (excluyendo estrictamente metadatos y fechas de auditoría).
+  - `getDependencias()`: Arreglo de objetos `{ tabla, campoFk }` que identifican tablas dependientes en BD para verificar integridad referencial antes de mutaciones o bajas.
+  - `getCamposProtegidosConDependencias()`: Arreglo de strings con los atributos clave de la entidad que no deben ser modificables si existen registros vinculados en las dependencias.
+  - `getEquivalenciasMapeo()`: Diccionario de traducción entre el nombre de la propiedad expuesta en el DTO y su expresión SQL calificada con alias (`alias.columna`).
+  
+**B. `[entidad-singular]-response.dto.ts`:**
+- **Interfaz `[EntidadSingular]RawResult`:**
+  - Debe reflejar los tipos de datos primitivos exactos devueltos por la consulta SQL pura (PostgreSQL/TypeORM Raw Query), considerando que los tipos `BIGINT`, `TIMESTAMPTZ`, agregados y campos de constantes parametricos pueden llegar como `string`, `number`, `Date` o `null`.
+  - Debe incluir los campos propios de la tabla principal, campos de auditoría del sistema (`usuario_operacion`, `tiene_dependencias`, `campos_protegidos`) y las columnas resultantes de `JOINS` relacionales.
+- **Mapeo Genérico de Constantes y Enumeraciones (Metadata Helpers):**
+  - Si la entidad utiliza constantes provenientes del diccionario global de constantes (`estados.constant.ts`), se deben crear **helpers de transformación dedicados** previo a la definición de la clase.
+  - Cada helper debe apoyarse en una estructura base genérica o mapeo seguro (`ConstanteMetadata`), validando que el valor entrante sea convertible a un entero seguro (`Number.isInteger`).
+  - Debe retornar un objeto estandarizado con la estructura `{ abreviatura: string, valor: number, prefijo: string, descripcion?: string }`, garantizando una respuesta con valores por defecto neutros en caso de valores nulos, indeterminados o no mapeados.
+- **Clase `[EntidadSingular]ResponseDto`:**
+  - Aplica `@Expose()` en todas las propiedades públicas y `@Transform()` para normalizar, parsear y proyectar los datos resultantes de la consulta pura.
+  - **Regla de Selección de Campos:**
+    - **Tabla Principal:** Incluye TODOS los campos propios de la entidad.
+    - **Campos de Constantes Extendidos:** Proyecta tanto el ID numérico (`[campo]_id`) como el objeto de metadatos deserializado (`[campo]`), aplicando su respectivo helper en `@Transform(({ obj }) => transformX(obj.[campo]_id))`.
+    - **Tablas Relacionadas (FKs / Tablas Dependientes):** Incluye ÚNICAMENTE las columnas informativas o representativas más relevantes (ej: `banco_base_nombre`, `banco_base_abreviatura`). **NUNCA** incluyas la totalidad de los campos auditables ni metadatos secundarios de las tablas relacionales.
+- **Transformadores OBLIGATORIOS:**
+  - **Estados del Sistema:** Helper `transformEstado` que extrae la abreviatura o descripción mediante `ESTADO_METADATA` de `estados.constant.ts`.
+  - **Constantes Paramétricas de Negocio:** Helpers de dominio (ej: `transformTipoCliente`, `transformTipoDocumento`, `transformTipoPago`, `transformEvento`, etc.) alineados con los registros de `ConstanteMetadata`.
+  - **Fechas y Timestamps:** Transforma todas las columnas de fecha (`TIMESTAMPTZ` / `DATE`) utilizando la función de utilidad global `formatLocalDate`.
+  - **Tipos Numéricos / IDs / Decimale / Agregados:** Parsea de manera explícita los IDs de tipo `BIGINT`, acumulados y columnas de montos decimales (que PostgreSQL retorna como `string`) a `number` mediante `Number(value)`.
+  
+**C. `[modulo-plural].service.ts`:**
+- **Herencia y Configuración:**
+  - Extiende de `BaseService`.
+  - En el constructor, inicializa `super(...)` pasando la entidad, `TablaValidadorService`, `UnicidadValidadorService`, `DataSource` y la configuración `config: BaseServiceConfig`.
+  - En `BaseServiceConfig`, parametriza la entidad principal (`entityName`), el DTO de consulta (`queryDto`), las tablas dependientes (`getDependencias()`), los campos protegidos con dependencias (`getCamposProtegidosConDependencias()`) y los JOINs requeridos (ej. `LEFT JOIN banco_base b ON b.banco_base_id = c.banco_base_id`).
+- **Operaciones Transaccionales (`create` y `update`):**
+  - Implementa ambas mutaciones envolviendo la lógica de persistencia y validaciones dentro de `runInTransaction(async (entityManager) => { ... })`.
+  - Integra `tablaValidador` dentro de la transacción para chequear permisos del usuario operante, verificación de estado activo (`estado_id = 1`) en tablas relacionales/FKs, e integridad por dependencias previas.
+  - Integra `unicidadValidador` respetando **estrictamente** la definición de indices únicos parciales o condicionales del DDL (ej. ignore condicional si `documento = '0'` o si `nit IS NULL`).
+- **Validación de Reglas de Negocio (`validarReglasNegocio`):**
+  - **Delimitación Estricta de Responsabilidades (Cero Redundancia):**
+    - **`create-XXX.dto.ts` + `@IsSafeText()` + Pipes/Sanitizadores:** Se encargan del control de tipos primitivos, campos requeridos/opcionales, longitud (`@MaxLength`), formato, valores por defecto, desinfección HTML/XSS y sanitización de espacios en blanco al inicio o final (`trim()`). **ESTÁ PROHIBIDO RE-VALIDAR ESTOS CRITERIOS EN EL SERVICIO.**
+    - **`unicidad-validador.service.ts`:** Se encarga exclusivamente de verificar unicidad en BD respetando los índices del DDL.
+    - **`tabla-validador.service.ts`:** Se encarga exclusivamente de verificar permisos del operador, existencia/estado de FKs y bloquear mutaciones con dependencias activas.
+  - **Criterio de Inclusión del Método:**
+    - Genera el método privado `private validarReglasNegocio(dto: any): void` **ÚNICAMENTE** cuando existan restricciones lógicas inter-campo o de dominio complejo (ej: `fecha_fin < fecha_inicio`, `origen_moneda_id === destino_moneda_id`, o `limite_credito > 0` requiera `habilitado_ventas === 1`).
+    - **SI NO EXISTEN REGLAS INTER-CAMPO**, **NO** incluyas ni invoques el método `validarReglasNegocio`.
+  - **Manejo de Errores:** En caso de fallar una regla de negocio, debe lanzar una excepción de dominio (`DomainException` o `BadRequestException`). Se invoca siempre antes de iniciar la transacción de persistencia.
+  
+### 4. FORMATO DE SALIDA ESTRICTO
+- Todos los archivos generados deben estar **completamente separados**.
+- Cada archivo debe estar encerrado estrictamente dentro de bloques de código de Markdown con comillas invertidas (```typescript ... ```).
+- La primera línea dentro del bloque de código debe ser un comentario con la ruta absoluta del archivo generada dinámicamente.
 
 ---
-
-### REGLAS DE DISEÑO TÉCNICO (ARQUITECTURA SIRENA):
-
-1. **ENTIDAD TypeORM (`entities/[nombre-entidad].entity.ts`):**
-   - Debe extender obligatoriamente de `BaseAuditEntity` (importado desde `../../../common/base/base-audit.entity`).
-   - El decorador `@Entity` debe apuntar al nombre de la tabla en minúsculas y plural.
-   - Define la clave primaria con el tipo de dato exacto del DDL (ej. `int` o `bigint`) usando `@PrimaryGeneratedColumn`.
-   - Mapea todas las columnas del DDL respetando tipos (`int`, `bigint`, `varchar`, `smallint`, `decimal`, `date`, `timestamptz`), nulabilidad y valores por defecto.
-   - Traduce **todas** las restricciones `CONSTRAINT ... CHECK (...)` del DDL a decoradores `@Check('nombre_constraint', 'expresion_sql')` a nivel de clase de la entidad.
-   - Traduce los índices únicos condicionales del DDL (`CREATE UNIQUE INDEX ... WHERE ...`) utilizando la propiedad `where` dentro del decorador `@Index`. Ejemplo: `@Index('uix_tabla_campo_unique', ['campo'], { unique: true, where: "estado_id = 1000" })`.
-
-2. **DTO DE CREACIÓN (`dto/create-[entidad].dto.ts`):**
-   - Utiliza `class-validator` y `class-transformer`.
-   - Para cada campo de texto string, aplica limpieza de espacios con `@Transform(({ value }) => typeof value === 'string' ? value.trim() : value)`.
-   - Utiliza `@IsSafeText()` (importado de `../../../common/decorators/safe-text.decorator`) para los campos de texto o descripciones.
-   - Valida longitudes máximas (`@MaxLength`), mínimas si aplica, tipos enteros (`@IsInt`), mínimos numéricos (`@Min`), y validaciones de estados o enums usando `@IsIn(getEnumValues(...))` junto con mensajes personalizados apoyados en `createEnumMessage` y metadatos de constantes si corresponde.
-   - Marca los campos obligatorios con `@IsNotEmpty()` y los opcionales con `@IsOptional()`.
-
-3. **DTO DE ACTUALIZACIÓN (`dto/update-[entidad].dto.ts`):**
-   - Debe extender limpiamente del DTO de creación usando `PartialType` de `@nestjs/mapped-types`.
-   - Sintaxis exacta:
-     ```typescript
-     import { PartialType } from '@nestjs/mapped-types';
-     import { Create[Entidad]Dto } from './create-[entidad].dto';
-
-     export class Update[Entidad]Dto extends PartialType(Create[Entidad]Dto) {}
-     ```
-
-4. **MÓDULO (`[entidad].module.ts`):**
-   - Configura el módulo de NestJS importando `TypeOrmModule.forFeature([Entidad])` y `ConfigModule`.
-   - Declara el controlador (`[Entidad]Controller`) y el proveedor de servicio (`[Entidad]Service`).
-   - Exporta el servicio (`exports: [[Entidad]Service]`).
-
-------
-
-### ESTRUCTURA Y RUTAS DE SALIDA OBLIGATORIAS:
-Genera exactamente los siguientes 4 archivos separados en bloques independientes de Markdown, manteniendo la nomenclatura en singular/plural correspondiente al módulo:
-1. `C:\sirena\sirena-backend\src\modules\[nombre_modulo]\dto\create-[entidad].dto.ts`
-2. `C:\sirena\sirena-backend\src\modules\[nombre_modulo]\dto\update-[entidad].dto.ts`
-3. `C:\sirena\sirena-backend\src\modules\[nombre_modulo]\entities\[entidad].entity.ts`
-4. `C:\sirena\sirena-backend\src\modules\[nombre_modulo]\[nombre_modulo].module.ts`
-5. `C:\sirena\sirena-backend\src\modules\[nombre_modulo]\[nombre_modulo].controller.ts`
-
-Actúa como un Desarrollador Senior Full-Stack experto en NestJS, TypeORM y TypeScript. Tu objetivo es generar exactamente los 6 archivos especificados para un módulo backend, basándote rigurosamente y de manera literal en el código DDL y las constantes que se te proporcionarán.
-
-### REGLAS ESTRICTAS DE ANÁLISIS Y GENERACIÓN:
-1. **Análisis fiel del DDL:** Debes analizar detalladamente el DDL proporcionado. No debes inventar, añadir, modificar ni eliminar ningún decorador `@Check`, restricciones, tipos de datos, nulabilidades, valores por defecto (`default`) ni nombres de columnas o índices. Todo debe reflejar exactamente lo que define el DDL.
-2. **Archivos separados y formato:** Todos los archivos generados deben estar completamente separados y encerrados estrictamente dentro de bloques de código de Markdown con comillas invertidas o backticks (```typescript ... ``` o ```http ... ```).
-3. **Imports en una sola línea:** Cada sentencia `import` en los archivos de TypeScript debe escribirse obligatoriamente en una sola fila (línea), sin saltos de línea internos dentro de las llaves.
-4. **Ruta obligatoria como comentario:** Cada archivo debe incluir como su primera línea la ruta absoluta exacta en formato de comentario (ej. `// C:\sirena\sirena-backend\src\modules\...`).
-
----
-
-### ESTRUCTURA DE LOS ARCHIVOS A GENERAR:
-
-1. **DTO DE CREACIÓN (`dto/create-[modulo].dto.ts`):**
-   - Utiliza `class-validator` y `class-transformer`.
-   - Aplica limpieza de espacios con `@Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))` en los campos de texto.
-   - Valida correctamente los tipos (enteros con `@IsInt`, strings con `@IsString`, correos con `@IsEmail`, decimales con `@IsNumber`, etc.), longitudes (`@MaxLength`, `@MinLength`), opcionalidad (`@IsOptional()`, `@IsNotEmpty()`) y enums/constantes mediante `@IsIn(getEnumValues(...))` junto con `createEnumMessage` y sus metadatos correspondientes.
-   - Utiliza `@IsSafeText()` para textos generales.
-   - NO PONER CAMPOS DE AUDITORIA 
-	estado_id SMALLINT NOT NULL DEFAULT 1000,
-	usuario_id_registro BIGINT NOT NULL DEFAULT 1,
-	usuario_id_actualizacion BIGINT NULL,
-	usuario_id_baja BIGINT NULL,
-	fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	fecha_actualizacion TIMESTAMPTZ NULL,
-	fecha_baja TIMESTAMPTZ NULL,
-   - Si en el DDL existe un campo que acepte constantes que haga referencia a estados.constant.ts 
-   se debe aumentar algo como 
-   @IsOptional()
-    @IsInt({ message: 'tipo_documento_id debe ser un número entero.' })
-    @IsIn(getEnumValues(TipoDocumento), {
-        message: createEnumMessage(TIPO_DOCUMENTO_METADATA, getEnumValues(TipoDocumento), 'tipo_documento_id'),
-    })
-    tipo_documento_id?: number;
-	
-
-2. **DTO DE ACTUALIZACIÓN (`dto/update-[modulo].dto.ts`):**
-   - Debe extender limpiamente del DTO de creación usando `PartialType` de `@nestjs/mapped-types`.
-
-3. **ENTIDAD TypeORM (`entities/[entidad].entity.ts`):**
-   - Debe extender obligatoriamente de `BaseAuditEntity`.
-   - El decorador `@Entity` debe apuntar al nombre exacto de la tabla.
-   - Mapea todas las columnas respetando estrictamente los tipos de datos del DDL (`bigint`, `smallint`, `varchar`, `decimal`, `timestamptz`, etc.), nulabilidades y valores por defecto.
-   - Traduce todas las restricciones `CONSTRAINT ... CHECK (...)` del DDL a decoradores `@Check` a nivel de clase.
-   - Traduce los índices únicos y normales del DDL (`CREATE UNIQUE INDEX ... WHERE ...`, `CREATE INDEX ...`) utilizando los decoradores `@Index` correspondientes con sus respectivas condiciones `where` si aplican.
-
-4. **CONTROLADOR (`[modulo].controller.ts`):**
-   - Implementa un controlador protegido con `@UseGuards(JwtAuthGuard)` y el decorador `@Controller('[nombre_ruta]')`.
-   - Expone de forma estandarizada los endpoints completos de consulta paginada (`findAll`), búsqueda por ID (`findOne`), creación (`create`), actualización (`update`), borrado lógico (`remove`) y transiciones de estado de archivado/desarchivado (`archivar`, `desarchivar`), integrando decoradores de caché (`@Cache`), invalidación de caché (`@InvalidateCache`) y límites de tasa (`RateLimit`).
-
-5. **MÓDULO (`[modulo].module.ts`):**
-   - Configura el módulo importando `TypeOrmModule.forFeature([Entidad])` y `ConfigModule`.
-   - Declara los controladores y proveedores de servicios, exportando el servicio correspondiente.
-
-6. **ARCHIVO HTTP DE PRUEBAS (`[modulo].http`):**
-   - Genera un archivo de pruebas REST Client completo con variables de entorno (`@baseUrl`, `@authToken`), solicitudes de autenticación y ejemplos de peticiones GET, POST, PATCH y DELETE que cubran los escenarios de filtrado, paginación, ordenamiento y CRUD del módulo.
 
 // C:\sirena\sirena-backend\src\common\constants\estados.constant.ts
 // ==========================================
@@ -1783,251 +1759,1886 @@ export const ESTADO_CARRITO_METADATA: Record<EstadoCarrito, ConstanteMetadata & 
     [EstadoCarrito.NINGUNO]: { id: EstadoCarrito.NINGUNO, abreviatura: 'NINGUNO', prefijo: null, valor: 0, descripcion: 'Sin estado de carrito definido. Valor por defecto para registros comodín o casos excepcionales.', es_defecto: true },
 };
 
-### ARCHIVOS DE SALIDA REQUERIDOS:
-Genera exactamente los 6 archivos separados en bloques independientes de Markdown con sus respectivas rutas:
-1. `C:\sirena\sirena-backend\src\modules\[modulo]\dto\create-[modulo].dto.ts`
-2. `C:\sirena\sirena-backend\src\modules\[modulo]\dto\update-[modulo].dto.ts`
-3. `C:\sirena\sirena-backend\src\modules\[modulo]\entities\[entidad].entity.ts`
-4. `C:\sirena\sirena-backend\src\modules\[modulo]\[modulo].module.ts`
-5. `C:\sirena\sirena-backend\src\modules\[modulo]\[modulo].controller.ts`
-6. `C:\sirena\sirena-backend\src\modules\[modulo]\[modulo].http`
+// C:\sirena\sirena-backend\src\common\validators\unicidad-validador.service.ts
+import { Injectable, HttpStatus, Logger } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+import { ESTADOS_VIVOS } from '../constants/estados.constant';
+import { DomainException } from '../exceptions/domain.exception';
+import { getErrorMessage, getErrorStack, isDomainException } from '../utils/error.util';
+
+export interface UnicidadConfig {
+    tabla: string;                      // Nombre de la tabla
+    campos: {                           // Array de campos a validar
+        nombre: string;                 // Nombre de la columna
+        valor: any;                     // Valor a validar
+    }[];
+    idExcluir?: number;                 // ID a excluir (para updates)
+    campoPk?: string;                   // Nombre del campo PK (por defecto 'id')
+    incluirEstado?: boolean;            // Incluir filtro de estado
+    estadosValidos?: number[];          // Estados a considerar
+    caseInsensitive?: boolean;          // Case insensitive
+    permitirNull?: boolean;             // Permitir NULL
+    condicionesExtra?: {                // Para filtros adicionales (ej. estado_contrato_id = 4750)
+        nombre: string;
+        valor: any;
+    }[];
+}
+
+@Injectable()
+export class UnicidadValidadorService {
+    private readonly logger = new Logger(UnicidadValidadorService.name);
+
+    constructor(
+        private readonly dataSource: DataSource,
+    ) {}
+
+    async validarUnicidad(config: UnicidadConfig): Promise<void> {
+        const defaults = {
+            campoPk: 'id',
+            incluirEstado: true,
+            estadosValidos: ESTADOS_VIVOS as unknown as number[],
+            caseInsensitive: false,
+            permitirNull: false,
+        };
+
+        const opts = { ...defaults, ...config };
+
+        if (!opts.campos || opts.campos.length === 0) {
+            this.logger.debug(`No hay campos para validar unicidad en ${opts.tabla}`);
+            return;
+        }
+
+        const tablaSanitizada = this.dataSource.driver.escape(opts.tabla);
+        const campoPkSanitizado = this.dataSource.driver.escape(opts.campoPk);
+
+        const whereClauses: string[] = [];
+        const params: any[] = [];
+        let paramIndex = 1;
+
+        // 1. Campos principales de unicidad
+        for (const campo of opts.campos) {
+            const columnaSanitizada = this.dataSource.driver.escape(campo.nombre);
+
+            if (!opts.permitirNull && (campo.valor === null || campo.valor === undefined)) {
+                continue;
+            }
+
+            if (campo.valor === null) {
+                whereClauses.push(`${columnaSanitizada} IS NULL`);
+                continue;
+            }
+
+            if (opts.caseInsensitive && typeof campo.valor === 'string') {
+                whereClauses.push(`LOWER(${columnaSanitizada}) = LOWER($${paramIndex})`);
+                params.push(campo.valor);
+                paramIndex++;
+                continue;
+            }
+
+            whereClauses.push(`${columnaSanitizada} = $${paramIndex}`);
+            params.push(campo.valor);
+            paramIndex++;
+        }
+
+        if (whereClauses.length === 0) {
+            this.logger.debug(`No hay campos válidos para validar unicidad en ${opts.tabla}`);
+            return;
+        }
+
+        // 2. ID a excluir (Updates)
+        if (opts.idExcluir !== undefined && opts.idExcluir !== null) {
+            whereClauses.push(`${campoPkSanitizado} != $${paramIndex}`);
+            params.push(opts.idExcluir);
+            paramIndex++;
+        }
+
+        // 3. Condiciones extra (ej. estado_contrato_id = 4750)
+        if (opts.condicionesExtra && opts.condicionesExtra.length > 0) {
+            for (const cond of opts.condicionesExtra) {
+                const colExtraSanitizada = this.dataSource.driver.escape(cond.nombre);
+                if (cond.valor === null) {
+                    whereClauses.push(`${colExtraSanitizada} IS NULL`);
+                } else {
+                    whereClauses.push(`${colExtraSanitizada} = $${paramIndex}`);
+                    params.push(cond.valor);
+                    paramIndex++;
+                }
+            }
+        }
+
+        // 4. Filtro de estado principal
+        if (opts.incluirEstado && opts.estadosValidos && opts.estadosValidos.length > 0) {
+            const estadoPlaceholders = opts.estadosValidos
+                .map(() => `$${paramIndex++}`)
+                .join(', ');
+
+            whereClauses.push(`estado_id IN (${estadoPlaceholders})`);
+            params.push(...opts.estadosValidos);
+        }
+
+        const query = `
+            SELECT ${campoPkSanitizado} AS id
+            FROM ${tablaSanitizada}
+            WHERE ${whereClauses.join(' AND ')}
+            LIMIT 1
+        `;
+
+        try {
+            const duplicados = (await this.dataSource.query(query, params)) as { id: number }[];
+
+            if (duplicados && duplicados.length > 0) {
+                const duplicado = duplicados[0];
+                const detalleCampos = opts.campos
+                    .map((campo) => `${campo.nombre.replace(/_/g, ' ')} "${campo.valor ?? 'NULL'}"`)
+                    .join(', con ');
+
+                throw new DomainException(
+                    `Ya existe un registro con ${detalleCampos}.`,
+                    {
+                        tabla: opts.tabla,
+                        campos: opts.campos,
+                        idDuplicado: duplicado?.id,
+                        idExcluido: opts.idExcluir,
+                        httpStatus: HttpStatus.CONFLICT,
+                    }
+                );
+            }
+        } catch (error) {
+            if (isDomainException(error)) {
+                throw error;
+            }
+            this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
+            throw error;
+        }
+    }
+}
+
+// C:\sirena\sirena-backend\src\common\validators\tabla-validador.service.ts
+import { Injectable, Inject, HttpStatus, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { logSqlQuery } from '../../common/utils/sql-logger.util';
+import { ESTADO_ACTIVO, ESTADO_HISTORICO,  ESTADOS_VIVOS } from '../constants/estados.constant';
+import { DomainException } from '../exceptions/domain.exception';
+import { IDataSource } from '../interfaces/repository.interface';
+import { getErrorMessage, getErrorStack, isDomainException } from '../utils/error.util';
+import { ConfiguracionService } from '../services/configuracion.service';
+
+export interface ItemValidacionFK {
+    id: number;
+    campo?: string;
+}
+
+interface RegistroGenerico {
+    id: number;
+    estado_id: number;
+    fecha_baja: Date | string | null;
+    [key: string]: unknown;
+}
+
+@Injectable()
+export class TablaValidadorService {
+    private readonly logger = new Logger(TablaValidadorService.name);
+    private permisoCache = new Map<string, { tienePermiso: boolean; timestamp: number }>();
+    private readonly PERMISO_CACHE_TTL_MS: number;
+    private dependenciasCache = new Map<string, { tiene: boolean; timestamp: number }>();
+    private readonly DEPENDENCIAS_CACHE_TTL_MS: number;
+
+    constructor(
+        @Inject('IDataSource') private readonly dataSource: IDataSource,
+        private readonly configService: ConfigService,
+        private readonly configuracionService: ConfiguracionService,
+    ) {
+        const permisoTtlSeconds = parseInt(this.configService.get<string>('PERMISO_CACHE_TTL', '60'), 10);
+        this.PERMISO_CACHE_TTL_MS = Math.max(permisoTtlSeconds, 1) * 1000;
+
+        const dependenciasTtlSeconds = parseInt(this.configService.get<string>('DEPENDENCIAS_CACHE_TTL', '10'), 10);
+        this.DEPENDENCIAS_CACHE_TTL_MS = Math.max(dependenciasTtlSeconds, 1) * 1000;
+    }
+
+    async obtenerFechaInicioGestion(): Promise<Date> {
+        try {
+            const fecha = await this.configuracionService.obtenerValorTipado<Date>('gestion_activa');
+            if (fecha && !isNaN(new Date(fecha).getTime())) {
+                return new Date(fecha);
+            }
+
+            const year = new Date().getFullYear();
+            const fallback = new Date(Date.UTC(year, 0, 1));
+            this.logger.warn(`No se encontró gestión_activa o es inválida, usando fallback: ${fallback.toISOString()}`);
+            return fallback;
+        } catch (error) {
+            const year = new Date().getFullYear();
+            const fallback = new Date(Date.UTC(year, 0, 1));
+            this.logger.error(`Error al obtener gestión_activa desde ConfiguracionService: ${getErrorMessage(error)}`);
+            return fallback;
+        }
+    }
+
+    invalidarCacheGestion(): void {
+        this.configuracionService.invalidarCache();
+        this.logger.debug(`Caché de gestión_activa invalidada mediante ConfiguracionService.`);
+    }
+
+    async validarRegistrosActivos(
+        tabla: string,
+        campoPk: string = 'id',
+        pkId: number,
+    ): Promise<boolean> {
+        const tablaNormalizada = tabla.toLowerCase().trim();
+        const tablaSanitizada = this.dataSource.escapeIdentifier(tablaNormalizada);
+        const campoPkSanitizado = this.dataSource.escapeIdentifier(campoPk);
+
+        const query = `
+            SELECT 1
+            FROM ${tablaSanitizada} t
+            WHERE t.${campoPkSanitizado} = $1
+                AND t.estado_id = $2
+                AND t.fecha_baja IS NULL
+            LIMIT 1
+        `;
+        const params: any[] = [Number(pkId), ESTADO_ACTIVO];
+
+        try {
+            const resultado = await this.dataSource.query(query, params);
+
+            if (!resultado || resultado.length === 0) {
+                throw new DomainException(
+                    `No se encontró un registro activo con ID ${pkId}. Verifique que el registro exista y no esté dado de baja.`,
+                    {
+                        httpStatus: HttpStatus.BAD_REQUEST,
+                        tabla: tablaNormalizada,
+                        campoPk,
+                        pkId,
+                    }
+                );
+            }
+            return true;
+        } catch (error) {
+            if (isDomainException(error)) {
+                throw error;
+            }
+            this.logger.error(`Error validando ${tablaNormalizada}#${pkId}: ${getErrorMessage(error)}`);
+            throw error;
+        }
+    }
+
+    async validarPreUpdate(
+        tabla: string,
+        pkId: number,
+        dto: Record<string, any>,
+        campoPk: string = 'id',
+        usuarioId: number,
+    ): Promise<Record<string, any>> {
+        const tablaNormalizada = tabla.toLowerCase().trim();
+
+        // 1. Validar registros protegidos
+        if (Number(pkId) === 1) {
+            throw new DomainException(
+                `Operación denegada: El registro con ID = 1 en la tabla '${tablaNormalizada}' es un registro comodín del sistema y no puede ser modificado. Esta restricción protege la integridad referencial de los datos maestros.`,
+                {
+                    httpStatus: HttpStatus.FORBIDDEN,
+                    tabla: tablaNormalizada,
+                    pkId,
+                    motivo: 'REGISTRO_COMODIN_PROTEGIDO'
+                }
+            );
+        }
+
+        if (tablaNormalizada === 'usuarios' && Number(pkId) === 2) {
+            throw new DomainException(
+                `Operación denegada: El usuario administrador principal del sistema ADMIN es un registro crítico que no puede ser modificado. Esta restricción asegura que siempre exista un usuario con privilegios de administrador en el sistema.`,
+                {
+                    httpStatus: HttpStatus.FORBIDDEN,
+                    tabla: tablaNormalizada,
+                    pkId,
+                    motivo: 'USUARIO_ADMIN_PROTEGIDO'
+                }
+            );
+        }
+
+        // 2. Validar permisos del usuario
+        await this.validarPermisoTabla(usuarioId, tablaNormalizada, 'editar');
+
+        // 3. Validar que no se modifique el estado directamente
+        if ('estado_id' in dto) {
+            throw new DomainException(
+                `La operación de actualización no permite modificar el campo 'estado_id' directamente. Para cambiar el estado del registro, utilice los endpoints específicos de 'archivar' (para pasar a HISTORICO) o 'desarchivar' (para pasar a ACTIVO).`,
+                {
+                    httpStatus: HttpStatus.BAD_REQUEST,
+                    tabla: tablaNormalizada,
+                    pkId,
+                    motivo: 'CAMBIO_ESTADO_NO_PERMITIDO'
+                }
+            );
+        }
+
+        // 4. Buscar el registro
+        const tablaSanitizada = this.dataSource.escapeIdentifier(tablaNormalizada);
+        const campoPkSanitizado = this.dataSource.escapeIdentifier(campoPk);
+
+        const query = `
+            SELECT ${campoPkSanitizado}, estado_id, fecha_baja
+            FROM ${tablaSanitizada}
+            WHERE ${campoPkSanitizado} = $1
+                AND estado_id = $2
+                AND fecha_baja IS NULL
+        `;
+        const params = [Number(pkId), ESTADO_ACTIVO];
+        logSqlQuery(query, params, `validarPreUpdate - ${tablaSanitizada}`);
+
+        const resultados = await this.dataSource.query(query, params);
+        const registro = resultados?.[0];
+
+        if (!registro) {
+            throw new DomainException(
+                `No se encontró un registro activo con ID ${pkId}. La operación de actualización requiere que el registro exista y esté activo.`,
+                {
+                    httpStatus: HttpStatus.NOT_FOUND,
+                    tabla: tablaNormalizada,
+                    campoPk,
+                    pkId,
+                }
+            );
+        }
+
+        return registro;
+    }
+
+    async validarPreArchivar(
+        tabla: string,
+        pkId: number,
+        usuarioId: number,
+        campoPk: string = 'id',
+    ): Promise<RegistroGenerico> {
+        const tablaNormalizada = tabla.toLowerCase().trim();
+
+        if (Number(pkId) === 1) {
+            throw new DomainException(
+                `Operación denegada: El registro con ID = 1 en la tabla '${tablaNormalizada}' es un registro comodín del sistema y no puede ser archivado. Esta restricción preserva la integridad referencial de los datos maestros.`,
+                {
+                    httpStatus: HttpStatus.FORBIDDEN,
+                    tabla: tablaNormalizada,
+                    pkId,
+                    motivo: 'REGISTRO_COMODIN_PROTEGIDO'
+                }
+            );
+        }
+
+        if (tablaNormalizada === 'usuarios' && Number(pkId) === 2) {
+            throw new DomainException(
+                `Operación denegada: El usuario administrador principal del sistema ADMIN es un registro crítico que no puede ser archivado. Esta restricción asegura que siempre exista un usuario con privilegios de administrador en el sistema.`,
+                {
+                    httpStatus: HttpStatus.FORBIDDEN,
+                    tabla: tablaNormalizada,
+                    pkId,
+                    motivo: 'USUARIO_ADMIN_PROTEGIDO'
+                }
+            );
+        }
+
+        await this.validarPermisoTabla(usuarioId, tablaNormalizada, 'archivar');
+
+        const tablaSanitizada = this.dataSource.escapeIdentifier(tablaNormalizada);
+        const campoPkSanitizado = this.dataSource.escapeIdentifier(campoPk);
+
+        const query = `
+            SELECT estado_id, fecha_baja, ${tablaNormalizada === 'parametros_globales' ? 'editable' : '0 AS editable'}
+            FROM ${tablaSanitizada} t
+            WHERE t.${campoPkSanitizado} = $1
+                AND t.estado_id = $2
+                AND t.fecha_baja IS NULL
+            LIMIT 1
+        `;
+        const params = [pkId, ESTADO_ACTIVO];
+        logSqlQuery(query, params, `validarPreArchivar - ${tablaSanitizada}`);
+
+        let registro: RegistroGenerico | undefined;
+
+        try {
+            const resultados = (await this.dataSource.query(query, params)) as RegistroGenerico[];
+            registro = resultados[0];
+        } catch (error) {
+            if (isDomainException(error)) {
+                throw error;
+            }
+            this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
+            throw error;
+        }
+
+        if (!registro) {
+            throw new DomainException(
+                `No se encontró un registro activo con ID ${pkId}. La operación de archivado requiere que el registro exista y esté activo.`,
+                {
+                    httpStatus: HttpStatus.NOT_FOUND,
+                    tabla: tablaNormalizada,
+                    campoPk,
+                    pkId,
+                }
+            );
+        }
+
+        if (tablaNormalizada === 'parametros_globales' && Number(registro['editable']) === 1) {
+            const clave = registro['clave'];
+            throw new DomainException(
+                `Operación denegada: El parámetro global con clave "${clave}" (ID = ${pkId}) está marcado como NO editable y no puede ser archivado. Solo los parámetros editables pueden ser modificados.`,
+                {
+                    httpStatus: HttpStatus.FORBIDDEN,
+                    tabla: tablaNormalizada,
+                    pkId,
+                    clave,
+                    motivo: 'PARAMETRO_NO_EDITABLE'
+                }
+            );
+        }
+
+        return registro;
+    }
+
+    async validarPreDesarchivar(
+        tabla: string,
+        pkId: number,
+        usuarioId: number,
+        campoPk: string = 'id',
+    ): Promise<RegistroGenerico> {
+        const tablaNormalizada = tabla.toLowerCase().trim();
+
+        if (Number(pkId) === 1) {
+            throw new DomainException(
+                `Operación denegada: El registro con ID = 1 en la tabla '${tablaNormalizada}' es un registro comodín del sistema y no puede ser desarchivado. Esta restricción preserva la integridad referencial de los datos maestros.`,
+                {
+                    httpStatus: HttpStatus.FORBIDDEN,
+                    tabla: tablaNormalizada,
+                    pkId,
+                    motivo: 'REGISTRO_COMODIN_PROTEGIDO'
+                }
+            );
+        }
+
+        await this.validarPermisoTabla(usuarioId, tablaNormalizada, 'desarchivar');
+        const tablaSanitizada = this.dataSource.escapeIdentifier(tablaNormalizada);
+        const campoPkSanitizado = this.dataSource.escapeIdentifier(campoPk);
+
+        const query = `
+            SELECT 1
+            FROM ${tablaSanitizada} t
+            WHERE t.${campoPkSanitizado} = $1
+                AND t.estado_id = $2
+                AND t.fecha_baja IS NULL
+        `;
+        const params = [pkId, ESTADO_HISTORICO];
+        logSqlQuery(query, params, `validarPreDesarchivar - ${tablaSanitizada}`);
+
+        let registro: RegistroGenerico | undefined;
+
+        try {
+            const resultados = (await this.dataSource.query(query, params)) as RegistroGenerico[];
+            registro = resultados[0];
+        } catch (error) {
+            if (isDomainException(error)) {
+                throw error;
+            }
+            this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
+            throw error;
+        }
+
+        if (!registro) {
+            throw new DomainException(
+                `No se encontró un registro histórico con ID ${pkId}. La operación de desarchivado requiere que el registro exista y esté en estado histórico.`,
+                {
+                    httpStatus: HttpStatus.NOT_FOUND,
+                    tabla: tablaNormalizada,
+                    campoPk,
+                    pkId,
+                }
+            );
+        }
+
+        return registro;
+    }
+
+    async validarPreDelete(
+        tablaOrigen: string,
+        pkId: number,
+        tablasDependientes: Array<string | { tabla: string; campoFk: string }>,
+        campoFkDefault: string,
+        usuarioId: number,
+    ): Promise<void> {
+        const tablaNormalizada = tablaOrigen.toLowerCase().trim();
+
+        if (Number(pkId) === 1) {
+            throw new DomainException(
+                `Operación denegada: El registro con ID = 1 en la tabla '${tablaNormalizada}' es un registro comodín del sistema y no puede ser eliminado. Esta restricción protege la integridad referencial de los datos maestros.`,
+                {
+                    httpStatus: HttpStatus.FORBIDDEN,
+                    tabla: tablaNormalizada,
+                    pkId,
+                    motivo: 'REGISTRO_COMODIN_PROTEGIDO'
+                }
+            );
+        }
+
+        if (tablaNormalizada === 'usuarios' && Number(pkId) === 2) {
+            throw new DomainException(
+                `Operación denegada: El usuario administrador principal del sistema ADMIN es un registro crítico que no puede ser eliminado. Esta restricción asegura que siempre exista un usuario con privilegios de administrador en el sistema.`,
+                {
+                    httpStatus: HttpStatus.FORBIDDEN,
+                    tabla: tablaNormalizada,
+                    pkId,
+                    motivo: 'USUARIO_ADMIN_PROTEGIDO'
+                }
+            );
+        }
+
+        await this.validarPermisoTabla(usuarioId, tablaNormalizada, 'eliminar');
+
+        const tablaSanitizada = this.dataSource.escapeIdentifier(tablaNormalizada);
+        const campoPkSanitizado = this.dataSource.escapeIdentifier(campoFkDefault || 'id');
+
+        const query = `
+            SELECT estado_id, fecha_baja, ${tablaNormalizada === 'parametros_globales' ? 'editable' : '0 AS editable'}
+            FROM ${tablaSanitizada}
+            WHERE ${campoPkSanitizado} = $1
+                AND estado_id = $2
+                AND fecha_baja IS NULL
+            LIMIT 1
+        `;
+        const params = [pkId, ESTADO_ACTIVO];
+        logSqlQuery(query, params, `validarPreDelete - ${tablaSanitizada}`);
+
+        let existeResult;
+        try {
+            existeResult = await this.dataSource.query(query, params);
+        } catch (error) {
+            if (isDomainException(error)) throw error;
+
+            const errorMessage = getErrorMessage(error);
+            throw new DomainException(
+                `Error interno al verificar la existencia del registro con ${campoPkSanitizado} = ${pkId} en la tabla '${tablaNormalizada}'. Detalle técnico: ${errorMessage}. Por favor, contacte al administrador del sistema.`,
+                {
+                    tabla: tablaNormalizada,
+                    pkId,
+                    campoPk: campoFkDefault,
+                    originalError: errorMessage,
+                    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
+                }
+            );
+        }
+
+        if (!existeResult || existeResult.length === 0) {
+            throw new DomainException(
+                `No se encontró un registro activo con ID ${pkId}. La operación de eliminación requiere que el registro exista y esté activo.`,
+                {
+                    httpStatus: HttpStatus.NOT_FOUND,
+                    tabla: tablaNormalizada,
+                    campoPk: campoFkDefault,
+                    pkId,
+                }
+            );
+        }
+
+        const registro = existeResult[0];
+
+        if (tablaNormalizada === 'parametros_globales' && Number(registro['editable']) === 1) {
+            throw new DomainException(
+                `Operación denegada: El parámetro global con ID = ${pkId} en la tabla '${tablaNormalizada}' está marcado como NO editable y no puede ser eliminado. Solo los parámetros editables pueden ser eliminados.`,
+                {
+                    httpStatus: HttpStatus.FORBIDDEN,
+                    tabla: tablaNormalizada,
+                    pkId,
+                    motivo: 'PARAMETRO_NO_EDITABLE'
+                }
+            );
+        }
+
+        if (tablasDependientes && tablasDependientes.length > 0) {
+            let tieneDependencias = false;
+            try {
+                tieneDependencias = await this.validarDependencias(
+                    tablaOrigen,
+                    pkId,
+                    tablasDependientes,
+                    campoFkDefault,
+                );
+            } catch (error) {
+                if (isDomainException(error)) throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error al validar dependencias para ${tablaNormalizada}#${pkId}: ${errorMessage}`, getErrorStack(error));
+
+                const tablasDependientesStr = tablasDependientes
+                    .map(item => typeof item === 'string' ? item : `${item.tabla}(${item.campoFk})`)
+                    .join(', ');
+
+                throw new DomainException(
+                    `Error interno al validar dependencias del registro con ${campoFkDefault} = ${pkId} en la tabla '${tablaNormalizada}'. Tablas dependientes verificadas: [${tablasDependientesStr}]. Detalle técnico: ${errorMessage}. Por favor, contacte al administrador del sistema.`,
+                    {
+                        tabla: tablaNormalizada,
+                        pkId,
+                        campoPk: campoFkDefault,
+                        tablasDependientes: tablasDependientesStr,
+                        originalError: errorMessage,
+                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
+                    }
+                );
+            }
+
+            if (tieneDependencias) {
+                const tablasDependientesStr = tablasDependientes
+                    .map(item => typeof item === 'string' ? item : `${item.tabla}(${item.campoFk})`)
+                    .join(', ');
+
+                throw new DomainException(
+                    `No se puede eliminar el registro porque tiene dependencias en: ${tablasDependientesStr}. Primero debe eliminar los registros dependientes.`,
+                    {
+                        httpStatus: HttpStatus.CONFLICT,
+                        tabla: tablaNormalizada,
+                        pkId,
+                        campoPk: campoFkDefault,
+                        tablasDependientes: tablasDependientesStr,
+                        motivo: 'DEPENDENCIAS_ACTIVAS'
+                    }
+                );
+            }
+        }
+    }
+
+    /**
+     * Verifica si un registro tiene dependencias en otras tablas,
+     * considerando estados ACTIVOS (1000) e HISTÓRICOS (1002).
+     *
+     * @param tablaOrigen - Tabla principal que se está verificando (solo para contexto)
+     * @param pkId - ID del registro a verificar
+     * @param tablasDependientes - Lista de tablas dependientes (string o { tabla, campoFk })
+     * @param campoFkDefault - Campo FK por defecto (usado cuando solo se pasa string)
+     * @returns true si tiene dependencias, false si no
+     *
+     * @example
+     * // Usando strings (usa campoFkDefault)
+     * const tiene = await validarDependencias(
+     *   'empresas',
+     *   1,
+     *   ['sucursales', 'empresas_nits', 'empresas_cuentas'],
+     *   'empresa_id'
+     * );
+     *
+     * // Usando objetos (campo FK específico por tabla)
+     * const tiene = await validarDependencias(
+     *   'empresas',
+     *   1,
+     *   [
+     *     { tabla: 'sucursales', campoFk: 'empresa_id' },
+     *     { tabla: 'empresas_nits', campoFk: 'empresa_id' },
+     *      { tabla: 'empresas_cuentas', campoFk: 'empresa_id' },
+     *     { tabla: 'empresas_news', campoFk: 'empresa_base_id' }
+     *   ],
+     *   'empresa_id' // fallback
+     * );
+     */
+    async validarDependencias(
+        tablaOrigen: string,
+        pkId: number,
+        tablasDependientes: Array<string | { tabla: string; campoFk: string }>,
+        campoFkDefault: string,
+    ): Promise<boolean> {
+        // 1. Validaciones básicas.
+        if (!tablasDependientes || tablasDependientes.length === 0) {
+            return false;
+        }
+
+        if (!pkId || pkId <= 0) {
+            throw new DomainException(
+                `El ID de registro proporcionado (${pkId}) es inválido para verificar dependencias en la tabla '${tablaOrigen}'. El ID debe ser un número entero positivo mayor a 0.`,
+                {
+                    httpStatus: HttpStatus.BAD_REQUEST,
+                    tabla: tablaOrigen,
+                    pkId,
+                    motivo: 'ID_INVALIDO'
+                }
+            );
+        }
+
+        const pkNumber = Number(pkId);
+        const tablaNormalizada = tablaOrigen.toLowerCase().trim();
+        const estadosStr = ESTADOS_VIVOS.join(', ');
+
+        // 2. Construir consulta.
+        const subQueries = tablasDependientes.map((item) => {
+            const tabla = typeof item === 'string' ? item : item.tabla;
+            const fk = typeof item === 'string' ? campoFkDefault : item.campoFk;
+
+            const tablaSanitizada = this.dataSource.escapeIdentifier(tabla);
+            const fkSanitizado = this.dataSource.escapeIdentifier(fk);
+
+            return `
+                SELECT '${tabla}' AS tabla_dep, COUNT(*) AS total
+                FROM ${tablaSanitizada}
+                WHERE ${fkSanitizado} = $1
+                    AND estado_id IN (${estadosStr})
+                    AND fecha_baja IS NULL
+                GROUP BY 1
+            `;
+        });
+
+        const unionQuery = subQueries.join(' UNION ALL ');
+
+        // 3. Ejecutar consulta con caché (opcional).
+        const cacheKey = `${tablaNormalizada}:${pkNumber}`;
+        const cached = this.dependenciasCache.get(cacheKey);
+        const now = Date.now();
+
+        if (cached && (now - cached.timestamp < this.DEPENDENCIAS_CACHE_TTL_MS)) {
+            this.logger.debug(`Usando caché de dependencias: ${cacheKey}`);
+            return cached.tiene;
+        }
+
+        try {
+            const resultados = await this.dataSource.query(unionQuery, [pkNumber]);
+            const tieneDependencias = resultados.some(
+                (res: any) => Number(res.total || 0) > 0
+            );
+
+            // 4. Guardar en caché.
+            this.dependenciasCache.set(cacheKey, {
+                tiene: tieneDependencias,
+                timestamp: now
+            });
+
+            this.logger.debug(
+                `Dependencias para ${tablaNormalizada}#${pkNumber}: ${tieneDependencias ? 'Tiene' : 'No tiene'} ` +
+                `(estados: ${estadosStr})`
+            );
+
+            return tieneDependencias;
+        } catch (error) {
+            const errorMessage = getErrorMessage(error);
+
+            this.logger.error(
+                `Error verificando dependencias para ${tablaNormalizada}#${pkNumber}: ${errorMessage}`,
+                getErrorStack(error)
+            );
+
+            const tablasDependientesStr = tablasDependientes
+                .map(item => typeof item === 'string' ? item : `${item.tabla}(${item.campoFk})`)
+                .join(', ');
+
+            throw new DomainException(
+                `Error interno al verificar dependencias para la tabla '${tablaNormalizada}' con ID = ${pkNumber}. Tablas dependientes verificadas: [${tablasDependientesStr}]. Detalle técnico: ${errorMessage}. Por favor, contacte al administrador del sistema.`,
+                {
+                    tablaOrigen: tablaNormalizada,
+                    pkId: pkNumber,
+                    tablasDependientes: tablasDependientesStr,
+                    originalError: errorMessage,
+                    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
+                }
+            );
+        }
+    }
+
+    // Invalidar caché de dependencias.
+    invalidarDependenciasCache(tablaOrigen?: string, pkId?: number): void {
+        if (tablaOrigen && pkId) {
+            const key = `${tablaOrigen.toLowerCase().trim()}:${Number(pkId)}`;
+            this.dependenciasCache.delete(key);
+            this.logger.debug(`Caché de dependencias invalidado: ${key}`);
+        } else if (tablaOrigen) {
+            const prefix = `${tablaOrigen.toLowerCase().trim()}:`;
+            for (const key of this.dependenciasCache.keys() || []) {
+                if (key.startsWith(prefix)) {
+                    this.dependenciasCache.delete(key);
+                }
+            }
+            this.logger.debug(`Caché de dependencias invalidado para ${tablaOrigen}`);
+        } else {
+            this.dependenciasCache.clear();
+            this.logger.debug('Caché de dependencias limpiado completamente.');
+        }
+    }
+
+    async validarPermisoTabla(
+        usuarioId: number,
+        tabla: string,
+        accion: string,
+        eventos?: number[],
+    ): Promise<boolean> {
+        if (!usuarioId || usuarioId <= 0) {
+            throw new DomainException(
+                `El ID de usuario proporcionado (${usuarioId}) es inválido. El ID debe ser un número entero positivo.`,
+                {
+                    httpStatus: HttpStatus.BAD_REQUEST,
+                    usuarioId,
+                }
+            );
+        }
+
+        const tablaNormalizada = tabla.toLowerCase().trim();
+        const accionNormalizada = accion.toLowerCase().trim();
+
+        const columnasPermisoMap: Record<string, string> = {
+            leer: 'rpt.leer',
+            crear: 'rpt.crear',
+            editar: 'rpt.editar',
+            eliminar: 'rpt.eliminar',
+            anular: 'rpt.anular',
+            archivar: 'rpt.archivar',
+            desarchivar: 'rpt.desarchivar',
+        };
+
+        const columnaPermiso = columnasPermisoMap[accionNormalizada];
+        const accionesValidas = Object.keys(columnasPermisoMap).join(', ');
+
+        if (!columnaPermiso) {
+            throw new DomainException(
+                `La acción "${accion}" no es válida para la validación de permisos. Las acciones permitidas son: ${accionesValidas}.`,
+                {
+                    httpStatus: HttpStatus.BAD_REQUEST,
+                    accion,
+                    accionesPermitidas: accionesValidas,
+                }
+            );
+        }
+
+        const cacheKey = `${usuarioId}:${tablaNormalizada}:${accionNormalizada}`;
+        const cached = this.permisoCache.get(cacheKey);
+        const now = Date.now();
+
+        if (cached && (now - cached.timestamp < this.PERMISO_CACHE_TTL_MS)) {
+            this.logger.debug(`Usando caché de permiso: ${cacheKey}`);
+
+            if (!cached.tienePermiso) {
+                const eventosStr = eventos && eventos.length > 0
+                    ? ` para los eventos: ${eventos.join(', ')}`
+                    : '';
+                throw new DomainException(
+                    `Acceso denegado: El usuario con ID ${usuarioId} no tiene permiso de "${accionNormalizada}"${eventosStr} en la tabla "${tablaNormalizada}". Contacte al administrador del sistema para solicitar los permisos necesarios.`,
+                    {
+                        httpStatus: HttpStatus.FORBIDDEN,
+                        usuarioId,
+                        tabla: tablaNormalizada,
+                        accion: accionNormalizada,
+                        eventos,
+                    }
+                );
+            }
+            return true;
+        }
+
+        const query = `
+            SELECT
+                ${columnaPermiso} AS tiene_permiso,
+                u.login,
+                COALESCE(
+                    ARRAY_AGG(rps.suceso_id) FILTER (WHERE rps.suceso_id IS NOT NULL),
+                    ARRAY[]::integer[]
+                ) AS eventos_permitidos
+            FROM usuarios u
+            INNER JOIN roles r ON r.rol_id = u.rol_id AND r.estado_id = $3
+            INNER JOIN roles_permisos_tablas rpt ON rpt.rol_id = r.rol_id AND rpt.estado_id = $3
+            INNER JOIN tablas t ON t.tabla_id = rpt.tabla_id AND t.estado_id = $3
+            LEFT JOIN roles_permisos_sucesos rps ON rps.rol_permiso_tabla_id = rpt.rol_permiso_tabla_id AND rps.estado_id = $3
+            WHERE u.usuario_id = $1
+                AND t.nombre = $2
+                AND u.estado_id = ANY($4::int[])
+            GROUP BY u.usuario_id, u.login, ${columnaPermiso}
+            LIMIT 1
+        `;
+
+        const params = [Number(usuarioId), tablaNormalizada, ESTADO_ACTIVO, ESTADOS_VIVOS];
+        logSqlQuery(query, params, `validarPermisoTabla - roles_permisos_tablas`);
+
+        try {
+            const permisosRes = await this.dataSource.query(query, params);
+
+            const tienePermiso = permisosRes?.[0]?.tiene_permiso === 1;
+
+            this.permisoCache.set(cacheKey, { tienePermiso, timestamp: now });
+
+            if (!tienePermiso || !permisosRes || permisosRes.length === 0) {
+                const eventosStr = eventos && eventos.length > 0
+                    ? ` para los eventos: ${eventos.join(', ')}`
+                    : '';
+                throw new DomainException(
+                    `Acceso denegado: El usuario con ID ${usuarioId} no tiene permiso de "${accionNormalizada}"${eventosStr} en la tabla "${tablaNormalizada}". Contacte al administrador del sistema para solicitar los permisos necesarios.`,
+                    {
+                        httpStatus: HttpStatus.FORBIDDEN,
+                        usuarioId,
+                        tabla: tablaNormalizada,
+                        accion: accionNormalizada,
+                        eventos,
+                        motivo: 'PERMISO_DENEGADO'
+                    }
+                );
+            }
+
+            const login = permisosRes[0].login || `ID #${usuarioId}`;
+
+            if (tablaNormalizada === 'kardex' && eventos && eventos.length > 0) {
+                await this.validarEventosKardex(
+                    eventos,
+                    permisosRes[0],
+                    accionNormalizada,
+                    usuarioId,
+                    tablaNormalizada,
+                    login
+                );
+            }
+
+            return true;
+
+        } catch (error) {
+            if (isDomainException(error)) throw error;
+
+            const errorMessage = getErrorMessage(error);
+            this.logger.error(
+                `Error validando permiso para ${tablaNormalizada}#${accionNormalizada} (usuario ${usuarioId}): ${errorMessage}`,
+                getErrorStack(error)
+            );
+
+            throw new DomainException(
+                `Error interno al validar permisos del usuario con ID ${usuarioId} para la acción "${accionNormalizada}" en la tabla "${tablaNormalizada}". Detalle técnico: ${errorMessage}. Por favor, contacte al administrador del sistema.`,
+                {
+                    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+                    usuarioId,
+                    tabla: tablaNormalizada,
+                    accion: accionNormalizada,
+                    eventos,
+                    originalError: errorMessage
+                }
+            );
+        }
+    }
+
+    private async validarEventosKardex(
+        eventos: number[],
+        permiso: any,
+        accion: string,
+        usuarioId: number,
+        tabla: string,
+        login: string
+    ): Promise<void> {
+        const listaPermitida = permiso.eventos_permitidos || [];
+        const eventosNoPermitidos = eventos.filter(ev => !listaPermitida.includes(ev));
+
+        if (eventosNoPermitidos.length > 0) {
+            throw new DomainException(
+                `Acceso denegado: El usuario "${login}" no tiene permisos para realizar "${accion}" sobre los eventos: ${eventosNoPermitidos.join(', ')}.`,
+                {
+                    httpStatus: HttpStatus.FORBIDDEN,
+                    usuarioId,
+                    login,
+                    tabla,
+                    accion,
+                    eventosNoPermitidos,
+                    eventosPermitidos: listaPermitida,
+                    motivo: 'EVENTOS_NO_PERMITIDOS_EN_KARDEX'
+                }
+            );
+        }
+    }
+
+    invalidarPermisoCache(usuarioId?: number, tabla?: string): void {
+        if (usuarioId && tabla) {
+            const prefix = `${Number(usuarioId)}:${tabla.toLowerCase().trim()}:`;
+            for (const key of this.permisoCache.keys()) {
+                if (key.startsWith(prefix)) {
+                    this.permisoCache.delete(key);
+                }
+            }
+            this.logger.debug(`Caché invalidado para usuario ${usuarioId} y tabla "${tabla.toLowerCase().trim()}".`);
+        } else if (usuarioId) {
+            const prefix = `${Number(usuarioId)}:`;
+            for (const key of this.permisoCache.keys()) {
+                if (key.startsWith(prefix)) {
+                    this.permisoCache.delete(key);
+                }
+            }
+            this.logger.debug(`Caché invalidado para usuario ${usuarioId}.`);
+        } else {
+            this.permisoCache.clear();
+            this.logger.debug('Caché de permisos limpiado completamente.');
+        }
+    }
+
+    async esUsuarioAdministrador(usuarioId: number): Promise<boolean> {
+        const res = await this.dataSource.query(
+            `SELECT 1
+            FROM usuarios u
+            INNER JOIN roles r ON u.rol_id = r.rol_id
+            WHERE u.usuario_id = $1
+            AND u.estado_id = $2
+            AND r.estado_id = $2
+            AND (r.codigo = 'ADM' OR r.rol_id = 2)
+            LIMIT 1`,
+            [usuarioId, ESTADO_ACTIVO]
+        );
+        return res.length > 0;
+    }
+
+    async procesarCamposProtegidos<T extends object>(
+        tabla: string,
+        id: number,
+        dto: T,
+        dependencias: Array<string | { tabla: string; campoFk: string }>,
+        camposProtegidos: string[],
+        campoPk: string,
+        usuarioId: number
+    ): Promise<T> {
+        const tieneDependencias = await this.validarDependencias(tabla, id, dependencias, campoPk);
+        if (!tieneDependencias) return dto;
+
+        const esAdmin = await this.esUsuarioAdministrador(usuarioId);
+        if (esAdmin) {
+            this.logger.warn(
+                `[BYPASS ADMIN] El usuario_id=${usuarioId} está modificando campos protegidos (${camposProtegidos.join(', ')}) en la tabla "${tabla}" id=${id} que posee dependencias activas.`
+            );
+            return dto;
+        }
+
+        const dtoFiltrado = { ...dto };
+        camposProtegidos.forEach(campo => {
+            if (campo in dtoFiltrado) {
+                delete (dtoFiltrado as any)[campo];
+            }
+        });
+
+        return dtoFiltrado;
+    }
+}
+
+// C:\sirena\sirena-backend\src\common\decorators\safe-text.decorator.ts
+import { registerDecorator, ValidationArguments, ValidationOptions } from 'class-validator';
+import xss from 'xss';
+
+export function IsSafeText(
+    validationOptions?: ValidationOptions,
+): PropertyDecorator {
+    return (
+        target: object,
+        propertyKey: string | symbol,
+    ): void => {
+        const decoratorOptions = {
+            name: 'isSafeText',
+            target: target.constructor,
+            propertyName: String(propertyKey),
+            validator: {
+                validate(value: unknown): boolean {
+                    if (
+                        value === null ||
+                        value === undefined ||
+                        value === ''
+                    ) {
+                        return true;
+                    }
+
+                    if (typeof value !== 'string') {
+                        return false;
+                    }
+
+                    // Caracteres de control no permitidos.
+                    const controlChars =
+                        /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F\u202E]/;
+
+                    if (controlChars.test(value)) {
+                        return false;
+                    }
+
+                    // Rechazar HTML, scripts y etiquetas.
+                    const sanitized = xss(value, {
+                        whiteList: {},
+                        stripIgnoreTag: true,
+                        stripIgnoreTagBody: [
+                            'script',
+                            'style',
+                            'iframe',
+                        ],
+                    });
+
+                    return sanitized === value;
+                },
+
+                defaultMessage(
+                    args: ValidationArguments,
+                ): string {
+                    return `${args.property} contiene caracteres o contenido no permitido.`;
+                },
+            },
+
+            ...(validationOptions !== undefined
+                ? { options: validationOptions }
+                : {}),
+        };
+
+        registerDecorator(decoratorOptions);
+    };
+}
 
 EJEMPLOS 
-# C:\sirena\sirena-backend\src\modules\menus\menus.http
-# ----------------------------------------------------------------------
-# DEFINICIÓN DE VARIABLES
-# ----------------------------------------------------------------------
-@baseUrl = http://localhost:3010/api
-@baseUrl_menus = {{baseUrl}}/menus
-@rest-client.previewOption = body
+// C:\sirena\sirena-backend\src\modules\clientes\dto\find-clientes-query.dto.ts
+import { Type } from 'class-transformer';
+import { IsOptional, IsInt, IsIn, IsString, Min } from 'class-validator';
+import { ESTADO_METADATA, ESTADOS_CONSULTA, TipoCliente, TIPO_CLIENTE_METADATA, TipoDocumento, TIPO_DOCUMENTO_METADATA } from '../../../common/constants/estados.constant';
+import { BasePaginationQueryDto } from '../../../common/dto/base-pagination-query.dto';
+import { PaginatedResult } from '../../../common/interfaces/pagination.interface';
+import { createEnumMessage, getEnumValues } from '../../../common/utils/validation-helper.util';
 
-### 1. OBTENER TOKEN DE AUTENTICACIÓN.
-# @name login
-POST {{baseUrl}}/auth/validar
-Content-Type: application/json
+export class FindClientesQueryDto extends BasePaginationQueryDto {
+    @IsOptional()
+    @IsString({ message: 'El parámetro q debe ser un texto.' })
+    q?: string;
 
-{
-    "username": "ADMIN",
-    "password": "12345678"
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'El campo exactMatch debe ser un número entero.' })
+    @IsIn([0, 1], { message: 'El campo exactMatch debe ser 0 (flexible) o 1 (exacta).' })
+    exactMatch: number = 0;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'usuario_id debe ser un número entero.' })
+    usuario_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'El estado_id debe ser un número entero.' })
+    @IsIn(ESTADOS_CONSULTA, {
+        message: createEnumMessage(ESTADO_METADATA, ESTADOS_CONSULTA, 'estado_id')
+    })
+    estado_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'tipo_cliente_id debe ser un número entero.' })
+    @IsIn(getEnumValues(TipoCliente), {
+        message: createEnumMessage(TIPO_CLIENTE_METADATA, getEnumValues(TipoCliente), 'tipo_cliente_id')
+    })
+    tipo_cliente_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'tipo_documento_id debe ser un número entero.' })
+    @IsIn(getEnumValues(TipoDocumento), {
+        message: createEnumMessage(TIPO_DOCUMENTO_METADATA, getEnumValues(TipoDocumento), 'tipo_documento_id')
+    })
+    tipo_documento_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'banco_base_id debe ser un número entero.' })
+    @Min(1, { message: 'banco_base_id debe ser mayor o igual a 1.' })
+    banco_base_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'habilitado_ventas debe ser un número entero.' })
+    @IsIn([0, 1], { message: 'habilitado_ventas debe ser 0 o 1.' })
+    habilitado_ventas?: number;
+
+    static getCampos(): string[] {
+        const alias = 'c';
+        const aliasBanco = 'b';
+        return [
+            `${alias}.cliente_id`,
+            `${alias}.tipo_cliente_id`,
+            `${alias}.cliente`,
+            `${alias}.nit`,
+            `${alias}.razon_social`,
+            `${alias}.documento`,
+            `${alias}.documento_complemento`,
+            `${alias}.tipo_documento_id`,
+            `${alias}.direccion`,
+            `${alias}.telefono`,
+            `${alias}.email`,
+            `${alias}.banco_base_id`,
+            `${aliasBanco}.banco AS banco_base_nombre`,
+            `${aliasBanco}.abreviatura AS banco_base_abreviatura`,
+            `${alias}.numero_cuenta`,
+            `${alias}.habilitado_ventas`,
+            `${alias}.limite_credito`,
+            `${alias}.estado_id`,
+            `${alias}.usuario_id_registro`,
+            `${alias}.usuario_id_actualizacion`,
+            `${alias}.usuario_id_baja`,
+            `${alias}.fecha_registro`,
+            `${alias}.fecha_actualizacion`,
+            `${alias}.fecha_baja`
+        ];
+    }
+
+    static getCamposParaQ(): string[] {
+        return ['cliente', 'nit', 'razon_social', 'documento', 'email', 'telefono', 'b.banco', 'b.abreviatura'];
+    }
+
+    static getCamposPermitidosParaOrdenar(): string[] {
+        return [
+            'cliente_id',
+            'tipo_cliente_id',
+            'cliente',
+            'nit',
+            'razon_social',
+            'documento',
+            'tipo_documento_id',
+            'banco_base_id',
+            'habilitado_ventas',
+            'limite_credito',
+            'fecha_registro'
+        ];
+    }
+
+    static getDependencias(): Array<string | { tabla: string; campoFk: string }> {
+        return [
+            { tabla: 'sucursales', campoFk: 'empresa_id' },
+            { tabla: 'empresas_nits', campoFk: 'empresa_id' },
+            { tabla: 'empresas_cuentas', campoFk: 'empresa_id' }
+        ];
+    }
+
+    static getCamposProtegidosConDependencias(): string[] {
+        return ['documento', 'tipo_documento_id', 'cliente'];
+    }
+
+    static getEquivalenciasMapeo(): Record<string, string> {
+        const alias = 'c';
+        const aliasBanco = 'b';
+        return {
+            'cliente_id': `${alias}.cliente_id`,
+            'tipo_cliente_id': `${alias}.tipo_cliente_id`,
+            'cliente': `${alias}.cliente`,
+            'nit': `${alias}.nit`,
+            'razon_social': `${alias}.razon_social`,
+            'documento': `${alias}.documento`,
+            'documento_complemento': `${alias}.documento_complemento`,
+            'tipo_documento_id': `${alias}.tipo_documento_id`,
+            'direccion': `${alias}.direccion`,
+            'telefono': `${alias}.telefono`,
+            'email': `${alias}.email`,
+            'banco_base_id': `${alias}.banco_base_id`,
+            'banco_base_nombre': `${aliasBanco}.banco`,
+            'banco_base_abreviatura': `${aliasBanco}.abreviatura`,
+            'numero_cuenta': `${alias}.numero_cuenta`,
+            'habilitado_ventas': `${alias}.habilitado_ventas`,
+            'limite_credito': `${alias}.limite_credito`,
+            'estado_id': `${alias}.estado_id`,
+            'usuario_id_registro': `${alias}.usuario_id_registro`,
+            'usuario_id_actualizacion': `${alias}.usuario_id_actualizacion`,
+            'usuario_id_baja': `${alias}.usuario_id_baja`,
+            'fecha_registro': `${alias}.fecha_registro`,
+            'fecha_actualizacion': `${alias}.fecha_actualizacion`,
+            'fecha_baja': `${alias}.fecha_baja`
+        };
+    }
 }
 
-### 2. GUARDAR TOKEN EN VARIABLE.
-@authToken = {{login.response.body.token}}
+export { PaginatedResult };
 
-# ==============================================================================
-# AUTENTICACIÓN - USUARIO 3
-# ==============================================================================
+// C:\sirena\sirena-backend\src\modules\clientes\dto\cliente-response.dto.ts
+import { Expose, Transform } from 'class-transformer';
+import { Estado, ESTADO_METADATA, TipoCliente, TIPO_CLIENTE_METADATA, TipoDocumento, TIPO_DOCUMENTO_METADATA } from '../../../common/constants/estados.constant';
+import { formatLocalDate } from '../../../common/utils/date-formatter.util';
 
-### 1.b OBTENER TOKEN USUARIO 3
-# @name loginUser3
-POST {{baseUrl}}/auth/validar
-Content-Type: application/json
+const transformEstado = ({ obj }: { obj: ClienteRawResult }) => {
+    const estadoId = Number(obj.estado_id);
+    const metadata = ESTADO_METADATA[estadoId as Estado];
+    return metadata ? metadata.abreviatura : '';
+};
 
-{
-    "username": "GLADYS",
-    "password": "12345678"
+const transformTipoCliente = (tipoClienteId: unknown) => {
+    const id = Number(tipoClienteId);
+    if (!Number.isInteger(id)) {
+        return { abreviatura: '', valor: 0, prefijo: '' };
+    }
+    const metadata = TIPO_CLIENTE_METADATA[id as TipoCliente];
+    if (!metadata) {
+        return { abreviatura: '', valor: 0, prefijo: '' };
+    }
+    return {
+        abreviatura: metadata.abreviatura,
+        valor: metadata.valor,
+        prefijo: metadata.prefijo ?? '',
+    };
+};
+
+const transformTipoDocumento = (tipoDocumentoId: unknown) => {
+    const id = Number(tipoDocumentoId);
+    if (!Number.isInteger(id)) {
+        return { abreviatura: '', valor: 0, prefijo: '' };
+    }
+    const metadata = TIPO_DOCUMENTO_METADATA[id as TipoDocumento];
+    if (!metadata) {
+        return { abreviatura: '', valor: 0, prefijo: '' };
+    }
+    return {
+        abreviatura: metadata.abreviatura,
+        valor: metadata.valor,
+        prefijo: metadata.prefijo ?? '',
+    };
+};
+
+export interface ClienteRawResult {
+    cliente_id: string | number;
+    tipo_cliente_id: string | number;
+    cliente: string;
+    nit?: string | null;
+    razon_social?: string | null;
+    documento: string;
+    documento_complemento?: string | null;
+    tipo_documento_id: string | number;
+    direccion?: string | null;
+    telefono?: string | null;
+    email?: string | null;
+    banco_base_id: string | number;
+    banco_base_nombre?: string | null;
+    banco_base_abreviatura?: string | null;
+    numero_cuenta?: string | null;
+    habilitado_ventas: string | number;
+    limite_credito: string | number;
+    estado_id: string | number;
+    estado_registro: string;
+    usuario_operacion: string;
+    usuario_id_registro: string | number;
+    usuario_id_actualizacion?: string | number | null;
+    usuario_id_baja?: string | number | null;
+    fecha_registro: string | Date;
+    fecha_actualizacion?: string | Date | null;
+    fecha_baja?: string | Date | null;
+    total_count?: string | number;
+    tiene_dependencias?: boolean;
+    campos_protegidos?: string[];
 }
 
-### 2.b GUARDAR TOKEN USUARIO 3
-# @authToken = {{loginUser3.response.body.token}}
+export class ClienteResponseDto {
+    @Expose() cliente_id!: number;
+    @Expose() tipo_cliente_id!: number;
 
-# ==============================================================================
-# LISTAR MENÚS (GET)
-# ==============================================================================
+    @Expose()
+    @Transform(({ obj }) => transformTipoCliente(obj.tipo_cliente_id))
+    tipo_cliente!: {
+        abreviatura: string;
+        descripcion: string;
+    };
 
-### LISTAR TODOS (Activos + Históricos por defecto)
-GET {{baseUrl_menus}}
-Authorization: Bearer {{authToken}}
+    @Expose() cliente!: string;
+    @Expose() nit?: string | null;
+    @Expose() razon_social?: string | null;
+    @Expose() documento!: string;
+    @Expose() documento_complemento?: string | null;
 
-### b. LISTAR POR ESTADO ACTIVOS (1000)
-GET {{baseUrl_menus}}?estado_id=1000
-Authorization: Bearer {{authToken}}
+    @Expose() tipo_documento_id!: number;
 
-### HISTÓRICOS (1002)
-GET {{baseUrl_menus}}?estado_id=1002
-Authorization: Bearer {{authToken}}
+    @Expose()
+    @Transform(({ obj }) => transformTipoDocumento(obj.tipo_documento_id))
+    tipo_documento!: {
+        abreviatura: string;
+        prefijo: string;
+    };
 
-# ==============================================================================
-# BÚSQUEDA POR TEXTO (q)
-# ==============================================================================
+    @Expose() direccion?: string | null;
+    @Expose() telefono?: string | null;
+    @Expose() email?: string | null;
+    @Expose() banco_base_id!: number;
 
-### BÚSQUEDA FLEXIBLE POR TÍTULO
-GET {{baseUrl_menus}}?q=CONFIGURACIÓN
-Authorization: Bearer {{authToken}}
+    @Expose()
+    @Transform(({ obj }) => obj.banco_base_nombre || null)
+    banco_base_nombre?: string | null;
 
-### Búsqueda por coincidencia exacta
-GET {{baseUrl_menus}}?q=DATOS DE LA EMPRESA&exactMatch=1
-Authorization: Bearer {{authToken}}
+    @Expose()
+    @Transform(({ obj }) => obj.banco_base_abreviatura || null)
+    banco_base_abreviatura?: string | null;
 
-# ==============================================================================
-# PAGINACIÓN
-# ==============================================================================
+    @Expose() numero_cuenta?: string | null;
 
-### PÁGINA 1: Registros 0 al 15
-GET {{baseUrl_menus}}?offset=0&limit=16
-Authorization: Bearer {{authToken}}
+    @Expose()
+    @Transform(({ value }) => Number(value))
+    habilitado_ventas!: number;
 
-### Paginación con filtro de estado
-GET {{baseUrl_menus}}?estado_id=1000&offset=0&limit=5
-Authorization: Bearer {{authToken}}
+    @Expose()
+    @Transform(({ value }) => Number(value))
+    limite_credito!: number;
 
-# ==============================================================================
-# ORDENAMIENTO
-# ==============================================================================
+    @Expose() estado_id!: number;
 
-### ORDENAR POR TÍTULO (Ascendente)
-GET {{baseUrl_menus}}?sortField=titulo&sortOrder=1
-Authorization: Bearer {{authToken}}
+    @Expose()
+    @Transform(transformEstado)
+    estado_registro!: string;
 
-### ORDENAR POR ID (Descendente)
-GET {{baseUrl_menus}}?sortField=menu_id&sortOrder=-1
-Authorization: Bearer {{authToken}}
+    @Expose() usuario_operacion!: string;
+    @Expose() usuario_id_registro!: number;
+    @Expose() usuario_id_actualizacion?: number | null;
+    @Expose() usuario_id_baja?: number | null;
 
-# ==============================================================================
-# OBTENER POR ID
-# ==============================================================================
+    @Expose()
+    @Transform(({ value }) => formatLocalDate(value))
+    fecha_registro!: string | null;
 
-### OBTENER MENÚ POR ID
-GET {{baseUrl_menus}}/3
-Authorization: Bearer {{authToken}}
+    @Expose()
+    @Transform(({ value }) => formatLocalDate(value))
+    fecha_actualizacion?: string | null;
 
-# ==============================================================================
-# CRUD MENÚ
-# ==============================================================================
+    @Expose()
+    @Transform(({ value }) => formatLocalDate(value))
+    fecha_baja?: string | null;
 
-### CREAR NUEVO MENÚ
-POST {{baseUrl_menus}}
-Authorization: Bearer {{authToken}}
-Content-Type: application/json
-
-{
-    "menu_padre_id": 2,
-    "titulo": "AUDITORÍA DE SISTEMA",
-    "icono": "pi pi-shield",
-    "url": "/configuracion/auditoria",
-    "orden": 6
+    @Expose() tiene_dependencias!: boolean;
+    @Expose() campos_protegidos?: string[];
 }
 
-### ACTUALIZAR MENÚ
-PATCH {{baseUrl_menus}}/79
-Authorization: Bearer {{authToken}}
-Content-Type: application/json
+// C:\sirena\sirena-backend\src\common\validators\unicidad-validador.service.ts
+import { Injectable, HttpStatus, Logger } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+import { ESTADOS_VIVOS } from '../constants/estados.constant';
+import { DomainException } from '../exceptions/domain.exception';
+import { getErrorMessage, getErrorStack, isDomainException } from '../utils/error.util';
 
-{
-    "titulo": "AUDITORÍA GENERAL Y LOGS"
+export interface UnicidadConfig {
+    tabla: string;                      // Nombre de la tabla
+    campos: {                           // Array de campos a validar
+        nombre: string;                 // Nombre de la columna
+        valor: any;                     // Valor a validar
+    }[];
+    idExcluir?: number;                 // ID a excluir (para updates)
+    campoPk?: string;                   // Nombre del campo PK (por defecto 'id')
+    incluirEstado?: boolean;            // Incluir filtro de estado
+    estadosValidos?: number[];          // Estados a considerar
+    caseInsensitive?: boolean;          // Case insensitive
+    permitirNull?: boolean;             // Permitir NULL
+    condicionesExtra?: {                // Para filtros adicionales (ej. estado_contrato_id = 4750)
+        nombre: string;
+        valor: any;
+    }[];
 }
 
-### ELIMINAR MENÚ (ACTIVO → BORRADO)
-DELETE {{baseUrl_menus}}/79
-Authorization: Bearer {{authToken}}
+@Injectable()
+export class UnicidadValidadorService {
+    private readonly logger = new Logger(UnicidadValidadorService.name);
 
-# ==============================================================================
-# ARCHIVAR / DESARCHIVAR (Cambio de estado)
-# ==============================================================================
+    constructor(
+        private readonly dataSource: DataSource,
+    ) {}
 
-### ARCHIVAR MENÚ (ACTIVO → HISTÓRICO)
-PATCH {{baseUrl_menus}}/78/archivar
-Authorization: Bearer {{authToken}}
+    async validarUnicidad(config: UnicidadConfig): Promise<void> {
+        const defaults = {
+            campoPk: 'id',
+            incluirEstado: true,
+            estadosValidos: ESTADOS_VIVOS as unknown as number[],
+            caseInsensitive: false,
+            permitirNull: false,
+        };
 
-### DESARCHIVAR MENÚ (HISTÓRICO → ACTIVO)
-PATCH {{baseUrl_menus}}/78/desarchivar
-Authorization: Bearer {{authToken}}
+        const opts = { ...defaults, ...config };
 
-// C:\sirena\sirena-backend\src\modules\clientes\clientes.controller.ts
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe, UseGuards } from '@nestjs/common';
-import { Cache, CACHE_LARGO } from '../../common/decorators/cache.decorator';
-import { GetUser } from '../../common/decorators/get-user.decorator';
-import { InvalidateCache } from '../../common/decorators/invalidate-cache.decorator';
-import { CreateRateLimit, UpdateRateLimit, DeleteRateLimit, ArchiveRateLimit, FindAllRateLimit, FindOneRateLimit } from '../../common/decorators/rate-limit.decorator';
-import { CustomValidationPipe } from '../../common/decorators/validation-message.decorator';
-import { PaginatedResult } from '../../common/interfaces/pagination.interface';
-import { AuthenticatedUser } from '../../common/interfaces/user.interface';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ClientesService } from './clientes.service';
+        if (!opts.campos || opts.campos.length === 0) {
+            this.logger.debug(`No hay campos para validar unicidad en ${opts.tabla}`);
+            return;
+        }
+
+        const tablaSanitizada = this.dataSource.driver.escape(opts.tabla);
+        const campoPkSanitizado = this.dataSource.driver.escape(opts.campoPk);
+
+        const whereClauses: string[] = [];
+        const params: any[] = [];
+        let paramIndex = 1;
+
+        // 1. Campos principales de unicidad
+        for (const campo of opts.campos) {
+            const columnaSanitizada = this.dataSource.driver.escape(campo.nombre);
+
+            if (!opts.permitirNull && (campo.valor === null || campo.valor === undefined)) {
+                continue;
+            }
+
+            if (campo.valor === null) {
+                whereClauses.push(`${columnaSanitizada} IS NULL`);
+                continue;
+            }
+
+            if (opts.caseInsensitive && typeof campo.valor === 'string') {
+                whereClauses.push(`LOWER(${columnaSanitizada}) = LOWER($${paramIndex})`);
+                params.push(campo.valor);
+                paramIndex++;
+                continue;
+            }
+
+            whereClauses.push(`${columnaSanitizada} = $${paramIndex}`);
+            params.push(campo.valor);
+            paramIndex++;
+        }
+
+        if (whereClauses.length === 0) {
+            this.logger.debug(`No hay campos válidos para validar unicidad en ${opts.tabla}`);
+            return;
+        }
+
+        // 2. ID a excluir (Updates)
+        if (opts.idExcluir !== undefined && opts.idExcluir !== null) {
+            whereClauses.push(`${campoPkSanitizado} != $${paramIndex}`);
+            params.push(opts.idExcluir);
+            paramIndex++;
+        }
+
+        // 3. Condiciones extra (ej. estado_contrato_id = 4750)
+        if (opts.condicionesExtra && opts.condicionesExtra.length > 0) {
+            for (const cond of opts.condicionesExtra) {
+                const colExtraSanitizada = this.dataSource.driver.escape(cond.nombre);
+                if (cond.valor === null) {
+                    whereClauses.push(`${colExtraSanitizada} IS NULL`);
+                } else {
+                    whereClauses.push(`${colExtraSanitizada} = $${paramIndex}`);
+                    params.push(cond.valor);
+                    paramIndex++;
+                }
+            }
+        }
+
+        // 4. Filtro de estado principal
+        if (opts.incluirEstado && opts.estadosValidos && opts.estadosValidos.length > 0) {
+            const estadoPlaceholders = opts.estadosValidos
+                .map(() => `$${paramIndex++}`)
+                .join(', ');
+
+            whereClauses.push(`estado_id IN (${estadoPlaceholders})`);
+            params.push(...opts.estadosValidos);
+        }
+
+        const query = `
+            SELECT ${campoPkSanitizado} AS id
+            FROM ${tablaSanitizada}
+            WHERE ${whereClauses.join(' AND ')}
+            LIMIT 1
+        `;
+
+        try {
+            const duplicados = (await this.dataSource.query(query, params)) as { id: number }[];
+
+            if (duplicados && duplicados.length > 0) {
+                const duplicado = duplicados[0];
+                const detalleCampos = opts.campos
+                    .map((campo) => `${campo.nombre.replace(/_/g, ' ')} "${campo.valor ?? 'NULL'}"`)
+                    .join(', con ');
+
+                throw new DomainException(
+                    `Ya existe un registro con ${detalleCampos}.`,
+                    {
+                        tabla: opts.tabla,
+                        campos: opts.campos,
+                        idDuplicado: duplicado?.id,
+                        idExcluido: opts.idExcluir,
+                        httpStatus: HttpStatus.CONFLICT,
+                    }
+                );
+            }
+        } catch (error) {
+            if (isDomainException(error)) {
+                throw error;
+            }
+            this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
+            throw error;
+        }
+    }
+}
+
+// C:\sirena\sirena-backend\src\modules\clientes\clientes.service.ts
+import { Injectable, HttpStatus } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
+import { DomainException } from '../../common/exceptions/domain.exception';
+import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
+import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
+import { logSqlQuery } from '../../common/utils/sql-logger.util';
+import { runInTransaction } from '../../common/utils/transaction.helper';
+import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
+import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
 import { CreateClienteDto } from './dto/create-cliente.dto';
 import { FindClientesQueryDto } from './dto/find-clientes-query.dto';
 import { ClienteResponseDto } from './dto/cliente-response.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
+import { Cliente } from './entities/cliente.entity';
 
-@UseGuards(JwtAuthGuard)
-@Controller('clientes')
-export class ClientesController {
+@Injectable()
+export class ClientesService extends BaseService {
+    protected config: BaseServiceConfig = {
+        nombreTabla: 'clientes',
+        nombreEntidad: 'Cliente',
+        campoPK: 'cliente_id',
+        alias: 't',
+        responseDto: ClienteResponseDto,
+        camposBusquedaEnQ: FindClientesQueryDto.getCamposParaQ(),
+        tablasDependientes: FindClientesQueryDto.getDependencias(),
+        joins: [
+            {
+                table: 'bancos',
+                alias: 'b',
+                onCondition: 'b.banco_id = t.banco_base_id',
+                selectColumns: [
+                    'b.banco AS banco_base_nombre',
+                    'b.abreviatura AS banco_base_abreviatura'
+                ],
+                type: 'INNER'
+            }
+        ],
+        configuracionFiltros: [
+            {
+                nombreCampo: 'tipo_cliente_id',
+                nombreColumna: 'tipo_cliente_id',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+            {
+                nombreCampo: 'tipo_documento_id',
+                nombreColumna: 'tipo_documento_id',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+            {
+                nombreCampo: 'banco_base_id',
+                nombreColumna: 'banco_base_id',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+            {
+                nombreCampo: 'habilitado_ventas',
+                nombreColumna: 'habilitado_ventas',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+            {
+                nombreCampo: 'estado_id',
+                nombreColumna: 'estado_id',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+        ],
+        configuracionOrden: {
+            campoOrdenPorDefecto: 'cliente_id',
+            camposPermitidosParaOrdenar: FindClientesQueryDto.getCamposPermitidosParaOrdenar(),
+            equivalenciasMapeo: FindClientesQueryDto.getEquivalenciasMapeo(),
+        },
+        getCamposProtegidosConDependencias: () => FindClientesQueryDto.getCamposProtegidosConDependencias(),
+    };
+
     constructor(
-        private readonly clientesService: ClientesService,
-    ) {}
-
-    @Get()
-    @FindAllRateLimit()
-    @Cache('clientes', CACHE_LARGO)
-    findAll(
-        @Query(CustomValidationPipe({ concise: true }))
-        query: FindClientesQueryDto,
-        @GetUser() user: AuthenticatedUser
-    ): Promise<PaginatedResult<ClienteResponseDto>> {
-        return this.clientesService.findAll(query, user.usuario_id);
+        @InjectDataSource()
+        dataSource: DataSource,
+        tablaValidador: TablaValidadorService,
+        private readonly unicidadValidador: UnicidadValidadorService,
+    ) {
+        super(dataSource, tablaValidador);
     }
 
-    @Get(':id')
-    @FindOneRateLimit()
-    @Cache('clientes', CACHE_LARGO)
-    findOne(
-        @Param('id', ParseIntPipe) id: number,
-        @GetUser() user: AuthenticatedUser
-    ): Promise<ClienteResponseDto> {
-        return this.clientesService.findOne(id, user.usuario_id);
+    private get nombreTabla(): string {
+        return this.config.nombreTabla;
     }
 
-    @Post()
-    @CreateRateLimit()
-    @InvalidateCache('clientes')
-    create(
-        @Body() dto: CreateClienteDto,
-        @GetUser() user: AuthenticatedUser
-    ): Promise<ClienteResponseDto> {
-        return this.clientesService.create(dto, user.usuario_id);
+    private get campoPK(): string {
+        return this.config.campoPK;
     }
 
-    @Patch(':id')
-    @UpdateRateLimit()
-    @InvalidateCache('clientes')
-    update(
-        @Param('id', ParseIntPipe) id: number,
-        @Body() dto: UpdateClienteDto,
-        @GetUser() user: AuthenticatedUser
-    ): Promise<ClienteResponseDto> {
-        return this.clientesService.update(id, dto, user.usuario_id);
+    async create(dto: CreateClienteDto, usuarioId: number): Promise<ClienteResponseDto> {
+        return runInTransaction(this.dataSource, async (manager) => {
+            const validaciones: Promise<any>[] = [
+                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear')
+            ];
+
+            if (dto.banco_base_id) {
+                validaciones.push(
+                    this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dto.banco_base_id)
+                );
+            }
+
+            if (dto.documento && dto.documento !== '0') {
+                const camposUnicidad = [
+                    { nombre: 'tipo_documento_id', valor: dto.tipo_documento_id ?? 2200 },
+                    { nombre: 'documento', valor: dto.documento }
+                ];
+
+                if (dto.documento_complemento) {
+                    camposUnicidad.push({ nombre: 'documento_complemento', valor: dto.documento_complemento });
+                }
+
+                validaciones.push(
+                    this.unicidadValidador.validarUnicidad({
+                        tabla: this.nombreTabla,
+                        campos: camposUnicidad,
+                        estadosValidos: [...ESTADOS_VIVOS],
+                        campoPk: this.campoPK
+                    })
+                );
+            }
+
+            await Promise.all(validaciones);
+
+            const query = `
+                INSERT INTO ${this.nombreTabla} (
+                    tipo_cliente_id,
+                    cliente,
+                    nit,
+                    razon_social,
+                    documento,
+                    documento_complemento,
+                    tipo_documento_id,
+                    direccion,
+                    telefono,
+                    email,
+                    banco_base_id,
+                    numero_cuenta,
+                    habilitado_ventas,
+                    limite_credito,
+                    estado_id,
+                    usuario_id_registro,
+                    fecha_registro
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP)
+                RETURNING ${this.campoPK}
+            `;
+
+            const params = [
+                dto.tipo_cliente_id ?? 1150,
+                dto.cliente,
+                dto.nit || null,
+                dto.razon_social || null,
+                dto.documento,
+                dto.documento_complemento || null,
+                dto.tipo_documento_id ?? 2200,
+                dto.direccion || null,
+                dto.telefono || null,
+                dto.email || null,
+                dto.banco_base_id ?? 1,
+                dto.numero_cuenta || null,
+                dto.habilitado_ventas ?? 1,
+                dto.limite_credito ?? 0.00,
+                ESTADO_ACTIVO,
+                Number(usuarioId)
+            ];
+
+            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+
+            try {
+                await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
+                const insertResult = await manager.query(query, params);
+                const newId = Number(insertResult[0]?.[this.campoPK] ?? 0);
+
+                if (newId === 0) {
+                    throw new DomainException(
+                        'Error al registrar el cliente.',
+                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
+                    );
+                }
+
+                return this.findOne(newId, usuarioId, manager);
+            } catch (error: unknown) {
+                if (isDomainException(error)) {
+                    throw error;
+                }
+                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
+                throw error;
+            }
+        });
     }
 
-    @Delete(':id')
-    @DeleteRateLimit()
-    @InvalidateCache('clientes')
-    remove(
-        @Param('id', ParseIntPipe) id: number,
-        @GetUser() user: AuthenticatedUser
-    ): Promise<ClienteResponseDto> {
-        return this.clientesService.remove<ClienteResponseDto>(id, user.usuario_id);
-    }
+    async update(id: number, dto: UpdateClienteDto, usuarioId: number): Promise<ClienteResponseDto> {
+        return runInTransaction(this.dataSource, async (manager) => {
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
-    @Patch(':id/archivar')
-    @ArchiveRateLimit()
-    @InvalidateCache('clientes')
-    archivar(
-        @Param('id', ParseIntPipe) id: number,
-        @GetUser() user: AuthenticatedUser
-    ): Promise<ClienteResponseDto> {
-        return this.clientesService.archivar<ClienteResponseDto>(id, user.usuario_id);
-    }
+            const clienteActual = await manager.findOne(Cliente, {
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
+            });
 
-    @Patch(':id/desarchivar')
-    @ArchiveRateLimit()
-    @InvalidateCache('clientes')
-    desarchivar(
-        @Param('id', ParseIntPipe) id: number,
-        @GetUser() user: AuthenticatedUser
-    ): Promise<ClienteResponseDto> {
-        return this.clientesService.desarchivar<ClienteResponseDto>(id, user.usuario_id);
+            if (!clienteActual) {
+                throw new DomainException(
+                    'Cliente no encontrado.',
+                    { httpStatus: HttpStatus.NOT_FOUND }
+                );
+            }
+
+            dto = await this.tablaValidador.procesarCamposProtegidos(
+                this.nombreTabla,
+                id,
+                dto,
+                FindClientesQueryDto.getDependencias(),
+                FindClientesQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
+            );
+
+            const validaciones: Promise<any>[] = [];
+
+            if (dto.banco_base_id !== undefined && dto.banco_base_id !== clienteActual.banco_base_id) {
+                validaciones.push(
+                    this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dto.banco_base_id)
+                );
+            }
+
+            const tipoDocumentoEvaluado = dto.tipo_documento_id ?? clienteActual.tipo_documento_id;
+            const documentoEvaluado = dto.documento ?? clienteActual.documento;
+            const complementoEvaluado = dto.documento_complemento !== undefined
+                ? dto.documento_complemento
+                : clienteActual.documento_complemento;
+
+            const huboCambioDocumentacion =
+                (dto.tipo_documento_id !== undefined && dto.tipo_documento_id !== clienteActual.tipo_documento_id) ||
+                (dto.documento !== undefined && dto.documento !== clienteActual.documento) ||
+                (dto.documento_complemento !== undefined && dto.documento_complemento !== clienteActual.documento_complemento);
+
+            if (huboCambioDocumentacion && documentoEvaluado !== '0') {
+                const camposUnicidad = [
+                    { nombre: 'tipo_documento_id', valor: tipoDocumentoEvaluado },
+                    { nombre: 'documento', valor: documentoEvaluado }
+                ];
+
+                if (complementoEvaluado) {
+                    camposUnicidad.push({ nombre: 'documento_complemento', valor: complementoEvaluado });
+                }
+
+                validaciones.push(
+                    this.unicidadValidador.validarUnicidad({
+                        tabla: this.nombreTabla,
+                        campos: camposUnicidad,
+                        idExcluir: id,
+                        estadosValidos: [...ESTADOS_VIVOS],
+                        campoPk: this.campoPK
+                    })
+                );
+            }
+
+            if (validaciones.length > 0) {
+                await Promise.all(validaciones);
+            }
+
+            Object.assign(clienteActual, dto);
+            clienteActual.update(usuarioId);
+
+            try {
+                await manager.save(clienteActual);
+                return this.findOne(id, usuarioId, manager);
+            } catch (error: unknown) {
+                if (isDomainException(error)) {
+                    throw error;
+                }
+                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
+                throw error;
+            }
+        });
     }
 }
+
+**DDL DE LA TABLA PRINCIPAL:**
+CREATE TABLE tablas (
+    tabla_id BIGSERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO
+    usuario_id_registro BIGINT NOT NULL DEFAULT 1,
+    usuario_id_actualizacion BIGINT NULL,
+    usuario_id_baja BIGINT NULL,
+    fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMPTZ NULL,
+    fecha_baja TIMESTAMPTZ NULL,
+    CONSTRAINT chk_tablas_estadoid CHECK (estado_id IN (1000, 1001)),
+    CONSTRAINT chk_tablas_nombre_notempty CHECK (TRIM(nombre) <> ''),
+    CONSTRAINT chk_tablas_nombre_formato CHECK (nombre = LOWER(TRIM(nombre)) AND nombre ~ '^[a-z][a-z0-9_]*$')
+);
+CREATE UNIQUE INDEX uix_tablas_nombre_unique ON tablas (nombre) WHERE estado_id = 1000;
+CREATE INDEX idx_tablas_estado ON tablas (estado_id) WHERE estado_id = 1000;
+
+COMMENT ON TABLE tablas IS 'Reglas de la tabla - tablas
+R.0: La tabla tablas define los nombres de las tablas que pertenecen a la base de datos del sistema.';
 
 // C:\sirena\sirena-backend\src\modules\clientes\dto\create-cliente.dto.ts
 import { Transform } from 'class-transformer';
@@ -2137,189 +3748,19 @@ export class CreateClienteDto {
     limite_credito?: number;
 }
 
-// C:\sirena\sirena-backend\src\modules\clientes\dto\update-cliente.dto.ts
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateClienteDto } from './create-cliente.dto';
+**TABLAS DEPENDIENTES:**
+----------------------+-----------+-------------------+-----------
+tabla_dependiente     |columna_fk |tabla_referenciada |columna_pk 
+----------------------+-----------+-------------------+-----------
+roles_permisos_tablas |tabla_id   |tablas             |tabla_id   
+sucesos               |tabla_id   |tablas             |tabla_id   
+----------------------+-----------+-------------------+-----------
 
-export class UpdateClienteDto extends PartialType(CreateClienteDto) {}
+**TABLAS PARA RESPONSE (ESTRUCTURA):**
+----------------------+---------------------+------------------+-----------+----------------
+tabla                 |columna              |tipo_dato         |tipo_clave |referencia_fk   
+----------------------+---------------------+------------------+-----------+----------------
 
-// C:\sirena\sirena-backend\src\modules\clientes\entities\cliente.entity.ts
-import { Entity, Column, PrimaryGeneratedColumn, Index, Check } from 'typeorm';
-import { BaseAuditEntity } from '../../../common/base/base-audit.entity';
-
-@Entity({ name: 'clientes' })
-@Check('chk_clientes_tipoclienteid', 'tipo_cliente_id IN (1150, 1151)')
-@Check('chk_clientes_tipodocumentoid', 'tipo_documento_id IN (2200, 2201, 2202, 2203, 2204)')
-@Check('chk_clientes_estadoid', 'estado_id IN (1000, 1001, 1002)')
-@Check('chk_clientes_cliente_notempty', "TRIM(cliente) <> ''")
-@Check('chk_clientes_cliente_minlength', 'LENGTH(TRIM(cliente)) >= 3')
-@Check('chk_clientes_nit_notempty', "nit IS NULL OR TRIM(nit) <> ''")
-@Check('chk_clientes_razonsocial_notempty', "razon_social IS NULL OR TRIM(razon_social) <> ''")
-@Check('chk_clientes_documento_notempty', "TRIM(documento) <> ''")
-@Check('chk_clientes_documento_minlength', 'LENGTH(TRIM(documento)) >= 1')
-@Check('chk_clientes_documentocomplemento_notempty', "documento_complemento IS NULL OR TRIM(documento_complemento) <> ''")
-@Check('chk_clientes_direccion_notempty', "direccion IS NULL OR TRIM(direccion) <> ''")
-@Check('chk_clientes_telefono_notempty', "telefono IS NULL OR TRIM(telefono) <> ''")
-@Check('chk_clientes_email_formato', "email IS NULL OR email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'")
-@Check('chk_clientes_numerocuenta_notempty', "numero_cuenta IS NULL OR TRIM(numero_cuenta) <> ''")
-@Check('chk_clientes_habilitadoventas', 'habilitado_ventas IN (0, 1)')
-@Check('chk_clientes_limitecredito', 'limite_credito >= 0.00')
-@Check('chk_clientes_coherencia', '(limite_credito = 0.00) OR (limite_credito > 0.00 AND habilitado_ventas = 1)')
-@Index('uix_clientes_tipodocumentoid_documento_unique', ['tipo_documento_id', 'documento'], {
-    unique: true,
-    where: "estado_id IN (1000, 1002) AND documento <> '0' AND documento_complemento IS NULL",
-})
-@Index('uix_clientes_varios_unique', ['tipo_documento_id', 'documento_complemento', 'documento'], {
-    unique: true,
-    where: "estado_id IN (1000, 1002) AND documento <> '0' AND documento_complemento IS NOT NULL",
-})
-@Index('idx_clientes_documento_cliente_busqueda', ['documento', 'cliente'], {
-    where: 'estado_id IN (1000, 1002)',
-})
-@Index('idx_clientes_bancoid', ['banco_base_id'])
-export class Cliente extends BaseAuditEntity {
-    @PrimaryGeneratedColumn({ name: 'cliente_id', type: 'bigint' })
-    cliente_id!: number;
-
-    @Column({ name: 'tipo_cliente_id', type: 'smallint', nullable: false, default: 1150 })
-    tipo_cliente_id!: number;
-
-    @Column({ name: 'cliente', type: 'varchar', length: 100, nullable: false })
-    cliente!: string;
-
-    @Column({ name: 'nit', type: 'varchar', length: 20, nullable: true })
-    nit?: string | null;
-
-    @Column({ name: 'razon_social', type: 'varchar', length: 150, nullable: true })
-    razon_social?: string | null;
-
-    @Column({ name: 'documento', type: 'varchar', length: 30, nullable: false })
-    documento!: string;
-
-    @Column({ name: 'documento_complemento', type: 'varchar', length: 10, nullable: true })
-    documento_complemento?: string | null;
-
-    @Column({ name: 'tipo_documento_id', type: 'smallint', nullable: false, default: 2200 })
-    tipo_documento_id!: number;
-
-    @Column({ name: 'direccion', type: 'varchar', length: 255, nullable: true })
-    direccion?: string | null;
-
-    @Column({ name: 'telefono', type: 'varchar', length: 100, nullable: true })
-    telefono?: string | null;
-
-    @Column({ name: 'email', type: 'varchar', length: 100, nullable: true })
-    email?: string | null;
-
-    @Column({ name: 'banco_base_id', type: 'bigint', nullable: false, default: 1 })
-    banco_base_id!: number;
-
-    @Column({ name: 'numero_cuenta', type: 'varchar', length: 50, nullable: true })
-    numero_cuenta?: string | null;
-
-    @Column({ name: 'habilitado_ventas', type: 'smallint', nullable: false, default: 1 })
-    habilitado_ventas!: number;
-
-    @Column({ name: 'limite_credito', type: 'decimal', precision: 12, scale: 2, nullable: false, default: 0.00 })
-    limite_credito!: number;
-}
+----------------------+---------------------+------------------+-----------+----------------
 
 
-DDL PRINCIPAL 
-CREATE TABLE productos (
-    producto_id BIGSERIAL PRIMARY KEY,
-    categoria_id BIGINT NOT NULL DEFAULT 1,
-    laboratorio_id BIGINT NOT NULL DEFAULT 1,
-    marca_id BIGINT NOT NULL DEFAULT 1,
-    forma_id BIGINT NOT NULL DEFAULT 1,
-    presentacion_id BIGINT NOT NULL DEFAULT 1,
-    concentracion_id BIGINT NOT NULL DEFAULT 1,
-    unidad_venta_id BIGINT NOT NULL DEFAULT 1,
-    tipo_almacen_id SMALLINT NOT NULL DEFAULT 1700,        -- 1700=NORMAL, 1701=REFRIGERADO, 1702=CONGELADO, 1703=ESPECIAL, 1704=TRANSITO, 1705=MATERIAL_MEDICO, 1706=COSMETICA, 1707=ALIMENTOS, 1708=MATERIA_PRIMA, 1709=RECEPCION, 1710=DEVOLUCIONES, 1711=DESPACHO, 1712=CUARENTENA
-    codigo VARCHAR(100) NOT NULL,
-    codigo_barras VARCHAR(100) NULL,
-    sku VARCHAR(60) NULL,
-    isbn VARCHAR(30) NULL,
-	serie VARCHAR(60) NULL,
-	modelo VARCHAR(150) NULL,
-    nombre VARCHAR(600) NOT NULL,
-    nombre_generico VARCHAR(600) NULL,
-    pcompra DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    p_factor_venta DECIMAL(12,2) NOT NULL DEFAULT 1.50,
-    p_factor_facturacion DECIMAL(12,2) NOT NULL DEFAULT 1.19,
-    pventa DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    pventaf DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    stock_minimo DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    stock_maximo DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    punto_reorden DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    requiere_receta SMALLINT NOT NULL DEFAULT 0,
-    controlado SMALLINT NOT NULL DEFAULT 0,
-    tiene_registro_sanitario SMALLINT NOT NULL DEFAULT 0,
-    descripcion VARCHAR(3000) NULL,
-    observacion VARCHAR(3000) NULL,
-    foto1 VARCHAR(255) NULL,
-    foto2 VARCHAR(255) NULL,
-    foto3 VARCHAR(255) NULL,
-    criticidad_medica_id SMALLINT DEFAULT 4150,         -- 4150=NORMAL, 4151=CRITICO
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
-    usuario_id_registro BIGINT NOT NULL DEFAULT 1,
-    usuario_id_actualizacion BIGINT NULL,
-    usuario_id_baja BIGINT NULL,
-    fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion TIMESTAMPTZ NULL,
-    fecha_baja TIMESTAMPTZ NULL,
-    CONSTRAINT fk_productos_categoria_id FOREIGN KEY (categoria_id) REFERENCES categorias(categoria_id),
-    CONSTRAINT fk_productos_laboratorio_id FOREIGN KEY (laboratorio_id) REFERENCES laboratorios(laboratorio_id),
-    CONSTRAINT fk_productos_marca_id FOREIGN KEY (marca_id) REFERENCES marcas(marca_id),
-    CONSTRAINT fk_productos_forma_id FOREIGN KEY (forma_id) REFERENCES formas(forma_id),
-    CONSTRAINT fk_productos_presentacion_id FOREIGN KEY (presentacion_id) REFERENCES presentaciones(presentacion_id),
-    CONSTRAINT fk_productos_concentracion_id FOREIGN KEY (concentracion_id) REFERENCES concentraciones(concentracion_id),
-    CONSTRAINT fk_productos_unidad_venta_id FOREIGN KEY (unidad_venta_id) REFERENCES unidades(unidad_id),
-    CONSTRAINT chk_productos_tipoalmacenid CHECK (tipo_almacen_id IN (1700, 1701, 1702, 1703, 1704, 1705, 1706, 1707, 1708, 1709, 1710, 1711, 1712)),
-    CONSTRAINT chk_productos_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
-    CONSTRAINT chk_productos_codigo_notempty CHECK (TRIM(codigo) <> ''),
-    CONSTRAINT chk_productos_codigo_minlength CHECK (LENGTH(TRIM(codigo)) >= 3),
-    CONSTRAINT chk_productos_codigo_mayusculas CHECK (codigo = UPPER(codigo)),
-    CONSTRAINT chk_productos_codigo CHECK (codigo ~ '^[A-Z0-9_-]+$'),
-    CONSTRAINT chk_productos_codigobarras_notempty CHECK (codigo_barras IS NULL OR TRIM(codigo_barras) <> ''),
-    CONSTRAINT chk_productos_sku_notempty CHECK (sku IS NULL OR TRIM(sku) <> ''),
-    CONSTRAINT chk_productos_isbn_notempty CHECK (isbn IS NULL OR TRIM(isbn) <> ''),
-    CONSTRAINT chk_productos_modelo_notempty CHECK (modelo IS NULL OR TRIM(modelo) <> ''),
-    CONSTRAINT chk_productos_nombre_notempty CHECK (TRIM(nombre) <> ''),
-    CONSTRAINT chk_productos_nombre_minlength CHECK (LENGTH(TRIM(nombre)) >= 3),
-    CONSTRAINT chk_productos_nombregenerico_notempty CHECK (nombre_generico IS NULL OR TRIM(nombre_generico) <> ''),
-    CONSTRAINT chk_productos_pfactorventa CHECK (p_factor_venta > 1),
-    CONSTRAINT chk_productos_pfactorfacturacion CHECK (p_factor_facturacion > 1),
-    CONSTRAINT chk_productos_pcompra CHECK (pcompra >= 0),
-    CONSTRAINT chk_productos_pventa CHECK (pventa >= 0),
-    CONSTRAINT chk_productos_pventaf CHECK (pventaf >= 0),
-    CONSTRAINT chk_productos_precios CHECK (
-        (producto_id = 1 AND pcompra = 0 AND pventa = 0 AND pventaf = 0) OR
-        (pcompra >= 0 AND pventa >= 0 AND pventaf >= 0)
-    ),
-    CONSTRAINT chk_productos_stockminimo CHECK (stock_minimo >= 0),
-    CONSTRAINT chk_productos_stockmaximo CHECK (stock_maximo >= 0),
-    CONSTRAINT chk_productos_stockmaximo_stockminimo CHECK (stock_maximo >= stock_minimo),
-    CONSTRAINT chk_productos_puntoreorden CHECK (punto_reorden >= 0),
-    CONSTRAINT chk_productos_requierereceta CHECK (requiere_receta IN (0, 1)),
-    CONSTRAINT chk_productos_controlado CHECK (controlado IN (0, 1)),
-    CONSTRAINT chk_productos_tieneregistrosanitario CHECK (tiene_registro_sanitario IN (0, 1)),
-    CONSTRAINT chk_productos_descripcion_notempty CHECK (descripcion IS NULL OR TRIM(descripcion) <> ''),
-    CONSTRAINT chk_productos_observacion_notempty CHECK (observacion IS NULL OR TRIM(observacion) <> ''),
-    CONSTRAINT chk_productos_foto1_notempty CHECK (foto1 IS NULL OR TRIM(foto1) <> ''),
-    CONSTRAINT chk_productos_foto2_notempty CHECK (foto2 IS NULL OR TRIM(foto2) <> ''),
-    CONSTRAINT chk_productos_foto3_notempty CHECK (foto3 IS NULL OR TRIM(foto3) <> ''),
-    CONSTRAINT chk_productos_criticidadmedicaid CHECK (criticidad_medica_id IS NULL OR criticidad_medica_id IN (4150, 4151))
-);
-CREATE UNIQUE INDEX uix_productos_codigo_unique ON productos (codigo) WHERE estado_id IN (1000, 1002);
-CREATE UNIQUE INDEX uix_productos_codigobarras_unique ON productos (codigo_barras) WHERE codigo_barras IS NOT NULL AND estado_id IN (1000, 1002);
-CREATE UNIQUE INDEX uix_productos_isbn_unique ON productos (isbn) WHERE isbn IS NOT NULL AND estado_id IN (1000, 1002);
-CREATE INDEX idx_productos_nombre_trgm ON productos USING GIN (nombre gin_trgm_ops) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_productos_nombregenericotrgm ON productos USING GIN (nombre_generico gin_trgm_ops) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_productos_varios ON productos (categoria_id, laboratorio_id, marca_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_productos_tipoalmacen ON productos (tipo_almacen_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_presentaciones_unidadid ON presentaciones(unidad_id);
-CREATE INDEX idx_productos_unidadventaid ON productos(unidad_venta_id);
-CREATE INDEX idx_productos_formaid ON productos(forma_id);
-CREATE INDEX idx_productos_presentacionid ON productos(presentacion_id);
-CREATE INDEX idx_productos_concentracionid ON productos(concentracion_id);

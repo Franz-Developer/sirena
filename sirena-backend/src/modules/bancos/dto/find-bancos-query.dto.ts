@@ -39,6 +39,7 @@ export class FindBancosQueryDto extends BasePaginationQueryDto {
             `${alias}.banco`,
             `${alias}.codigo_asfi`,
             `${alias}.abreviatura`,
+            `${alias}.descripcion`,
             `${alias}.estado_id`,
             `${alias}.usuario_id_registro`,
             `${alias}.usuario_id_actualizacion`,
@@ -51,7 +52,7 @@ export class FindBancosQueryDto extends BasePaginationQueryDto {
 
     // Todos los campos que son VARCHAR
     static getCamposParaQ(): string[] {
-        return [`banco`, `abreviatura`, `codigo_asfi`];
+        return ['banco', 'abreviatura', 'codigo_asfi', 'descripcion'];
     }
 
     // Todos los campos de la tabla principal menos campos de auditoria.
@@ -81,6 +82,7 @@ export class FindBancosQueryDto extends BasePaginationQueryDto {
             'banco': `${alias}.banco`,
             'codigo_asfi': `${alias}.codigo_asfi`,
             'abreviatura': `${alias}.abreviatura`,
+            'descripcion': `${alias}.descripcion`,
             'estado_id': `${alias}.estado_id`,
             'usuario_id_registro': `${alias}.usuario_id_registro`,
             'usuario_id_actualizacion': `${alias}.usuario_id_actualizacion`,

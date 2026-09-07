@@ -56,7 +56,13 @@ export class BancosService extends BaseService {
     async create(dto: CreateBancoDto, usuarioId: number): Promise<BancoResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
             const codigoAsfiNormalizado = dto.codigo_asfi.trim().padStart(2, '0');
-            const dtoNormalizado = { ...dto, codigo_asfi: codigoAsfiNormalizado };
+            const descripcionNormalizada = dto.descripcion?.trim() || null;
+
+            const dtoNormalizado = {
+                ...dto,
+                codigo_asfi: codigoAsfiNormalizado,
+                descripcion: descripcionNormalizada
+            };
 
             await Promise.all([
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
@@ -77,18 +83,21 @@ export class BancosService extends BaseService {
                     campos: [{ nombre: 'banco', valor: dtoNormalizado.banco }],
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS]
-                })
+                }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
             const query = `
-                INSERT INTO ${this.nombreTabla} (banco, codigo_asfi, abreviatura, estado_id, usuario_id_registro, fecha_registro)
-                VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+                INSERT INTO ${this.nombreTabla}
+                (banco, codigo_asfi, abreviatura, descripcion, estado_id, usuario_id_registro, fecha_registro)
+                VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
                 RETURNING ${this.campoPK}
             `;
             const params = [
                 dtoNormalizado.banco,
                 dtoNormalizado.codigo_asfi,
                 dtoNormalizado.abreviatura,
+                dtoNormalizado.descripcion,
                 ESTADO_ACTIVO,
                 Number(usuarioId)
             ];
@@ -97,7 +106,7 @@ export class BancosService extends BaseService {
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
                 const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
+                const newId = Number(insertResult[0]?.[this.campoPK] ?? 0);
 
                 if (newId === 0) {
                     throw new DomainException(
@@ -129,6 +138,10 @@ export class BancosService extends BaseService {
                 dtoNormalizado.codigo_asfi = dtoNormalizado.codigo_asfi.trim().padStart(2, '0');
             }
 
+            if (dtoNormalizado.descripcion !== undefined) {
+                dtoNormalizado.descripcion = dtoNormalizado.descripcion?.trim() || null;
+            }
+
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
 
             const bancoActual = await manager.findOne(Banco, {
@@ -142,7 +155,13 @@ export class BancosService extends BaseService {
                 );
             }
 
-            // Centralización de dependencias y permisos de Administrador (1 sola línea)
+            if (dtoNormalizado.descripcion !== undefined &&
+                dtoNormalizado.descripcion !== bancoActual.descripcion) {
+                this.logger.log(
+                    `[AUDITORIA] Banco ID ${id}: descripcion cambiada de "${bancoActual.descripcion}" a "${dtoNormalizado.descripcion}"`
+                );
+            }
+
             dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
@@ -153,7 +172,7 @@ export class BancosService extends BaseService {
                 usuarioId
             );
 
-            // Las validaciones de unicidad continúan ejecutándose sobre los campos que sobrevivieron al DTO
+            // Validaciones de unicidad
             const validaciones: Promise<any>[] = [];
 
             if (dtoNormalizado.codigo_asfi && dtoNormalizado.codigo_asfi !== bancoActual.codigo_asfi) {
@@ -201,6 +220,20 @@ export class BancosService extends BaseService {
 
             try {
                 await manager.save(bancoActual);
+
+                const updatedRecord = await manager.findOne(Banco, {
+                    where: { [this.campoPK]: id }
+                });
+
+                if (!updatedRecord) {
+                    throw new DomainException('No se pudo recuperar el registro actualizado.', {
+                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
+                    });
+                }
+
+                const responseDto = new BancoResponseDto();
+                Object.assign(responseDto, updatedRecord);
+
                 return this.findOne(id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) throw error;

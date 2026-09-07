@@ -21,7 +21,7 @@ export class CreateBancoDto {
     @IsSafeText()
     codigo_asfi: string;
 
-    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+    @Transform(({ value }) => typeof value === 'string' ? value.trim().toUpperCase() : value)
     @IsString({ message: 'El campo abreviatura debe ser de tipo texto.' })
     @IsNotEmpty({ message: 'El campo abreviatura es obligatorio y no puede estar vacío.' })
     @MinLength(2, { message: 'El campo abreviatura debe tener al menos 2 caracteres.' })
@@ -34,5 +34,6 @@ export class CreateBancoDto {
     @IsString({ message: 'El campo descripcion debe ser de tipo texto.' })
     @MaxLength(255, { message: 'El campo descripcion no puede exceder los 255 caracteres.' })
     @IsSafeText()
-    descripcion?: string;
+    @MinLength(1, { message: 'La descripción no puede estar vacía si se proporciona.' })
+    descripcion?: string | null;
 }

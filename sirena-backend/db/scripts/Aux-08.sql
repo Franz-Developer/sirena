@@ -1,92 +1,44 @@
-async update(id: number, dto: UpdateBancoDto, usuarioId: number): Promise<BancoResponseDto> {
-    return runInTransaction(this.dataSource, async (manager) => {
-        let dtoNormalizado = { ...dto };
+// C:\rutas\rutas-frontend\app\pages\transporte\paradas.vue
+<template>
+    <div class="p-4">
+        <div class="bg-white rounded-xl shadow-sm p-6">
+            <h1 class="text-2xl font-bold mb-4">📍 Paradas</h1>
+            <p class="text-slate-500 mb-4">Todas las paradas del sistema</p>
 
-        if (dtoNormalizado.banco) {
-            dtoNormalizado.banco = dtoNormalizado.banco.trim().toUpperCase();
-        }
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-slate-100">
+                        <th class="text-left p-2">Nombre</th>
+                        <th class="text-left p-2">ID</th>
+                        <th class="text-left p-2">Coordenadas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="stop in stops" :key="stop.stopId" class="border-b">
+                        <td class="p-2">{{ stop.stopName }}</td>
+                        <td class="p-2 text-xs text-slate-500">{{ stop.stopId }}</td>
+                        <td class="p-2 text-xs text-slate-500">{{ stop.stopLat }}, {{ stop.stopLon }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</template>
 
-        if (dtoNormalizado.codigo_asfi) {
-            dtoNormalizado.codigo_asfi = dtoNormalizado.codigo_asfi.trim().padStart(2, '0');
-        }
+<script setup>
+    import { ref, onMounted } from 'vue'
 
-        await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
+    const stops = ref([])
+    const { $api } = useNuxtApp()
 
-        const bancoActual = await manager.findOne(Banco, {
-            where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
-        });
-
-        if (!bancoActual) {
-			throw new DomainException(
-				`Banco no encontrado.`,
-				{ httpStatus: HttpStatus.NOT_FOUND }
-			);
-		}
-
-        // Centralización de dependencias y permisos de Administrador (1 sola línea)
-        dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
-            this.nombreTabla,
-            id,
-            dtoNormalizado,
-            FindBancosQueryDto.getDependencias(),
-            FindBancosQueryDto.getCamposProtegidosConDependencias(),
-            this.campoPK,
-            usuarioId
-        );
-
-        // Las validaciones de unicidad continúan ejecutándose sobre los campos que sobrevivieron al DTO
-        const validaciones: Promise<any>[] = [];
-
-        if (dtoNormalizado.codigo_asfi && dtoNormalizado.codigo_asfi !== bancoActual.codigo_asfi) {
-            validaciones.push(
-                this.unicidadValidador.validarUnicidad({
-                    tabla: this.nombreTabla,
-                    campos: [{ nombre: 'codigo_asfi', valor: dtoNormalizado.codigo_asfi }],
-                    idExcluir: id,
-                    campoPk: this.campoPK,
-                    estadosValidos: [...ESTADOS_VIVOS]
-                })
-            );
-        }
-
-        if (dtoNormalizado.abreviatura && dtoNormalizado.abreviatura !== bancoActual.abreviatura) {
-            validaciones.push(
-                this.unicidadValidador.validarUnicidad({
-                    tabla: this.nombreTabla,
-                    campos: [{ nombre: 'abreviatura', valor: dtoNormalizado.abreviatura }],
-                    idExcluir: id,
-                    campoPk: this.campoPK,
-                    estadosValidos: [...ESTADOS_VIVOS]
-                })
-            );
-        }
-
-        if (dtoNormalizado.banco && dtoNormalizado.banco !== bancoActual.banco) {
-            validaciones.push(
-                this.unicidadValidador.validarUnicidad({
-                    tabla: this.nombreTabla,
-                    campos: [{ nombre: 'banco', valor: dtoNormalizado.banco }],
-                    idExcluir: id,
-                    campoPk: this.campoPK,
-                    estadosValidos: [...ESTADOS_VIVOS]
-                })
-            );
-        }
-
-        if (validaciones.length > 0) {
-            await Promise.all(validaciones);
-        }
-
-        Object.assign(bancoActual, dtoNormalizado);
-        bancoActual.update(usuarioId);
-
+    onMounted(async () => {
         try {
-            await manager.save(bancoActual);
-            return this.findOne(id, usuarioId, manager);
-        } catch (error: unknown) {
-            if (isDomainException(error)) throw error;
-            this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-            throw error;
+            stops.value = await $api('/stops')
+            console.log('Paradas cargadas:', stops.value.length)
+        } catch (error) {
+            console.error('Error al cargar paradas:', error)
         }
-    });
-}
+    })
+</script>

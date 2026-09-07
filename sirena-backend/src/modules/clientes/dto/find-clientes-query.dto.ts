@@ -104,8 +104,7 @@ export class FindClientesQueryDto extends BasePaginationQueryDto {
             'tipo_documento_id',
             'banco_base_id',
             'habilitado_ventas',
-            'limite_credito',
-            'fecha_registro'
+            'limite_credito'
         ];
     }
 
