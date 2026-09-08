@@ -122,7 +122,8 @@ export class CargosService extends BaseService {
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const cargoActual = await manager.findOne(Cargo, {
-                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                lock: { mode: 'pessimistic_write' }
             });
 
             if (!cargoActual) {

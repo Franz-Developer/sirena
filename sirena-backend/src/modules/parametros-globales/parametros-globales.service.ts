@@ -198,7 +198,8 @@ export class ParametrosGlobalesService extends BaseService {
             this.validarReglasNegocio(dtoNormalizado);
 
             const parametroActual = await manager.findOne(ParametroGlobal, {
-                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                lock: { mode: 'pessimistic_write' }
             });
 
             if (!parametroActual) {
@@ -252,11 +253,6 @@ export class ParametrosGlobalesService extends BaseService {
 
             try {
                 await manager.save(parametroActual);
-
-                if (claveAnterior === 'gestion_activa' || parametroActual.clave === 'gestion_activa') {
-                    this.tablaValidador.invalidarCacheGestion();
-                }
-
                 return this.findOne(id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {

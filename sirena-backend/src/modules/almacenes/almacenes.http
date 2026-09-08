@@ -52,12 +52,12 @@ Authorization: Bearer {{authToken}}
 GET {{baseUrl_constantes}}?tipo=tipo_almacen_id
 Authorization: Bearer {{authToken}}
 
-### LISTAR POR TIPO: TIPOS_ALMACEN VALIDOS
-GET {{baseUrl_constantes}}?tipo=tipo_almacen_validos_id
+### LISTAR POR TIPO: tipo_almacen_venta_directa_id
+GET {{baseUrl_constantes}}?tipo=tipo_almacen_venta_directa_id
 Authorization: Bearer {{authToken}}
 
-### LISTAR POR TIPO: TIPOS_ALMACEN PROHIBIDOS
-GET {{baseUrl_constantes}}?tipo=tipo_almacen_prohibidos_id
+### LISTAR POR TIPO: tipo_almacen_logistica_interna_id
+GET {{baseUrl_constantes}}?tipo=tipo_almacen_logistica_interna_id
 Authorization: Bearer {{authToken}}
 
 ### LISTAR POR TIPO: OPERACION_ALMACEN

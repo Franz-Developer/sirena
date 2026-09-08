@@ -1,223 +1,291 @@
-**B. `[entidad-singular]-response.dto.ts`:**
-- **Interfaz `[EntidadSingular]RawResult`:**
-  - Debe reflejar los tipos de datos primitivos exactos devueltos por la consulta SQL pura (PostgreSQL/TypeORM Raw Query), considerando que los tipos `BIGINT`, `TIMESTAMPTZ` y agregados pueden llegar como `string`, `number`, `Date` o `null`.
-  - Debe incluir los campos de la tabla principal, campos del sistema (`estado_registro`, `usuario_operacion`, `tiene_dependencias`, `campos_protegidos`) y las columnas seleccionadas de las tablas secundarias (JOINS).
-- **Clase `[EntidadSingular]ResponseDto`:**
-  - Aplica `@Expose()` en cada propiedad y `@Transform()` para transformaciones de datos.
-  - **Regla de Selección de Campos:**
-    - **Tabla Principal:** Incluye TODOS los campos propios de la entidad.
-    - **Tablas Relacionadas (FKs / Tablas Dependientes):** Incluye SOLO las columnas informativas más representativas (ej: `rol`, `codigo` de `roles`; `suceso`, `codigo` de `sucesos`; contadores o permisos clave de `roles_permisos_tablas`). **NUNCA** incluyas la totalidad de los campos auditables ni metadatos secundarios de las tablas relacionales.
-- **Transformadores OBLIGATORIOS:**
-  - **Estados:** Helper `transformEstado` que extrae la abreviatura o descripción usando `ESTADO_METADATA` de `estados.constant.ts`.
-  - **Fechas:** Transforma todas las columnas de fecha (`TIMESTAMPTZ` / `DATE`) aplicando `formatLocalDate`.
-  - **Números / IDs:** Transforma los IDs de `BIGINT` (que llegan como string desde Postgres) a `number` donde corresponda.
-  
-  
-  falta especificar 
-  si la tabla tiene campos que son constantes y hace referencia al archivo estados.constant.ts 
-  en [entidad-singular]-response.dto.ts debe haber algo asi 
-  
-  // C:\sirena\sirena-backend\src\modules\clientes\dto\cliente-response.dto.ts
-import { Expose, Transform } from 'class-transformer';
-import { Estado, ESTADO_METADATA, TipoCliente, TIPO_CLIENTE_METADATA, TipoDocumento, TIPO_DOCUMENTO_METADATA } from '../../../common/constants/estados.constant';
-import { formatLocalDate } from '../../../common/utils/date-formatter.util';
+ERROR No. 1
 
-const transformEstado = ({ obj }: { obj: ClienteRawResult }) => {
-    const estadoId = Number(obj.estado_id);
-    const metadata = ESTADO_METADATA[estadoId as Estado];
-    return metadata ? metadata.abreviatura : '';
-};
+Archivo: cargos.service.ts
+Función: update
 
-const transformTipoCliente = (tipoClienteId: unknown) => {
-    const id = Number(tipoClienteId);
-    if (!Number.isInteger(id)) {
-        return { abreviatura: '', valor: 0, prefijo: '' };
-    }
-    const metadata = TIPO_CLIENTE_METADATA[id as TipoCliente];
-    if (!metadata) {
-        return { abreviatura: '', valor: 0, prefijo: '' };
-    }
-    return {
-        abreviatura: metadata.abreviatura,
-        valor: metadata.valor,
-        prefijo: metadata.prefijo ?? '',
-    };
-};
+Explicación: Se usa `lock: { mode: 'pessimistic_write' }` en `manager.findOne()`, pero dentro de una transacción `runInTransaction` que ya maneja el aislamiento. Esto es redundante y puede causar problemas de rendimiento innecesarios.
 
-const transformTipoDocumento = (tipoDocumentoId: unknown) => {
-    const id = Number(tipoDocumentoId);
-    if (!Number.isInteger(id)) {
-        return { abreviatura: '', valor: 0, prefijo: '' };
-    }
-    const metadata = TIPO_DOCUMENTO_METADATA[id as TipoDocumento];
-    if (!metadata) {
-        return { abreviatura: '', valor: 0, prefijo: '' };
-    }
-    return {
-        abreviatura: metadata.abreviatura,
-        valor: metadata.valor,
-        prefijo: metadata.prefijo ?? '',
-    };
-};
+Se puso lock: { mode: 'pessimistic_write' } por si dos usuarios intentan actualizar el mismo registro al mismo tiempo 
 
-export interface ClienteRawResult {
-    cliente_id: string | number;
-    tipo_cliente_id: string | number;
-    cliente: string;
-    nit?: string | null;
-    razon_social?: string | null;
-    documento: string;
-    documento_complemento?: string | null;
-    tipo_documento_id: string | number;
-    direccion?: string | null;
-    telefono?: string | null;
-    email?: string | null;
-    banco_base_id: string | number;
-    banco_base_nombre?: string | null;
-    banco_base_abreviatura?: string | null;
-    numero_cuenta?: string | null;
-    habilitado_ventas: string | number;
-    limite_credito: string | number;
-    estado_id: string | number;
-    estado_registro: string;
-    usuario_operacion: string;
-    usuario_id_registro: string | number;
-    usuario_id_actualizacion?: string | number | null;
-    usuario_id_baja?: string | number | null;
-    fecha_registro: string | Date;
-    fecha_actualizacion?: string | Date | null;
-    fecha_baja?: string | Date | null;
-    total_count?: string | number;
-    tiene_dependencias?: boolean;
-    campos_protegidos?: string[];
+ERROR No. 2
+
+Archivo: cargos.service.ts
+Función: create y update
+
+Explicación: Se crea un objeto `responseDto` con `new CargoResponseDto()` y luego se asigna `Object.assign(responseDto, updatedRecord)`, pero inmediatamente después se llama a `this.findOne()` que ya realiza el mapeo completo. El objeto `responseDto` nunca se utiliza. Código muerto que debe eliminarse.
+
+Exolicar no entiendo 
+
+
+ERROR No. 3
+
+Archivo: cargos.service.ts
+Función: update
+
+Explicación: Se realizan dos consultas `findOne` consecutivas: una para obtener `updatedRecord` y otra para `this.findOne(id)`. La primera es innecesaria porque `manager.save(cargoActual)` ya devuelve el registro actualizado.
+
+se añadio 
+const updatedRecord = await manager.findOne(Cargo, {
+	where: { [this.campoPK]: id }
+});
+
+if (!updatedRecord) {
+	throw new DomainException('No se pudo recuperar el registro actualizado.', {
+		httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
+	});
 }
 
-export class ClienteResponseDto {
-    @Expose() cliente_id!: number;
-    @Expose() tipo_cliente_id!: number;
+const responseDto = new CargoResponseDto();
+Object.assign(responseDto, updatedRecord);
 
-    @Expose()
-    @Transform(({ obj }) => transformTipoCliente(obj.tipo_cliente_id))
-    tipo_cliente!: {
-        abreviatura: string;
-        descripcion: string;
+para ver si se actualizo 
+
+PERO por que no dijiste lo mismo en 
+// C:\sirena\sirena-backend\src\modules\bancos\bancos.service.ts
+import { Injectable, HttpStatus } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
+import { DomainException } from '../../common/exceptions/domain.exception';
+import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
+import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
+import { logSqlQuery } from '../../common/utils/sql-logger.util';
+import { runInTransaction } from '../../common/utils/transaction.helper';
+import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
+import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
+import { BancoResponseDto } from './dto/banco-response.dto';
+import { CreateBancoDto } from './dto/create-banco.dto';
+import { FindBancosQueryDto } from './dto/find-bancos-query.dto';
+import { UpdateBancoDto } from './dto/update-banco.dto';
+import { Banco } from './entities/banco.entity';
+
+@Injectable()
+export class BancosService extends BaseService {
+    protected config: BaseServiceConfig = {
+        nombreTabla: 'bancos',
+        nombreEntidad: 'Banco',
+        campoPK: 'banco_id',
+        alias: 't',
+        responseDto: BancoResponseDto,
+        camposBusquedaEnQ: FindBancosQueryDto.getCamposParaQ(),
+        tablasDependientes: FindBancosQueryDto.getDependencias(),
+        joins: [],
+        configuracionFiltros: [],
+        configuracionOrden: {
+            campoOrdenPorDefecto: 'banco_id',
+            camposPermitidosParaOrdenar: FindBancosQueryDto.getCamposPermitidosParaOrdenar(),
+            equivalenciasMapeo: FindBancosQueryDto.getEquivalenciasMapeo(),
+        },
+        getCamposProtegidosConDependencias: () => FindBancosQueryDto.getCamposProtegidosConDependencias(),
     };
 
-    @Expose() cliente!: string;
-    @Expose() nit?: string | null;
-    @Expose() razon_social?: string | null;
-    @Expose() documento!: string;
-    @Expose() documento_complemento?: string | null;
+    constructor(
+        @InjectDataSource()
+        dataSource: DataSource,
+        private readonly unicidadValidador: UnicidadValidadorService,
+        tablaValidador: TablaValidadorService,
+    ) {
+        super(dataSource, tablaValidador);
+    }
 
-    @Expose() tipo_documento_id!: number;
+    private get nombreTabla(): string {
+        return this.config.nombreTabla;
+    }
 
-    @Expose()
-    @Transform(({ obj }) => transformTipoDocumento(obj.tipo_documento_id))
-    tipo_documento!: {
-        abreviatura: string;
-        prefijo: string;
-    };
+    private get campoPK(): string {
+        return this.config.campoPK;
+    }
 
-    @Expose() direccion?: string | null;
-    @Expose() telefono?: string | null;
-    @Expose() email?: string | null;
-    @Expose() banco_base_id!: number;
+    async create(dto: CreateBancoDto, usuarioId: number): Promise<BancoResponseDto> {
+        return runInTransaction(this.dataSource, async (manager) => {
+            const codigoAsfiNormalizado = dto.codigo_asfi.trim().padStart(2, '0');
+            const descripcionNormalizada = dto.descripcion?.trim() || null;
 
-    @Expose()
-    @Transform(({ obj }) => obj.banco_base_nombre || null)
-    banco_base_nombre?: string | null;
+            const dtoNormalizado = {
+                ...dto,
+                codigo_asfi: codigoAsfiNormalizado,
+                descripcion: descripcionNormalizada
+            };
 
-    @Expose()
-    @Transform(({ obj }) => obj.banco_base_abreviatura || null)
-    banco_base_abreviatura?: string | null;
+            await Promise.all([
+                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
+                this.unicidadValidador.validarUnicidad({
+                    tabla: this.nombreTabla,
+                    campos: [{ nombre: 'codigo_asfi', valor: dtoNormalizado.codigo_asfi }],
+                    campoPk: this.campoPK,
+                    estadosValidos: [...ESTADOS_VIVOS]
+                }),
+                this.unicidadValidador.validarUnicidad({
+                    tabla: this.nombreTabla,
+                    campos: [{ nombre: 'abreviatura', valor: dtoNormalizado.abreviatura }],
+                    campoPk: this.campoPK,
+                    estadosValidos: [...ESTADOS_VIVOS]
+                }),
+                this.unicidadValidador.validarUnicidad({
+                    tabla: this.nombreTabla,
+                    campos: [{ nombre: 'banco', valor: dtoNormalizado.banco }],
+                    campoPk: this.campoPK,
+                    estadosValidos: [...ESTADOS_VIVOS]
+                }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+            ]);
 
-    @Expose() numero_cuenta?: string | null;
+            const query = `
+                INSERT INTO ${this.nombreTabla}
+                (banco, codigo_asfi, abreviatura, descripcion, estado_id, usuario_id_registro, fecha_registro)
+                VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+                RETURNING ${this.campoPK}
+            `;
+            const params = [
+                dtoNormalizado.banco,
+                dtoNormalizado.codigo_asfi,
+                dtoNormalizado.abreviatura,
+                dtoNormalizado.descripcion,
+                ESTADO_ACTIVO,
+                Number(usuarioId)
+            ];
+            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
 
-    @Expose()
-    @Transform(({ value }) => Number(value))
-    habilitado_ventas!: number;
+            try {
+                await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
+                const insertResult = await manager.query(query, params);
+                const newId = Number(insertResult[0]?.[this.campoPK] ?? 0);
 
-    @Expose()
-    @Transform(({ value }) => Number(value))
-    limite_credito!: number;
+                if (newId === 0) {
+                    throw new DomainException(
+                        `Error al insertar el banco "${dtoNormalizado.banco}".`,
+                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
+                    );
+                }
 
-    @Expose() estado_id!: number;
+                return this.findOne(newId, usuarioId, manager);
+            } catch (error: unknown) {
+                if (isDomainException(error)) {
+                    throw error;
+                }
+                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
+                throw error;
+            }
+        });
+    }
 
-    @Expose()
-    @Transform(transformEstado)
-    estado_registro!: string;
+    async update(id: number, dto: UpdateBancoDto, usuarioId: number): Promise<BancoResponseDto> {
+        return runInTransaction(this.dataSource, async (manager) => {
+            let dtoNormalizado = { ...dto };
 
-    @Expose() usuario_operacion!: string;
-    @Expose() usuario_id_registro!: number;
-    @Expose() usuario_id_actualizacion?: number | null;
-    @Expose() usuario_id_baja?: number | null;
+            if (dtoNormalizado.banco) {
+                dtoNormalizado.banco = dtoNormalizado.banco.trim().toUpperCase();
+            }
 
-    @Expose()
-    @Transform(({ value }) => formatLocalDate(value))
-    fecha_registro!: string | null;
+            if (dtoNormalizado.codigo_asfi) {
+                dtoNormalizado.codigo_asfi = dtoNormalizado.codigo_asfi.trim().padStart(2, '0');
+            }
 
-    @Expose()
-    @Transform(({ value }) => formatLocalDate(value))
-    fecha_actualizacion?: string | null;
+            if (dtoNormalizado.descripcion !== undefined) {
+                dtoNormalizado.descripcion = dtoNormalizado.descripcion?.trim() || null;
+            }
 
-    @Expose()
-    @Transform(({ value }) => formatLocalDate(value))
-    fecha_baja?: string | null;
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
 
-    @Expose() tiene_dependencias!: boolean;
-    @Expose() campos_protegidos?: string[];
+            const bancoActual = await manager.findOne(Banco, {
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                lock: { mode: 'pessimistic_write' }
+            });
+
+            if (!bancoActual) {
+                throw new DomainException(
+                    `Banco no encontrado.`,
+                    { httpStatus: HttpStatus.NOT_FOUND }
+                );
+            }
+
+            if (dtoNormalizado.descripcion !== undefined &&
+                dtoNormalizado.descripcion !== bancoActual.descripcion) {
+                this.logger.log(
+                    `[AUDITORIA] Banco ID ${id}: descripcion cambiada de "${bancoActual.descripcion}" a "${dtoNormalizado.descripcion}"`
+                );
+            }
+
+            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
+                this.nombreTabla,
+                id,
+                dtoNormalizado,
+                FindBancosQueryDto.getDependencias(),
+                FindBancosQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
+            );
+
+            // Validaciones de unicidad
+            const validaciones: Promise<any>[] = [];
+
+            if (dtoNormalizado.codigo_asfi && dtoNormalizado.codigo_asfi !== bancoActual.codigo_asfi) {
+                validaciones.push(
+                    this.unicidadValidador.validarUnicidad({
+                        tabla: this.nombreTabla,
+                        campos: [{ nombre: 'codigo_asfi', valor: dtoNormalizado.codigo_asfi }],
+                        idExcluir: id,
+                        campoPk: this.campoPK,
+                        estadosValidos: [...ESTADOS_VIVOS]
+                    })
+                );
+            }
+
+            if (dtoNormalizado.abreviatura && dtoNormalizado.abreviatura !== bancoActual.abreviatura) {
+                validaciones.push(
+                    this.unicidadValidador.validarUnicidad({
+                        tabla: this.nombreTabla,
+                        campos: [{ nombre: 'abreviatura', valor: dtoNormalizado.abreviatura }],
+                        idExcluir: id,
+                        campoPk: this.campoPK,
+                        estadosValidos: [...ESTADOS_VIVOS]
+                    })
+                );
+            }
+
+            if (dtoNormalizado.banco && dtoNormalizado.banco !== bancoActual.banco) {
+                validaciones.push(
+                    this.unicidadValidador.validarUnicidad({
+                        tabla: this.nombreTabla,
+                        campos: [{ nombre: 'banco', valor: dtoNormalizado.banco }],
+                        idExcluir: id,
+                        campoPk: this.campoPK,
+                        estadosValidos: [...ESTADOS_VIVOS]
+                    })
+                );
+            }
+
+            if (validaciones.length > 0) {
+                await Promise.all(validaciones);
+            }
+
+            Object.assign(bancoActual, dtoNormalizado);
+            bancoActual.update(usuarioId);
+
+            try {
+                await manager.save(bancoActual);
+
+                const updatedRecord = await manager.findOne(Banco, {
+                    where: { [this.campoPK]: id }
+                });
+
+                if (!updatedRecord) {
+                    throw new DomainException('No se pudo recuperar el registro actualizado.', {
+                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
+                    });
+                }
+
+                const responseDto = new BancoResponseDto();
+                Object.assign(responseDto, updatedRecord);
+
+                return this.findOne(id, usuarioId, manager);
+            } catch (error: unknown) {
+                if (isDomainException(error)) throw error;
+                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
+                throw error;
+            }
+        });
+    }
 }
 
-CREATE TABLE clientes (
-    cliente_id BIGSERIAL PRIMARY KEY,
-    tipo_cliente_id SMALLINT NOT NULL DEFAULT 1150,     -- 1150=NATURAL, 1151=JURIDICA
-    cliente VARCHAR(100) NOT NULL,
-    nit VARCHAR(20) NULL,
-	razon_social VARCHAR(150) NULL,
-    documento VARCHAR(30) NOT NULL,
-    documento_complemento VARCHAR(10) NULL,
-    tipo_documento_id SMALLINT NOT NULL DEFAULT 2200,   -- 2200=CEDULA_IDENTIDAD, 2201=CEDULA_IDENTIDAD_EXTRANJERO, 2202=PASAPORTE, 2203=OTRO, 2204=NIT
-    direccion VARCHAR(255) NULL,
-    telefono VARCHAR(100) NULL,
-    email VARCHAR(100) NULL,
-    banco_base_id BIGINT NOT NULL DEFAULT 1,
-    numero_cuenta VARCHAR(50) NULL,
-    habilitado_ventas SMALLINT NOT NULL DEFAULT 1,
-    limite_credito DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
-    usuario_id_registro BIGINT NOT NULL DEFAULT 1,
-    usuario_id_actualizacion BIGINT NULL,
-    usuario_id_baja BIGINT NULL,
-    fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion TIMESTAMPTZ NULL,
-    fecha_baja TIMESTAMPTZ NULL,
-    CONSTRAINT fk_clientes_banco_base_id FOREIGN KEY (banco_base_id) REFERENCES bancos(banco_id),
-    CONSTRAINT chk_clientes_tipoclienteid CHECK (tipo_cliente_id IN (1150, 1151)),
-    CONSTRAINT chk_clientes_tipodocumentoid CHECK (tipo_documento_id IN (2200, 2201, 2202, 2203, 2204)),
-    CONSTRAINT chk_clientes_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
-    CONSTRAINT chk_clientes_cliente_notempty CHECK (TRIM(cliente) <> ''),
-    CONSTRAINT chk_clientes_cliente_minlength CHECK (LENGTH(TRIM(cliente)) >= 3),
-    CONSTRAINT chk_clientes_nit_notempty CHECK (nit IS NULL OR TRIM(nit) <> ''),
-    CONSTRAINT chk_clientes_razonsocial_notempty CHECK (razon_social IS NULL OR TRIM(razon_social) <> ''),
-    CONSTRAINT chk_clientes_documento_notempty CHECK (TRIM(documento) <> ''),
-    CONSTRAINT chk_clientes_documento_minlength CHECK (LENGTH(TRIM(documento)) >= 1),
-    CONSTRAINT chk_clientes_documentocomplemento_notempty CHECK (documento_complemento IS NULL OR TRIM(documento_complemento) <> ''),
-    CONSTRAINT chk_clientes_direccion_notempty CHECK (direccion IS NULL OR TRIM(direccion) <> ''),
-    CONSTRAINT chk_clientes_telefono_notempty CHECK (telefono IS NULL OR TRIM(telefono) <> ''),
-    CONSTRAINT chk_clientes_email_formato CHECK (email IS NULL OR email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
-    CONSTRAINT chk_clientes_numerocuenta_notempty CHECK (numero_cuenta IS NULL OR TRIM(numero_cuenta) <> ''),
-    CONSTRAINT chk_clientes_habilitadoventas CHECK (habilitado_ventas IN (0, 1)),
-    CONSTRAINT chk_clientes_limitecredito CHECK (limite_credito >= 0.00),
-    CONSTRAINT chk_clientes_coherencia CHECK (
-        (limite_credito = 0.00) OR
-        (limite_credito > 0.00 AND habilitado_ventas = 1)
-    )
-);
-CREATE UNIQUE INDEX uix_clientes_tipodocumentoid_documento_unique ON clientes (tipo_documento_id, documento) WHERE estado_id IN (1000, 1002) AND documento <> '0' AND documento_complemento IS NULL;
-CREATE UNIQUE INDEX uix_clientes_varios_unique ON clientes (tipo_documento_id, documento_complemento, documento) WHERE estado_id IN (1000, 1002) AND documento <> '0' AND documento_complemento IS NOT NULL;
-CREATE INDEX idx_clientes_documento_cliente_busqueda ON clientes (documento, cliente) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_clientes_bancoid ON clientes (banco_base_id);
-  
-  
-  
-  
+

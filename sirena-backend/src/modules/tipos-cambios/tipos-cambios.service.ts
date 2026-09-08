@@ -201,7 +201,8 @@ export class TiposCambiosService extends BaseService {
             this.validarReglasNegocio(dtoNormalizado);
 
             const tipoCambioActual = await manager.findOne(TipoCambio, {
-                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                lock: { mode: 'pessimistic_write' }
             });
 
             if (!tipoCambioActual) {

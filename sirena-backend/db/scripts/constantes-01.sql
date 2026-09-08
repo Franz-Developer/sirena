@@ -344,7 +344,7 @@ export enum TipoAlmacen {
     CUARENTENA = 1712,
 }
 
-export const TIPO_ALMACEN_VALIDOS = [
+export const TIPOS_ALMACEN_VENTA_DIRECTA = [
     TipoAlmacen.NORMAL,
     TipoAlmacen.REFRIGERADO,
     TipoAlmacen.CONGELADO,
@@ -355,7 +355,7 @@ export const TIPO_ALMACEN_VALIDOS = [
     TipoAlmacen.MATERIA_PRIMA,
 ] as const;
 
-export const TIPO_ALMACEN_PROHIBIDOS = [
+export const TIPOS_ALMACEN_LOGISTICA_INTERNA = [
     TipoAlmacen.TRANSITO,
 	TipoAlmacen.RECEPCION,
 	TipoAlmacen.DEVOLUCIONES,
@@ -379,8 +379,8 @@ export const TIPO_ALMACEN_METADATA: Record<TipoAlmacen, ConstanteMetadata & { es
     [TipoAlmacen.CUARENTENA]: { id: TipoAlmacen.CUARENTENA, abreviatura: 'CUARENTENA', prefijo: null, valor: 0, descripcion: 'Área de cuarentena sanitaria para productos en revisión, análisis o evaluación. Incluye productos sospechosos de contaminación, lotes en investigación o productos pendientes de liberación por control de calidad.' },
 };
 
-export const TIPO_ALMACEN_VALIDOS_METADATA = Object.fromEntries(TIPO_ALMACEN_VALIDOS.map(id => [id, TIPO_ALMACEN_METADATA[id]]));
-export const TIPO_ALMACEN_PROHIBIDOS_METADATA = Object.fromEntries(TIPO_ALMACEN_PROHIBIDOS.map(id => [id, TIPO_ALMACEN_METADATA[id]]));
+export const TIPOS_ALMACEN_VENTA_DIRECTA_METADATA = Object.fromEntries(TIPOS_ALMACEN_VENTA_DIRECTA.map(id => [id, TIPO_ALMACEN_METADATA[id]]));
+export const TIPOS_ALMACEN_LOGISTICA_INTERNA_METADATA = Object.fromEntries(TIPOS_ALMACEN_LOGISTICA_INTERNA.map(id => [id, TIPO_ALMACEN_METADATA[id]]));
 
 // ==========================================
 // TIPO CUENTA

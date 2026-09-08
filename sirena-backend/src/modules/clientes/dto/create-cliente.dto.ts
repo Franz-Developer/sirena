@@ -1,6 +1,6 @@
 // C:\sirena\sirena-backend\src\modules\clientes\dto\create-cliente.dto.ts
 import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsOptional, IsString, IsIn, Min, MaxLength, MinLength, IsNumber, IsEmail } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString, IsIn, Min, MaxLength, MinLength, IsNumber, IsEmail, ValidateIf } from 'class-validator';
 import { IsSafeText } from '../../../common/decorators/safe-text.decorator';
 import { TipoCliente, TIPO_CLIENTE_METADATA, TipoDocumento, TIPO_DOCUMENTO_METADATA } from '../../../common/constants/estados.constant';
 import { getEnumValues, createEnumMessage } from '../../../common/utils/validation-helper.util';
@@ -104,4 +104,8 @@ export class CreateClienteDto {
     @IsNumber({ maxDecimalPlaces: 2 }, { message: 'limite_credito debe ser un número con máximo 2 decimales.' })
     @Min(0, { message: 'limite_credito no puede ser negativo.' })
     limite_credito?: number;
+
+    @ValidateIf((o) => o.limite_credito !== undefined && o.limite_credito > 0)
+    @IsIn([1], { message: 'Si limite_credito > 0, habilitado_ventas debe ser 1 (Sí).' })
+    habilitado_ventas_coherencia?: number;
 }

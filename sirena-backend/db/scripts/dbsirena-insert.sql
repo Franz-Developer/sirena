@@ -506,7 +506,8 @@ INSERT INTO tablas (tabla_id, nombre, estado_id, usuario_id_registro) VALUES
 (88, 'unidades', 1000, 2),
 (89, 'usuarios', 1000, 2),
 (90, 'variables_exogenas', 1000, 2),
-(91, 'vias', 1000, 2);
+(91, 'vias', 1000, 2),
+(92, 'constantes', 1000, 2);
 
 SELECT setval('tablas_tabla_id_seq', COALESCE((SELECT MAX(tabla_id) FROM tablas), 0), (SELECT COUNT(*) > 0 FROM tablas));
 
@@ -696,6 +697,22 @@ SELECT
 FROM tablas t
 WHERE t.estado_id = 1000
 AND t.nombre IN ('clientes', 'kardex', 'kardex_productos', 'lotes_productos', 'control_facturas', 'comprobantes_pagos', 'pagos', 'cajas', 'movimientos', 'arqueos_detalle', 'bancos', 'listas_precios', 'precios_productos');
+
+-- Otorgar permiso de lectura en la tabla 'constantes' a todos los roles existentes
+INSERT INTO roles_permisos_tablas (rol_id, tabla_id, leer, crear, editar, eliminar, anular, archivar, desarchivar, estado_id, usuario_id_registro)
+SELECT 
+    r.rol_id,
+    t.tabla_id,
+    1, 0, 0, 0, 0, 0, 0,
+    1000, 2
+FROM (SELECT DISTINCT rol_id FROM roles_permisos_tablas) r
+CROSS JOIN (SELECT tabla_id FROM tablas WHERE nombre = 'constantes') t
+WHERE NOT EXISTS (
+    SELECT 1 FROM roles_permisos_tablas existing 
+    WHERE existing.rol_id = r.rol_id 
+      AND existing.tabla_id = t.tabla_id 
+      AND existing.estado_id = 1000
+);
 
 SELECT setval('roles_permisos_tablas_rol_permiso_tabla_id_seq', COALESCE((SELECT MAX(rol_permiso_tabla_id) FROM roles_permisos_tablas), 0), (SELECT COUNT(*) > 0 FROM roles_permisos_tablas));
 

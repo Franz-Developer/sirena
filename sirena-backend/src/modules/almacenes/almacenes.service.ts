@@ -2,7 +2,7 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { ESTADO_ACTIVO, ESTADOS_VIVOS, TipoOperacionAlmacen, TIPO_OPERACION_ALMACEN_METADATA, TIPO_ALMACEN_PROHIBIDOS, TIPO_ALMACEN_VALIDOS, TIPO_ALMACEN_METADATA, TipoAlmacen } from '../../common/constants/estados.constant';
+import { ESTADO_ACTIVO, ESTADOS_VIVOS, TipoOperacionAlmacen, TIPO_OPERACION_ALMACEN_METADATA, TIPOS_ALMACEN_VENTA_DIRECTA, TIPOS_ALMACEN_LOGISTICA_INTERNA, TIPO_ALMACEN_METADATA, TipoAlmacen } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
@@ -89,10 +89,10 @@ export class AlmacenesService extends BaseService {
     ): void {
         const combinacionesValidas: Record<number, number[]> = {
             [TipoOperacionAlmacen.LOGISTICA_INTERNA]: [
-                ...TIPO_ALMACEN_PROHIBIDOS
+                ...TIPOS_ALMACEN_LOGISTICA_INTERNA
             ],
             [TipoOperacionAlmacen.VENTA_DIRECTA]: [
-                ...TIPO_ALMACEN_VALIDOS
+                ...TIPOS_ALMACEN_VENTA_DIRECTA
             ],
         };
 
@@ -299,20 +299,6 @@ export class AlmacenesService extends BaseService {
 
             try {
                 await manager.save(almacenActual);
-
-                const updatedRecord = await manager.findOne(Almacen, {
-                    where: { [this.campoPK]: id }
-                });
-
-                if (!updatedRecord) {
-                    throw new DomainException('No se pudo recuperar el registro actualizado.', {
-                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
-                    });
-                }
-
-                const responseDto = new AlmacenResponseDto();
-                Object.assign(responseDto, updatedRecord);
-
                 return this.findOne(id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {

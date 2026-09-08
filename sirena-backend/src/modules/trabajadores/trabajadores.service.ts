@@ -183,6 +183,7 @@ export class TrabajadoresService extends BaseService {
 
             const trabajadorActual = await manager.findOne(Trabajador, {
                 where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                lock: { mode: 'pessimistic_write' }
             });
 
             if (!trabajadorActual) {

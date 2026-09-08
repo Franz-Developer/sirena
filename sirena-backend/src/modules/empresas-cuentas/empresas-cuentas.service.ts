@@ -178,7 +178,8 @@ export class EmpresasCuentasService extends BaseService {
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const cuentaActual = await manager.findOne(EmpresaCuenta, {
-                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                lock: { mode: 'pessimistic_write' }
             });
 
             if (!cuentaActual) {

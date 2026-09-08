@@ -145,7 +145,8 @@ export class BancosService extends BaseService {
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
 
             const bancoActual = await manager.findOne(Banco, {
-                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                lock: { mode: 'pessimistic_write' }
             });
 
             if (!bancoActual) {
@@ -220,20 +221,6 @@ export class BancosService extends BaseService {
 
             try {
                 await manager.save(bancoActual);
-
-                const updatedRecord = await manager.findOne(Banco, {
-                    where: { [this.campoPK]: id }
-                });
-
-                if (!updatedRecord) {
-                    throw new DomainException('No se pudo recuperar el registro actualizado.', {
-                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
-                    });
-                }
-
-                const responseDto = new BancoResponseDto();
-                Object.assign(responseDto, updatedRecord);
-
                 return this.findOne(id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) throw error;

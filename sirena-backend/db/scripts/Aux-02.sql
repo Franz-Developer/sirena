@@ -1,7 +1,10 @@
 
 ANALIZALO a fondo 
-Dime si existe un error o algo que no se esta validando en el modulo bancos
+Dime si existe un error o algo que no se esta validando en el modulo clientes
 Debes advertirme si algo no se esta controlando o algo es ilogico o algo no es coherente con el DDL de la tabla 
+La validación y normalización de datos DEBE estar en el DTO. El servicio NO debe duplicar esta lógica.
+La validación y normalización de datos DEBE estar en el DTO. El servicio NO debe duplicar esta lógica.
+EN EL DTO no puede haber valores por defecto eso debe esta en el archivo entity
 Si esta bien no solo responde SIN ERROR
 Si encuentras errores 
 has una lista de ERRORES No. XXX PERO AYUPADOS POR archivo 

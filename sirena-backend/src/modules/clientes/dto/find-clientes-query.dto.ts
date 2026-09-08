@@ -110,9 +110,11 @@ export class FindClientesQueryDto extends BasePaginationQueryDto {
 
     static getDependencias(): Array<string | { tabla: string; campoFk: string }> {
         return [
-            { tabla: 'sucursales', campoFk: 'empresa_id' },
-            { tabla: 'empresas_nits', campoFk: 'empresa_id' },
-            { tabla: 'empresas_cuentas', campoFk: 'empresa_id' }
+            { tabla: 'carritos_compra', campoFk: 'cliente_id' },
+            { tabla: 'historicos', campoFk: 'cliente_id' },
+            { tabla: 'kardex', campoFk: 'cliente_id' },
+            { tabla: 'pedidos_online', campoFk: 'cliente_id' },
+            { tabla: 'recetas', campoFk: 'cliente_id' },
         ];
     }
 

@@ -2,7 +2,7 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { ESTADO_ACTIVO, ESTADOS_VIVOS, TIPO_ALMACEN_METADATA, TIPO_ALMACEN_PROHIBIDOS, TipoPuntoVenta } from '../../common/constants/estados.constant';
+import { ESTADO_ACTIVO, ESTADOS_VIVOS, TIPO_ALMACEN_METADATA, TipoPuntoVenta, TIPOS_ALMACEN_LOGISTICA_INTERNA } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
@@ -134,8 +134,8 @@ export class AlmacenesPuntosVentaService extends BaseService {
 
         const tipoAlmacenId = Number(resAlmacen[0].tipo_almacen_id);
 
-        if ((TIPO_ALMACEN_PROHIBIDOS as readonly number[]).includes(tipoAlmacenId)) {
-            const nombresProhibidos = TIPO_ALMACEN_PROHIBIDOS
+        if (TIPOS_ALMACEN_LOGISTICA_INTERNA.includes(tipoAlmacenId)) {
+            const nombresProhibidos = TIPOS_ALMACEN_LOGISTICA_INTERNA
                 .map(tipo => TIPO_ALMACEN_METADATA[tipo]?.abreviatura)
                 .filter(Boolean)
                 .join(', ');
@@ -250,7 +250,8 @@ export class AlmacenesPuntosVentaService extends BaseService {
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const registroActual = await manager.findOne(AlmacenPuntoVenta, {
-                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                lock: { mode: 'pessimistic_write' }
             });
 
             if (!registroActual) {

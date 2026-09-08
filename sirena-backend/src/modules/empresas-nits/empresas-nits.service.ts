@@ -209,7 +209,8 @@ export class EmpresasNitsService extends BaseService {
             this.validarReglasNegocio(dto);
 
             const nitActual = await manager.findOne(EmpresaNit, {
-                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                lock: { mode: 'pessimistic_write' }
             });
 
             if (!nitActual) {

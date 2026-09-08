@@ -82,7 +82,8 @@ export class EmpresasService extends BaseService {
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const empresaActual = await manager.findOne(Empresa, {
-                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                lock: { mode: 'pessimistic_write' }
             });
 
             if (!empresaActual) {
@@ -104,7 +105,7 @@ export class EmpresasService extends BaseService {
 
             try {
                 const saved = await manager.save(empresaActual);
-            return this.findOne<EmpresaResponseDto>(saved.empresa_id, usuarioId, manager);
+                return this.findOne<EmpresaResponseDto>(saved.empresa_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;

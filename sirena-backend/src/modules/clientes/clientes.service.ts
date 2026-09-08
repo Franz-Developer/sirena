@@ -154,20 +154,20 @@ export class ClientesService extends BaseService {
             `;
 
             const params = [
-                dto.tipo_cliente_id ?? 1150,
+                dto.tipo_cliente_id,
                 dto.cliente,
                 dto.nit || null,
                 dto.razon_social || null,
                 dto.documento,
                 dto.documento_complemento || null,
-                dto.tipo_documento_id ?? 2200,
+                dto.tipo_documento_id,
                 dto.direccion || null,
                 dto.telefono || null,
                 dto.email || null,
-                dto.banco_base_id ?? 1,
+                dto.banco_base_id,
                 dto.numero_cuenta || null,
-                dto.habilitado_ventas ?? 1,
-                dto.limite_credito ?? 0.00,
+                dto.habilitado_ventas,
+                dto.limite_credito,
                 ESTADO_ACTIVO,
                 Number(usuarioId)
             ];
@@ -202,7 +202,8 @@ export class ClientesService extends BaseService {
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const clienteActual = await manager.findOne(Cliente, {
-                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                lock: { mode: 'pessimistic_write' }
             });
 
             if (!clienteActual) {
