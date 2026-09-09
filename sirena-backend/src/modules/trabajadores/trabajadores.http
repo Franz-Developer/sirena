@@ -273,7 +273,7 @@ Authorization: Bearer {{authToken}}
 # ==============================================================================
 
 ### ACTUALIZAR TODOS LOS CAMPOS
-PATCH {{baseUrl_trabajadores}}/23
+PATCH {{baseUrl_trabajadores}}/18
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
@@ -336,7 +336,7 @@ DELETE {{baseUrl_trabajadores}}/8
 Authorization: Bearer {{authToken}}
 
 ### ELIMINAR TRABAJADOR CON DEPENDENCIAS (Debería dar error)
-DELETE {{baseUrl_trabajadores}}/2
+DELETE {{baseUrl_trabajadores}}/18
 Authorization: Bearer {{authToken}}
 
 # ==============================================================================
@@ -344,11 +344,11 @@ Authorization: Bearer {{authToken}}
 # ==============================================================================
 
 ### ARCHIVAR TRABAJADOR (ACTIVO → HISTÓRICO)
-PATCH {{baseUrl_trabajadores}}/6/archivar
+PATCH {{baseUrl_trabajadores}}/18/archivar
 Authorization: Bearer {{authToken}}
 
 ### DESARCHIVAR TRABAJADOR (HISTÓRICO → ACTIVO)
-PATCH {{baseUrl_trabajadores}}/6/desarchivar
+PATCH {{baseUrl_trabajadores}}/18/desarchivar
 Authorization: Bearer {{authToken}}
 
 # ==============================================================================

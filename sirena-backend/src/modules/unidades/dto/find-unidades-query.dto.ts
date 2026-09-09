@@ -69,7 +69,6 @@ export class FindUnidadesQueryDto extends BasePaginationQueryDto {
     static getDependencias(): Array<string | { tabla: string; campoFk: string }> {
         return [
             { tabla: 'presentaciones', campoFk: 'unidad_id' },
-            { tabla: 'ubicaciones', campoFk: 'unidad_id' },
             { tabla: 'concentraciones', campoFk: 'unidad_base_id' },
             { tabla: 'productos', campoFk: 'unidad_venta_id' },
             { tabla: 'conversiones_unidad', campoFk: 'unidad_origen_id' },

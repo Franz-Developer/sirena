@@ -1,5 +1,5 @@
 // C:\sirena\sirena-backend\src\modules\empresas\empresas.service.ts
-import { Injectable, HttpStatus, Logger } from '@nestjs/common';
+import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ESTADOS_VIVOS, ESTADO_ACTIVO } from '../../common/constants/estados.constant';
@@ -17,8 +17,6 @@ import { Empresa } from './entities/empresa.entity';
 
 @Injectable()
 export class EmpresasService extends BaseService {
-    private readonly customLogger = new Logger(EmpresasService.name);
-
     protected config: BaseServiceConfig = {
         nombreTabla: 'empresas',
         nombreEntidad: 'Empresa',
@@ -43,7 +41,6 @@ export class EmpresasService extends BaseService {
         private readonly unicidadValidador: UnicidadValidadorService,
     ) {
         super(dataSource, tablaValidador);
-        this.customLogger.log('Mensaje personalizado');
     }
 
     private get nombreTabla(): string { return this.config.nombreTabla; }

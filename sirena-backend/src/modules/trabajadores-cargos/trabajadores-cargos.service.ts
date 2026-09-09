@@ -6,7 +6,6 @@ import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.con
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -109,55 +108,19 @@ export class TrabajadoresCargosService extends BaseService {
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK
-                })
+                }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (
-                    trabajador_id,
-                    cargo_id,
-                    sueldo_base,
-                    tipo_moneda_id,
-                    fecha_desde,
-                    fecha_hasta,
-                    es_activo,
-                    observaciones,
-                    estado_id,
-                    usuario_id_registro,
-                    fecha_registro
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-
-            const params = [
-                dto.trabajador_id,
-                dto.cargo_id,
-                dto.sueldo_base,
-                dto.tipo_moneda_id,
-                dto.fecha_desde,
-                dto.fecha_hasta || null,
-                dto.es_activo ?? 1,
-                dto.observaciones || null,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const asignacion = manager.create(TrabajadorCargo, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] ?? 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        'Error al insertar la asignación de trabajador y cargo.',
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(asignacion);
+                return this.findOne<TrabajadorCargoResponseDto>(saved.trabajador_cargo_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
@@ -170,6 +133,14 @@ export class TrabajadoresCargosService extends BaseService {
 
     async update(id: number, dto: UpdateTrabajadorCargoDto, usuarioId: number): Promise<TrabajadorCargoResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
+
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const asignacionActual = await manager.findOne(TrabajadorCargo, {
@@ -180,11 +151,11 @@ export class TrabajadoresCargosService extends BaseService {
             if (!asignacionActual) {
                 throw new DomainException(
                     `Asignación de trabajador y cargo no encontrada.`,
-                    { httpStatus: HttpStatus.NOT_FOUND }
+                    { id, httpStatus: HttpStatus.NOT_FOUND }
                 );
             }
 
-            dto = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
                 dto,
@@ -196,28 +167,28 @@ export class TrabajadoresCargosService extends BaseService {
 
             const validaciones: Promise<any>[] = [];
 
-            if (dto.trabajador_id !== undefined && dto.trabajador_id !== asignacionActual.trabajador_id) {
+            if (dtoProcesado.trabajador_id !== undefined && dtoProcesado.trabajador_id !== asignacionActual.trabajador_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('trabajadores', 'trabajador_id', dto.trabajador_id)
+                    this.tablaValidador.validarRegistrosActivos('trabajadores', 'trabajador_id', dtoProcesado.trabajador_id)
                 );
             }
 
-            if (dto.cargo_id !== undefined && dto.cargo_id !== asignacionActual.cargo_id) {
+            if (dtoProcesado.cargo_id !== undefined && dtoProcesado.cargo_id !== asignacionActual.cargo_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('cargos', 'cargo_id', dto.cargo_id)
+                    this.tablaValidador.validarRegistrosActivos('cargos', 'cargo_id', dtoProcesado.cargo_id)
                 );
             }
 
             if (
-                (dto.trabajador_id !== undefined && dto.trabajador_id !== asignacionActual.trabajador_id) ||
-                (dto.cargo_id !== undefined && dto.cargo_id !== asignacionActual.cargo_id)
+                (dtoProcesado.trabajador_id !== undefined && dtoProcesado.trabajador_id !== asignacionActual.trabajador_id) ||
+                (dtoProcesado.cargo_id !== undefined && dtoProcesado.cargo_id !== asignacionActual.cargo_id)
             ) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
-                            { nombre: 'trabajador_id', valor: dto.trabajador_id ?? asignacionActual.trabajador_id },
-                            { nombre: 'cargo_id', valor: dto.cargo_id ?? asignacionActual.cargo_id }
+                            { nombre: 'trabajador_id', valor: dtoProcesado.trabajador_id ?? asignacionActual.trabajador_id },
+                            { nombre: 'cargo_id', valor: dtoProcesado.cargo_id ?? asignacionActual.cargo_id }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
@@ -230,7 +201,7 @@ export class TrabajadoresCargosService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            Object.assign(asignacionActual, dto);
+            Object.assign(asignacionActual, dtoProcesado);
             asignacionActual.update(usuarioId);
 
             try {
@@ -240,8 +211,11 @@ export class TrabajadoresCargosService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+                this.logger.error(`Error al actualizar asignación: ${getErrorMessage(error)}`, getErrorStack(error));
+                throw new DomainException(
+                    'Error inesperado al actualizar la asignación de trabajador y cargo.',
+                    { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
+                );
             }
         });
     }

@@ -3,7 +3,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe,
 import { Cache, CACHE_LARGO } from '../../common/decorators/cache.decorator';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { InvalidateCache } from '../../common/decorators/invalidate-cache.decorator';
-import { CreateRateLimit, UpdateRateLimit, DeleteRateLimit, ArchiveRateLimit, FindAllRateLimit, FindOneRateLimit } from '../../common/decorators/rate-limit.decorator';
+import { CreateRateLimit, UpdateRateLimit, DeleteRateLimit, FindAllRateLimit, FindOneRateLimit } from '../../common/decorators/rate-limit.decorator';
 import { CustomValidationPipe } from '../../common/decorators/validation-message.decorator';
 import { PaginatedResult } from '../../common/interfaces/pagination.interface';
 import { AuthenticatedUser } from '../../common/interfaces/user.interface';
@@ -71,25 +71,5 @@ export class RolesController {
         @GetUser() user: AuthenticatedUser
     ): Promise<RolResponseDto> {
         return this.rolesService.remove<RolResponseDto>(id, user.usuario_id);
-    }
-
-    @Patch(':id/archivar')
-    @ArchiveRateLimit()
-    @InvalidateCache('roles')
-    archivar(
-        @Param('id', ParseIntPipe) id: number,
-        @GetUser() user: AuthenticatedUser
-    ): Promise<RolResponseDto> {
-        return this.rolesService.archivar<RolResponseDto>(id, user.usuario_id);
-    }
-
-    @Patch(':id/desarchivar')
-    @ArchiveRateLimit()
-    @InvalidateCache('roles')
-    desarchivar(
-        @Param('id', ParseIntPipe) id: number,
-        @GetUser() user: AuthenticatedUser
-    ): Promise<RolResponseDto> {
-        return this.rolesService.desarchivar<RolResponseDto>(id, user.usuario_id);
     }
 }

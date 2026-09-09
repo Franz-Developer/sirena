@@ -58,8 +58,8 @@ export class FindRolesQueryDto extends BasePaginationQueryDto {
 
     static getDependencias(): Array<string | { tabla: string; campoFk: string }> {
         return [
-            { tabla: 'roles_tablas', campoFk: 'rol_id' },
             { tabla: 'roles_menus', campoFk: 'rol_id' },
+            { tabla: 'roles_permisos_tablas', campoFk: 'rol_id' },
             { tabla: 'usuarios', campoFk: 'rol_id' }
         ];
     }

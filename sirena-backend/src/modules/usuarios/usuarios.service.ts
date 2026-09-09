@@ -16,7 +16,6 @@ import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { Usuario } from './entities/usuario.entity';
 import { verifyPassword, hashPassword } from '../../common/utils/crypto.util';
 import { UpdatePasswordDto } from './dto/update-password.dto';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 
 @Injectable()
 export class UsuariosService extends BaseService {
@@ -159,8 +158,9 @@ export class UsuariosService extends BaseService {
         return runInTransaction(this.dataSource, async (manager) => {
             await Promise.all([
                 this.tablaValidador.validarPermisoTabla(usuarioId, 'usuarios', 'crear'),
-                dto.rol_id ? this.tablaValidador.validarRegistrosActivos('roles', 'rol_id', dto.rol_id) : Promise.resolve(),
-                dto.trabajador_id ? this.tablaValidador.validarRegistrosActivos('trabajadores', 'trabajador_id', dto.trabajador_id) : Promise.resolve()
+                this.tablaValidador.validarRegistrosActivos('roles', 'rol_id', dto.rol_id),
+                this.tablaValidador.validarRegistrosActivos('trabajadores', 'trabajador_id', dto.trabajador_id),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
             if (!dto.avatar) {
@@ -170,44 +170,24 @@ export class UsuariosService extends BaseService {
                 );
             }
 
-            await Promise.all([
-                this.unicidadValidador.validarUnicidad({
-                    tabla: this.nombreTabla,
-                    campos: [{ nombre: 'login', valor: dto.login }],
-                    campoPk: this.campoPK,
-                    estadosValidos: [...ESTADOS_VIVOS],
-                }),
-            ]);
+            await this.unicidadValidador.validarUnicidad({
+                tabla: this.nombreTabla,
+                campos: [{ nombre: 'login', valor: dto.login }],
+                campoPk: this.campoPK,
+                estadosValidos: [...ESTADOS_VIVOS],
+            });
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (trabajador_id, rol_id, login, contrasena, avatar, estado_id, usuario_id_registro, fecha_registro)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-            const params = [
-                dto.trabajador_id,
-                dto.rol_id,
-                dto.login,
-                await hashPassword(dto.contrasena),
-                dto.avatar,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const usuario = manager.create(Usuario, {
+                ...dto,
+                contrasena: await hashPassword(dto.contrasena),
+                avatar: dto.avatar,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        `Error al insertar el usuario "${dto.login}".`,
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne<UsuarioResponseDto>(newId, usuarioId, manager);
+                const saved = await manager.save(usuario);
+                return this.findOne<UsuarioResponseDto>(saved.usuario_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
@@ -220,6 +200,14 @@ export class UsuariosService extends BaseService {
 
     async update(id: number, dto: UpdateUsuarioDto, usuarioId: number): Promise<UsuarioResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
+
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const usuarioActual = await manager.findOne(Usuario, {
@@ -231,7 +219,7 @@ export class UsuariosService extends BaseService {
                 throw new DomainException('Usuario no encontrado.', { httpStatus: HttpStatus.NOT_FOUND });
             }
 
-            const dtoParaActualizar = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
                 dto,
@@ -241,21 +229,21 @@ export class UsuariosService extends BaseService {
                 usuarioId
             );
 
-            if (dtoParaActualizar.login !== undefined) {
+            if (dtoProcesado.login !== undefined) {
                 await this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
-                    campos: [{ nombre: 'login', valor: dtoParaActualizar.login }],
+                    campos: [{ nombre: 'login', valor: dtoProcesado.login }],
                     idExcluir: id,
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS],
                 });
             }
 
-            if (dtoParaActualizar.avatar && dtoParaActualizar.avatar === usuarioActual.avatar) {
-                delete dtoParaActualizar.avatar;
+            if (dtoProcesado.avatar && dtoProcesado.avatar === usuarioActual.avatar) {
+                delete dtoProcesado.avatar;
             }
 
-            manager.merge(Usuario, usuarioActual, dtoParaActualizar);
+            manager.merge(Usuario, usuarioActual, dtoProcesado);
             usuarioActual.update(usuarioId);
 
             try {

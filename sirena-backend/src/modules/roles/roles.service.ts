@@ -6,7 +6,6 @@ import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.con
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -55,66 +54,57 @@ export class RolesService extends BaseService {
 
     async create(dto: CreateRolDto, usuarioId: number): Promise<RolResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            let dtoNormalizado = { ...dto };
-
             await Promise.all([
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
-                    campos: [{ nombre: 'codigo', valor: dtoNormalizado.codigo }],
+                    campos: [{ nombre: 'codigo', valor: dto.codigo }],
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS]
                 }),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
-                    campos: [{ nombre: 'rol', valor: dtoNormalizado.rol }],
+                    campos: [{ nombre: 'rol', valor: dto.rol }],
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS]
-                })
+                }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (rol, codigo, descripcion, estado_id, usuario_id_registro, fecha_registro)
-                VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-            const params = [
-                dtoNormalizado.rol,
-                dtoNormalizado.codigo,
-                dtoNormalizado.descripcion,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const rol = manager.create(Rol, {
+                ...dto,
+                estado_id: ESTADO_ACTIVO,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        `Error al insertar el rol "${dtoNormalizado.rol}".`,
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(rol);
+                return this.findOne<RolResponseDto>(saved.rol_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+                this.logger.error(`Error al crear rol: ${getErrorMessage(error)}`, getErrorStack(error));
+                throw new DomainException(
+                    'Error inesperado al crear el rol.',
+                    { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
+                );
             }
         });
     }
 
     async update(id: number, dto: UpdateRolDto, usuarioId: number): Promise<RolResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            let dtoNormalizado = { ...dto };
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
 
-            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const rolActual = await manager.findOne(Rol, {
                 where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
@@ -124,14 +114,14 @@ export class RolesService extends BaseService {
             if (!rolActual) {
                 throw new DomainException(
                     `Rol no encontrado.`,
-                    { httpStatus: HttpStatus.NOT_FOUND }
+                    { id, httpStatus: HttpStatus.NOT_FOUND }
                 );
             }
 
-            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
-                dtoNormalizado,
+                dto,
                 FindRolesQueryDto.getDependencias(),
                 FindRolesQueryDto.getCamposProtegidosConDependencias(),
                 this.campoPK,
@@ -140,11 +130,11 @@ export class RolesService extends BaseService {
 
             const validaciones: Promise<any>[] = [];
 
-            if (dtoNormalizado.codigo && dtoNormalizado.codigo !== rolActual.codigo) {
+            if (dtoProcesado.codigo && dtoProcesado.codigo !== rolActual.codigo) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
-                        campos: [{ nombre: 'codigo', valor: dtoNormalizado.codigo }],
+                        campos: [{ nombre: 'codigo', valor: dtoProcesado.codigo }],
                         idExcluir: id,
                         campoPk: this.campoPK,
                         estadosValidos: [...ESTADOS_VIVOS]
@@ -152,11 +142,11 @@ export class RolesService extends BaseService {
                 );
             }
 
-            if (dtoNormalizado.rol && dtoNormalizado.rol !== rolActual.rol) {
+            if (dtoProcesado.rol && dtoProcesado.rol !== rolActual.rol) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
-                        campos: [{ nombre: 'rol', valor: dtoNormalizado.rol }],
+                        campos: [{ nombre: 'rol', valor: dtoProcesado.rol }],
                         idExcluir: id,
                         campoPk: this.campoPK,
                         estadosValidos: [...ESTADOS_VIVOS]
@@ -168,7 +158,7 @@ export class RolesService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            Object.assign(rolActual, dtoNormalizado);
+            Object.assign(rolActual, dtoProcesado);
             rolActual.update(usuarioId);
 
             try {
@@ -178,8 +168,11 @@ export class RolesService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+                this.logger.error(`Error al actualizar rol: ${getErrorMessage(error)}`, getErrorStack(error));
+                throw new DomainException(
+                    'Error inesperado al actualizar el rol.',
+                    { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
+                );
             }
         });
     }

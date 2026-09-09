@@ -143,7 +143,6 @@ export class TiposCambiosService extends BaseService {
                 usuario_id_registro: Number(usuarioId),
             });
 
-
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
                 const saved = await manager.save(tipoCambio);

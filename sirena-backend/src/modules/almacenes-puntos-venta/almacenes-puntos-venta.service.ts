@@ -6,7 +6,6 @@ import { ESTADO_ACTIVO, ESTADOS_VIVOS, TIPO_ALMACEN_METADATA, TipoPuntoVenta, TI
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -183,7 +182,8 @@ export class AlmacenesPuntosVentaService extends BaseService {
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK,
-                })
+                }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ];
 
             await Promise.all(validaciones);
@@ -195,46 +195,15 @@ export class AlmacenesPuntosVentaService extends BaseService {
                 );
             }
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (
-                    sucursal_id,
-                    almacen_id,
-                    punto_venta_id,
-                    prioridad,
-                    es_principal,
-                    estado_id,
-                    usuario_id_registro,
-                    fecha_registro
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-
-            const params = [
-                dto.sucursal_id,
-                dto.almacen_id,
-                dto.punto_venta_id,
-                dto.prioridad,
-                esPrincipalVal,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const registro = manager.create(AlmacenPuntoVenta, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
-                    await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                    const insertResult = await manager.query(query, params);
-                    const newId = Number(insertResult[0]?.[this.campoPK] || 0);
-
-                    if (newId === 0) {
-                        throw new DomainException(
-                            'Error al insertar el registro de relación almacén punto de venta.',
-                            { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                        );
-                    }
-
-                    return this.findOne(newId, usuarioId, manager);
+                await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
+                const saved = await manager.save(registro);
+                return this.findOne<AlmacenPuntoVentaResponseDto>(saved.almacen_punto_venta_id, usuarioId, manager);
                 } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
@@ -247,6 +216,14 @@ export class AlmacenesPuntosVentaService extends BaseService {
 
     async update(id: number, dto: UpdateAlmacenPuntoVentaDto, usuarioId: number): Promise<AlmacenPuntoVentaResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
+
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const registroActual = await manager.findOne(AlmacenPuntoVenta, {
@@ -261,7 +238,7 @@ export class AlmacenesPuntosVentaService extends BaseService {
                 );
             }
 
-            dto = await this.tablaValidador.procesarCamposProtegidos(
+const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
                 dto,
@@ -271,34 +248,34 @@ export class AlmacenesPuntosVentaService extends BaseService {
                 usuarioId
             );
 
-            const nuevoSucursalId = dto.sucursal_id ?? registroActual.sucursal_id;
-            const nuevoAlmacenId = dto.almacen_id ?? registroActual.almacen_id;
-            const nuevoPuntoVentaId = dto.punto_venta_id ?? registroActual.punto_venta_id;
-            const nuevoEsPrincipal = dto.es_principal !== undefined ? dto.es_principal : registroActual.es_principal;
+            const nuevoSucursalId = dtoProcesado.sucursal_id ?? registroActual.sucursal_id;
+            const nuevoAlmacenId = dtoProcesado.almacen_id ?? registroActual.almacen_id;
+            const nuevoPuntoVentaId = dtoProcesado.punto_venta_id ?? registroActual.punto_venta_id;
+            const nuevoEsPrincipal = dtoProcesado.es_principal !== undefined ? dtoProcesado.es_principal : registroActual.es_principal;
 
             const validaciones: Promise<any>[] = [
                 this.validarReglasNegocioAlmacenPuntoVenta(manager, nuevoSucursalId, nuevoAlmacenId, nuevoPuntoVentaId)
             ];
 
-            if (dto.sucursal_id !== undefined && dto.sucursal_id !== registroActual.sucursal_id) {
+            if (dtoProcesado.sucursal_id !== undefined && dtoProcesado.sucursal_id !== registroActual.sucursal_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dto.sucursal_id)
+                    this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dtoProcesado.sucursal_id)
                 );
             }
 
-            if (dto.almacen_id !== undefined && dto.almacen_id !== registroActual.almacen_id) {
+            if (dtoProcesado.almacen_id !== undefined && dtoProcesado.almacen_id !== registroActual.almacen_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('almacenes', 'almacen_id', dto.almacen_id)
+                    this.tablaValidador.validarRegistrosActivos('almacenes', 'almacen_id', dtoProcesado.almacen_id)
                 );
             }
 
-            if (dto.punto_venta_id !== undefined && dto.punto_venta_id !== registroActual.punto_venta_id) {
+            if (dtoProcesado.punto_venta_id !== undefined && dtoProcesado.punto_venta_id !== registroActual.punto_venta_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('puntos_venta', 'punto_venta_id', dto.punto_venta_id)
+                    this.tablaValidador.validarRegistrosActivos('puntos_venta', 'punto_venta_id', dtoProcesado.punto_venta_id)
                 );
             }
 
-            if (dto.sucursal_id !== undefined || dto.almacen_id !== undefined || dto.punto_venta_id !== undefined) {
+            if (dtoProcesado.sucursal_id !== undefined || dtoProcesado.almacen_id !== undefined || dtoProcesado.punto_venta_id !== undefined) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,

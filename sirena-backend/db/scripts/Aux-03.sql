@@ -1,24 +1,22 @@
-CREATE TABLE cuis (
-    cuis_id BIGSERIAL PRIMARY KEY,
-    sucursal_id BIGINT NOT NULL DEFAULT 1,
-    punto_venta_id BIGINT NOT NULL DEFAULT 1,
-    codigo_cuis VARCHAR(100) NOT NULL,
-    fecha_vigencia TIMESTAMPTZ NOT NULL,
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+CREATE TABLE tablas (
+    tabla_id BIGSERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
     fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMPTZ NULL,
     fecha_baja TIMESTAMPTZ NULL,
-    CONSTRAINT fk_cuis_sucursal_id FOREIGN KEY (sucursal_id) REFERENCES sucursales(sucursal_id),
-    CONSTRAINT fk_cuis_punto_venta_id FOREIGN KEY (punto_venta_id) REFERENCES puntos_venta(punto_venta_id),
-    CONSTRAINT chk_cuis_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
-    CONSTRAINT chk_cuis_codigo_notempty CHECK (TRIM(codigo_cuis) <> ''),
-    CONSTRAINT chk_cuis_fechavigencia CHECK (fecha_vigencia > CURRENT_TIMESTAMP)
+    CONSTRAINT chk_tablas_estadoid CHECK (estado_id IN (1000, 1001)),
+    CONSTRAINT chk_tablas_nombre_notempty CHECK (TRIM(nombre) <> ''),
+    CONSTRAINT chk_tablas_nombre_formato CHECK (nombre = LOWER(TRIM(nombre)) AND nombre ~ '^[a-z][a-z0-9_]*$')
 );
-CREATE UNIQUE INDEX uix_cuis_varios_unique ON cuis (sucursal_id, punto_venta_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_cuis_puntoventaid ON cuis(punto_venta_id);
+CREATE UNIQUE INDEX uix_tablas_nombre_unique ON tablas (nombre) WHERE estado_id = 1000;
+CREATE INDEX idx_tablas_estado ON tablas (estado_id) WHERE estado_id = 1000;
+
+COMMENT ON TABLE tablas IS 'Reglas de la tabla - tablas
+R.0: La tabla tablas define los nombres de las tablas que pertenecen a la base de datos del sistema.';
 
 // C:\sirena\sirena-backend\src\common\constants\estados.constant.ts
 
@@ -75,144 +73,38 @@ export const ESTADO_METADATA: Record<Estado, ConstanteMetadata & { es_defecto?: 
     [Estado.HISTORICO]: { id: Estado.HISTORICO, abreviatura: 'HISTORICO', prefijo: null, valor: 0, descripcion: 'Registro inmutable al finalizar su ciclo operativo. Excluido de selects para evitar nuevas transacciones pero incluido en históricos. Reversible a ACTIVO por administración.' },
     [Estado.ANULADO]: { id: Estado.ANULADO, abreviatura: 'ANULADO', prefijo: null, valor: 0, descripcion: 'Transacción abortada irreversible e inmutable. Uso exclusivo en las tablas kardex y control_facturas.' },
 };
-// C:\sirena\sirena-backend\src\modules\cuis\dto\create-cui.dto.ts
+
+// C:\sirena\sirena-backend\src\modules\tablas\dto\create-tabla.dto.ts
 import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsString, Min, MaxLength, IsDateString } from 'class-validator';
+import { IsString, IsNotEmpty, MaxLength, MinLength, Matches } from 'class-validator';
 import { IsSafeText } from '../../../common/decorators/safe-text.decorator';
 
-export class CreateCuiDto {
-    @IsInt({ message: 'sucursal_id debe ser un número entero.' })
-    @IsNotEmpty({ message: 'sucursal_id es obligatorio.' })
-    @Min(1, { message: 'sucursal_id debe ser mayor a 0.' })
-    sucursal_id: number;
-
-    @IsInt({ message: 'punto_venta_id debe ser un número entero.' })
-    @IsNotEmpty({ message: 'punto_venta_id es obligatorio.' })
-    @Min(1, { message: 'punto_venta_id debe ser mayor a 0.' })
-    punto_venta_id: number;
-
-    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
-    @IsString({ message: 'codigo_cuis debe ser un texto.' })
-    @IsNotEmpty({ message: 'codigo_cuis es obligatorio.' })
-    @MaxLength(100, { message: 'codigo_cuis no puede exceder los 100 caracteres.' })
+export class CreateTablaDto {
+    @Transform(({ value }) => typeof value === 'string' ? value.trim().toLowerCase() : value)
+    @IsString({ message: 'nombre debe ser un texto.' })
+    @IsNotEmpty({ message: 'nombre es obligatorio.' })
+    @MinLength(1, { message: 'nombre debe tener al menos 1 carácter.' })
+    @MaxLength(100, { message: 'nombre no puede exceder los 100 caracteres.' })
+    @Matches(/^[a-z][a-z0-9_]*$/, { message: 'nombre debe comenzar con letra minúscula y contener solo letras minúsculas, números y guiones bajos.' })
     @IsSafeText()
-    codigo_cuis: string;
-
-    @IsDateString({}, { message: 'fecha_vigencia debe ser una fecha y hora válida (ISO 8601).' })
-    @IsNotEmpty({ message: 'fecha_vigencia es obligatoria.' })
-    fecha_vigencia: string;
+    nombre: string;
 }
 
-// C:\sirena\sirena-backend\src\modules\cuis\dto\update-cui.dto.ts
+// C:\sirena\sirena-backend\src\modules\tablas\dto\update-tabla.dto.ts
 import { PartialType } from '@nestjs/mapped-types';
-import { CreateCuiDto } from './create-cui.dto';
+import { CreateTablaDto } from './create-tabla.dto';
 
-export class UpdateCuiDto extends PartialType(CreateCuiDto) {}
+export class UpdateTablaDto extends PartialType(CreateTablaDto) {}
 
-// C:\sirena\sirena-backend\src\modules\cuis\dto\cui-response.dto.ts
-import { Expose, Transform } from 'class-transformer';
-import { Estado, ESTADO_METADATA } from '../../../common/constants/estados.constant';
-import { formatLocalDate } from '../../../common/utils/date-formatter.util';
-
-const transformEstado = ({ obj }: { obj: CuiRawResult }) => {
-    const estadoId = Number(obj.estado_id);
-    const metadata = ESTADO_METADATA[estadoId as Estado];
-    return metadata ? metadata.abreviatura : '';
-};
-
-export interface CuiRawResult {
-    cuis_id: string | number;
-    sucursal_id: string | number;
-    sucursal_nombre?: string;
-    sucursal_codigo?: string;
-    punto_venta_id: string | number;
-    punto_venta_nombre?: string;
-    punto_venta_codigo?: string | number;
-    codigo_cuis: string;
-    fecha_vigencia: string | Date;
-    estado_id: string | number;
-    estado_registro?: string;
-    usuario_operacion?: string;
-    usuario_id_registro: string | number;
-    usuario_id_actualizacion?: string | number | null;
-    usuario_id_baja?: string | number | null;
-    fecha_registro: string | Date;
-    fecha_actualizacion?: string | Date | null;
-    fecha_baja?: string | Date | null;
-    total_count?: string | number;
-    tiene_dependencias?: boolean;
-    campos_protegidos?: string[];
-}
-
-export class CuiResponseDto {
-    @Expose() cuis_id!: number;
-    @Expose() sucursal_id!: number;
-
-    @Expose()
-    @Transform(({ obj }) => obj.sucursal_nombre || null)
-    sucursal_nombre!: string;
-
-    @Expose()
-    @Transform(({ obj }) => obj.sucursal_codigo || null)
-    sucursal_codigo!: string;
-
-    @Expose() punto_venta_id!: number;
-
-    @Expose()
-    @Transform(({ obj }) => obj.punto_venta_nombre || null)
-    punto_venta_nombre!: string;
-
-    @Expose()
-    @Transform(({ obj }) => obj.punto_venta_codigo !== undefined && obj.punto_venta_codigo !== null ? Number(obj.punto_venta_codigo) : null)
-    punto_venta_codigo!: number;
-
-    @Expose() codigo_cuis!: string;
-
-    @Expose()
-    @Transform(({ value }) => formatLocalDate(value))
-    fecha_vigencia!: string | null;
-
-    @Expose() estado_id!: number;
-
-    @Expose()
-    @Transform(transformEstado)
-    estado_registro!: string;
-
-    @Expose()
-    usuario_operacion!: string;
-
-    @Expose() usuario_id_registro!: number;
-    @Expose() usuario_id_actualizacion?: number | null;
-    @Expose() usuario_id_baja?: number | null;
-
-    @Expose()
-    @Transform(({ value }) => formatLocalDate(value))
-    fecha_registro!: string | null;
-
-    @Expose()
-    @Transform(({ value }) => formatLocalDate(value))
-    fecha_actualizacion?: string | null;
-
-    @Expose()
-    @Transform(({ value }) => formatLocalDate(value))
-    fecha_baja?: string | null;
-
-    @Expose()
-    tiene_dependencias!: boolean;
-
-    @Expose()
-    campos_protegidos?: string[];
-}
-
-// C:\sirena\sirena-backend\src\modules\cuis\dto\find-cuis-query.dto.ts
+// C:\sirena\sirena-backend\src\modules\tablas\dto\find-tablas-query.dto.ts
 import { Type } from 'class-transformer';
-import { IsOptional, IsInt, IsIn, IsString, Min } from 'class-validator';
-import { ESTADOS_CONSULTA, ESTADO_METADATA } from '../../../common/constants/estados.constant';
+import { IsOptional, IsInt, IsIn, IsString } from 'class-validator';
+import { ESTADO_METADATA, ESTADOS_CONSULTA } from '../../../common/constants/estados.constant';
 import { BasePaginationQueryDto } from '../../../common/dto/base-pagination-query.dto';
 import { PaginatedResult } from '../../../common/interfaces/pagination.interface';
 import { createEnumMessage } from '../../../common/utils/validation-helper.util';
 
-export class FindCuisQueryDto extends BasePaginationQueryDto {
+export class FindTablasQueryDto extends BasePaginationQueryDto {
     @IsOptional()
     @IsString({ message: 'El parámetro q debe ser un texto.' })
     q?: string;
@@ -236,241 +128,233 @@ export class FindCuisQueryDto extends BasePaginationQueryDto {
     })
     estado_id?: number;
 
-    @IsOptional()
-    @Type(() => Number)
-    @IsInt({ message: 'El ID de sucursal debe ser un número entero.' })
-    @Min(1, { message: 'El ID de sucursal debe ser un número entero mayor o igual a 1.' })
-    sucursal_id?: number;
-
-    @IsOptional()
-    @Type(() => Number)
-    @IsInt({ message: 'El ID de punto de venta debe ser un número entero.' })
-    @Min(1, { message: 'El ID de punto de venta debe ser un número entero mayor o igual a 1.' })
-    punto_venta_id?: number;
-
-    // Todos los campos de la tabla principal (con soporte para joins a sucursales y puntos_venta).
     static getCampos(): string[] {
         const alias = 't';
-        const aliasSucursal = 's';
-        const aliasPuntoVenta = 'pv';
         return [
-            // Tabla principal.
-            `${alias}.cuis_id`,
-            `${alias}.sucursal_id`,
-            `${alias}.punto_venta_id`,
-            `${alias}.codigo_cuis`,
-            `${alias}.fecha_vigencia`,
+            `${alias}.tabla_id`,
+            `${alias}.nombre`,
             `${alias}.estado_id`,
             `${alias}.usuario_id_registro`,
             `${alias}.usuario_id_actualizacion`,
             `${alias}.usuario_id_baja`,
             `${alias}.fecha_registro`,
             `${alias}.fecha_actualizacion`,
-            `${alias}.fecha_baja`,
-
-            // Campos de la tabla sucursales.
-            `${aliasSucursal}.sucursal AS sucursal_nombre`,
-            `${aliasSucursal}.codigo AS sucursal_codigo`,
-
-            // Campos de la tabla puntos_venta.
-            `${aliasPuntoVenta}.nombre AS punto_venta_nombre`,
-            `${aliasPuntoVenta}.codigo AS punto_venta_codigo`
+            `${alias}.fecha_baja`
         ];
     }
 
-    // Todos los campos que son VARCHAR o texto para la búsqueda global 'q'
     static getCamposParaQ(): string[] {
-        return ['codigo_cuis', 's.sucursal', 's.codigo', 'pv.nombre'];
+        return ['t.nombre'];
     }
 
-    // Todos los campos de la tabla principal menos campos de auditoria aptos para ordenamiento.
     static getCamposPermitidosParaOrdenar(): string[] {
         return [
-            // Tabla principal.
-            'cuis_id',
-            'sucursal_id',
-            'punto_venta_id',
-            'codigo_cuis',
-            'fecha_vigencia',
-
-            // Tabla sucursales (JOIN).
-            'sucursal_nombre',
-            'sucursal_codigo',
-
-            // Tabla puntos_venta (JOIN).
-            'punto_venta_nombre',
-            'punto_venta_codigo'
+            'tabla_id',
+            'nombre',
+            'estado_id',
+            'fecha_registro'
         ];
     }
 
-    // Todas las dependencias.
     static getDependencias(): Array<string | { tabla: string; campoFk: string }> {
-        return [];
+        return [
+            { tabla: 'roles_permisos_tablas', campoFk: 'tabla_id' },
+            { tabla: 'sucesos', campoFk: 'tabla_id' }
+        ];
     }
 
-    // Campos que no deben modificarse si la tabla tiene dependencias activas.
     static getCamposProtegidosConDependencias(): string[] {
-        return [];
+        return ['nombre'];
     }
 
-    // Equivalencias de mapeo para consultas avanzadas y filtros.
     static getEquivalenciasMapeo(): Record<string, string> {
         const alias = 't';
-        const aliasSucursal = 's';
-        const aliasPuntoVenta = 'pv';
         return {
-            // Tabla principal.
-            'cuis_id': `${alias}.cuis_id`,
-            'sucursal_id': `${alias}.sucursal_id`,
-            'punto_venta_id': `${alias}.punto_venta_id`,
-            'codigo_cuis': `${alias}.codigo_cuis`,
-            'fecha_vigencia': `${alias}.fecha_vigencia`,
+            'tabla_id': `${alias}.tabla_id`,
+            'nombre': `${alias}.nombre`,
             'estado_id': `${alias}.estado_id`,
             'usuario_id_registro': `${alias}.usuario_id_registro`,
             'usuario_id_actualizacion': `${alias}.usuario_id_actualizacion`,
             'usuario_id_baja': `${alias}.usuario_id_baja`,
             'fecha_registro': `${alias}.fecha_registro`,
             'fecha_actualizacion': `${alias}.fecha_actualizacion`,
-            'fecha_baja': `${alias}.fecha_baja`,
-
-            // Tabla sucursales (JOIN).
-            'sucursal_nombre': `${aliasSucursal}.sucursal`,
-            'sucursal_codigo': `${aliasSucursal}.codigo`,
-
-            // Tabla puntos_venta (JOIN).
-            'punto_venta_nombre': `${aliasPuntoVenta}.nombre`,
-            'punto_venta_codigo': `${aliasPuntoVenta}.codigo`,
+            'fecha_baja': `${alias}.fecha_baja`
         };
     }
 }
 
 export { PaginatedResult };
 
-// C:\sirena\sirena-backend\src\modules\cuis\entities\cui.entity.ts
+// C:\sirena\sirena-backend\src\modules\tablas\dto\tabla-response.dto.ts
+import { Expose, Transform } from 'class-transformer';
+import { Estado, ESTADO_METADATA } from '../../../common/constants/estados.constant';
+import { formatLocalDate } from '../../../common/utils/date-formatter.util';
+
+const transformEstado = ({ obj }: { obj: TablaRawResult }) => {
+    const estadoId = Number(obj.estado_id);
+    const metadata = ESTADO_METADATA[estadoId as Estado];
+    return metadata ? metadata.abreviatura : '';
+};
+
+export interface TablaRawResult {
+    tabla_id: string | number;
+    nombre: string;
+    estado_id: string | number;
+    estado_registro: string;
+    usuario_operacion: string;
+    usuario_id_registro: string | number;
+    usuario_id_actualizacion?: string | number | null;
+    usuario_id_baja?: string | number | null;
+    fecha_registro: string | Date;
+    fecha_actualizacion?: string | Date | null;
+    fecha_baja?: string | Date | null;
+    total_count?: string | number;
+    tiene_dependencias?: boolean;
+    campos_protegidos?: string[];
+}
+
+export class TablaResponseDto {
+    @Expose()
+    @Transform(({ value }) => Number(value))
+    tabla_id!: number;
+
+    @Expose()
+    nombre!: string;
+
+    @Expose()
+    @Transform(({ value }) => Number(value))
+    estado_id!: number;
+
+    @Expose()
+    @Transform(transformEstado)
+    estado_registro!: string;
+
+    @Expose()
+    usuario_operacion!: string;
+
+    @Expose()
+    @Transform(({ value }) => Number(value))
+    usuario_id_registro!: number;
+
+    @Expose()
+    @Transform(({ value }) => value ? Number(value) : null)
+    usuario_id_actualizacion?: number | null;
+
+    @Expose()
+    @Transform(({ value }) => value ? Number(value) : null)
+    usuario_id_baja?: number | null;
+
+    @Expose()
+    @Transform(({ value }) => formatLocalDate(value))
+    fecha_registro!: string | null;
+
+    @Expose()
+    @Transform(({ value }) => formatLocalDate(value))
+    fecha_actualizacion?: string | null;
+
+    @Expose()
+    @Transform(({ value }) => formatLocalDate(value))
+    fecha_baja?: string | null;
+
+    @Expose()
+    tiene_dependencias!: boolean;
+
+    @Expose()
+    campos_protegidos?: string[];
+}
+
+// C:\sirena\sirena-backend\src\modules\tablas\entities\tabla.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, Index, Check } from 'typeorm';
 import { BaseAuditEntity } from '../../../common/base/base-audit.entity';
 
-@Entity({ name: 'cuis' })
-@Check('chk_cuis_estadoid', 'estado_id IN (1000, 1001, 1002)')
-@Check('chk_cuis_codigo_notempty', "TRIM(codigo_cuis) <> ''")
-@Index('uix_cuis_varios_unique', ['sucursal_id', 'punto_venta_id'], { unique: true, where: 'estado_id = 1000' })
-@Index('idx_cuis_puntoventaid', ['punto_venta_id'])
-export class Cui extends BaseAuditEntity {
-    @PrimaryGeneratedColumn({ name: 'cuis_id', type: 'bigint' })
-    cuis_id!: number;
+@Entity({ name: 'tablas' })
+@Check('chk_tablas_estadoid', 'estado_id IN (1000, 1001)')
+@Check('chk_tablas_nombre_notempty', "TRIM(nombre) <> ''")
+@Check('chk_tablas_nombre_formato', "nombre = LOWER(TRIM(nombre)) AND nombre ~ '^[a-z][a-z0-9_]*$'")
+@Index('uix_tablas_nombre_unique', ['nombre'], { unique: true, where: 'estado_id = 1000' })
+@Index('idx_tablas_estado', ['estado_id'], { where: 'estado_id = 1000' })
+export class Tabla extends BaseAuditEntity {
+    @PrimaryGeneratedColumn({ name: 'tabla_id', type: 'bigint' })
+    tabla_id!: number;
 
-    @Column({ name: 'sucursal_id', type: 'bigint', nullable: false, default: 1 })
-    sucursal_id!: number;
-
-    @Column({ name: 'punto_venta_id', type: 'bigint', nullable: false, default: 1 })
-    punto_venta_id!: number;
-
-    @Column({ name: 'codigo_cuis', type: 'varchar', length: 100, nullable: false })
-    codigo_cuis!: string;
-
-    @Column({ name: 'fecha_vigencia', type: 'timestamptz', nullable: false })
-    fecha_vigencia!: Date;
+    @Column({ name: 'nombre', type: 'varchar', length: 100, nullable: false })
+    nombre!: string;
 }
 
-// C:\sirena\sirena-backend\src\modules\cuis\cuis.controller.ts
+// C:\sirena\sirena-backend\src\modules\tablas\tablas.controller.ts
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { Cache, CACHE_LARGO } from '../../common/decorators/cache.decorator';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { InvalidateCache } from '../../common/decorators/invalidate-cache.decorator';
-import { CreateRateLimit, UpdateRateLimit, DeleteRateLimit, ArchiveRateLimit, FindAllRateLimit, FindOneRateLimit } from '../../common/decorators/rate-limit.decorator';
+import { CreateRateLimit, UpdateRateLimit, DeleteRateLimit, FindAllRateLimit, FindOneRateLimit } from '../../common/decorators/rate-limit.decorator';
 import { CustomValidationPipe } from '../../common/decorators/validation-message.decorator';
 import { PaginatedResult } from '../../common/interfaces/pagination.interface';
 import { AuthenticatedUser } from '../../common/interfaces/user.interface';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CreateCuiDto } from './dto/create-cui.dto';
-import { CuiResponseDto } from './dto/cui-response.dto';
-import { FindCuisQueryDto } from './dto/find-cuis-query.dto';
-import { UpdateCuiDto } from './dto/update-cui.dto';
-import { CuisService } from './cuis.service';
+import { TablasService } from './tablas.service';
+import { CreateTablaDto } from './dto/create-tabla.dto';
+import { FindTablasQueryDto } from './dto/find-tablas-query.dto';
+import { TablaResponseDto } from './dto/tabla-response.dto';
+import { UpdateTablaDto } from './dto/update-tabla.dto';
 
 @UseGuards(JwtAuthGuard)
-@Controller('cuis')
-export class CuisController {
+@Controller('tablas')
+export class TablasController {
     constructor(
-        private readonly cuisService: CuisService,
+        private readonly tablasService: TablasService,
     ) {}
 
-    // GET /cuis - Listar códigos CUIS
     @Get()
     @FindAllRateLimit()
-    @Cache('cuis', CACHE_LARGO)
+    @Cache('tablas', CACHE_LARGO)
     findAll(
         @Query(CustomValidationPipe({ concise: true }))
-        query: FindCuisQueryDto,
+        query: FindTablasQueryDto,
         @GetUser() user: AuthenticatedUser
-    ): Promise<PaginatedResult<CuiResponseDto>> {
-        return this.cuisService.findAll(query, user.usuario_id);
+    ): Promise<PaginatedResult<TablaResponseDto>> {
+        return this.tablasService.findAll(query, user.usuario_id);
     }
 
-    // GET /cuis/:id - Obtener un código CUIS por ID
     @Get(':id')
     @FindOneRateLimit()
-    @Cache('cuis', CACHE_LARGO)
+    @Cache('tablas', CACHE_LARGO)
     findOne(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
-    ): Promise<CuiResponseDto> {
-        return this.cuisService.findOne(id, user.usuario_id);
+    ): Promise<TablaResponseDto> {
+        return this.tablasService.findOne(id, user.usuario_id);
     }
 
-    // POST /cuis - Crear código CUIS
     @Post()
     @CreateRateLimit()
-    @InvalidateCache('cuis')
+    @InvalidateCache('tablas')
     create(
-        @Body() dto: CreateCuiDto,
+        @Body() dto: CreateTablaDto,
         @GetUser() user: AuthenticatedUser
-    ): Promise<CuiResponseDto> {
-        return this.cuisService.create(dto, user.usuario_id);
+    ): Promise<TablaResponseDto> {
+        return this.tablasService.create(dto, user.usuario_id);
     }
 
-    // PATCH /cuis/:id - Actualizar código CUIS
     @Patch(':id')
     @UpdateRateLimit()
-    @InvalidateCache('cuis')
+    @InvalidateCache('tablas')
     update(
         @Param('id', ParseIntPipe) id: number,
-        @Body() dto: UpdateCuiDto,
+        @Body() dto: UpdateTablaDto,
         @GetUser() user: AuthenticatedUser
-    ): Promise<CuiResponseDto> {
-        return this.cuisService.update(id, dto, user.usuario_id);
+    ): Promise<TablaResponseDto> {
+        return this.tablasService.update(id, dto, user.usuario_id);
     }
 
-    // DELETE /cuis/:id - Eliminar código CUIS (borrado lógico)
     @Delete(':id')
     @DeleteRateLimit()
-    @InvalidateCache('cuis')
+    @InvalidateCache('tablas')
     remove(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
-    ): Promise<CuiResponseDto> {
-        return this.cuisService.remove<CuiResponseDto>(id, user.usuario_id);
-    }
-
-    // PATCH /cuis/:id/archivar - Archivar código CUIS (histórico)
-    @Patch(':id/archivar')
-    @ArchiveRateLimit()
-    @InvalidateCache('cuis')
-    archivar(
-        @Param('id', ParseIntPipe) id: number,
-        @GetUser() user: AuthenticatedUser
-    ): Promise<CuiResponseDto> {
-        return this.cuisService.archivar<CuiResponseDto>(id, user.usuario_id);
-    }
-
-    // PATCH /cuis/:id/desarchivar - Desarchivar código CUIS (activo)
-    @Patch(':id/desarchivar')
-    @ArchiveRateLimit()
-    @InvalidateCache('cuis')
-    desarchivar(
-        @Param('id', ParseIntPipe) id: number,
-        @GetUser() user: AuthenticatedUser
-    ): Promise<CuiResponseDto> {
-        return this.cuisService.desarchivar<CuiResponseDto>(id, user.usuario_id);
+    ): Promise<TablaResponseDto> {
+        return this.tablasService.remove<TablaResponseDto>(id, user.usuario_id);
     }
 }
+
+ESTA BIEN 

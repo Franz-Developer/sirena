@@ -6,7 +6,6 @@ import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.con
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -27,14 +26,7 @@ export class TablasService extends BaseService {
         camposBusquedaEnQ: FindTablasQueryDto.getCamposParaQ(),
         tablasDependientes: FindTablasQueryDto.getDependencias(),
         joins: [],
-        configuracionFiltros: [
-            {
-                nombreCampo: 'estado_id',
-                nombreColumna: 'estado_id',
-                tipoDatoFiltro: 'number',
-                operador: 'eq',
-            },
-        ],
+        configuracionFiltros: [],
         configuracionOrden: {
             campoOrdenPorDefecto: 'tabla_id',
             camposPermitidosParaOrdenar: FindTablasQueryDto.getCamposPermitidosParaOrdenar(),
@@ -60,71 +52,51 @@ export class TablasService extends BaseService {
         return this.config.campoPK;
     }
 
-    async create(dto: CreateTablaDto, usuarioId: number): Promise<TablaResponseDto> {
+        async create(dto: CreateTablaDto, usuarioId: number): Promise<TablaResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            const validaciones: Promise<any>[] = [
-                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear')
-            ];
-
-            // Validar unicidad del nombre (solo para registros ACTIVOS)
-            validaciones.push(
+            await Promise.all([
+                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
                     campos: [{ nombre: 'nombre', valor: dto.nombre }],
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK,
-                })
-            );
+                }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+            ]);
 
-            await Promise.all(validaciones);
-
-            const query = `
-                INSERT INTO ${this.nombreTabla} (
-                    nombre,
-                    estado_id,
-                    usuario_id_registro,
-                    fecha_registro
-                )
-                VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-
-            const params = [
-                dto.nombre,
-                ESTADO_ACTIVO,
-                Number(usuarioId),
-            ];
-
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const tabla = manager.create(Tabla, {
+                nombre: dto.nombre,
+                estado_id: ESTADO_ACTIVO,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] ?? 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        'Error al registrar la tabla.',
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(tabla);
+                return this.findOne<TablaResponseDto>(saved.tabla_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+
+                throw new DomainException(
+                    `Ocurrió un error inesperado al crear la tabla.`,
+                    {
+                        details: errorMessage,
+                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
+                    }
+                );
             }
         });
     }
 
     async update(id: number, dto: UpdateTablaDto, usuarioId: number): Promise<TablaResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            let dtoNormalizado = { ...dto };
-
-            const hasFields = Object.values(dtoNormalizado).some(val => val !== undefined);
+            const hasFields = Object.values(dto).some(val => val !== undefined);
             if (!hasFields) {
                 throw new DomainException(
                     'No se enviaron campos para actualizar.',
@@ -132,7 +104,7 @@ export class TablasService extends BaseService {
                 );
             }
 
-            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const tablaActual = await manager.findOne(Tabla, {
                 where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
@@ -146,10 +118,10 @@ export class TablasService extends BaseService {
                 );
             }
 
-            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
-                dtoNormalizado,
+                dto,
                 FindTablasQueryDto.getDependencias(),
                 FindTablasQueryDto.getCamposProtegidosConDependencias(),
                 this.campoPK,
@@ -158,11 +130,11 @@ export class TablasService extends BaseService {
 
             const validaciones: Promise<any>[] = [];
 
-            if (dtoNormalizado.nombre !== undefined && dtoNormalizado.nombre !== tablaActual.nombre) {
+            if (dtoProcesado.nombre !== undefined && dtoProcesado.nombre !== tablaActual.nombre) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
-                        campos: [{ nombre: 'nombre', valor: dtoNormalizado.nombre }],
+                        campos: [{ nombre: 'nombre', valor: dtoProcesado.nombre }],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
                         campoPk: this.campoPK,
@@ -174,7 +146,7 @@ export class TablasService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            Object.assign(tablaActual, dtoNormalizado);
+            manager.merge(Tabla, tablaActual, dtoProcesado);
             tablaActual.update(usuarioId);
 
             try {
@@ -184,8 +156,15 @@ export class TablasService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                throw new DomainException(
+                    `Ocurrió un error inesperado al actualizar: ${getErrorMessage(error)}`,
+                    {
+                        details: getErrorMessage(error),
+                        stack: getErrorStack(error),
+                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
+                    }
+                );
             }
         });
     }

@@ -6,7 +6,6 @@ import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.con
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -68,45 +67,19 @@ export class CargosService extends BaseService {
                     campos: [{ nombre: 'codigo', valor: dto.codigo }],
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS]
-                })
+                }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (
-                    cargo,
-                    codigo,
-                    descripcion,
-                    estado_id,
-                    usuario_id_registro,
-                    fecha_registro
-                )
-                VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-
-            const params = [
-                dto.cargo,
-                dto.codigo,
-                dto.descripcion || null,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const cargo = manager.create(Cargo, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        `Error al insertar el cargo "${dto.cargo}".`,
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(cargo);
+                return this.findOne<CargoResponseDto>(saved.cargo_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
@@ -119,6 +92,14 @@ export class CargosService extends BaseService {
 
     async update(id: number, dto: UpdateCargoDto, usuarioId: number): Promise<CargoResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
+
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const cargoActual = await manager.findOne(Cargo, {
@@ -133,7 +114,7 @@ export class CargosService extends BaseService {
                 );
             }
 
-            dto = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
                 dto,
@@ -145,11 +126,11 @@ export class CargosService extends BaseService {
 
             const validaciones: Promise<any>[] = [];
 
-            if (dto.cargo && dto.cargo !== cargoActual.cargo) {
+            if (dtoProcesado.cargo && dtoProcesado.cargo !== cargoActual.cargo) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
-                        campos: [{ nombre: 'cargo', valor: dto.cargo }],
+                        campos: [{ nombre: 'cargo', valor: dtoProcesado.cargo }],
                         idExcluir: id,
                         campoPk: this.campoPK,
                         estadosValidos: [...ESTADOS_VIVOS]
@@ -157,11 +138,11 @@ export class CargosService extends BaseService {
                 );
             }
 
-            if (dto.codigo && dto.codigo !== cargoActual.codigo) {
+            if (dtoProcesado.codigo && dtoProcesado.codigo !== cargoActual.codigo) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
-                        campos: [{ nombre: 'codigo', valor: dto.codigo }],
+                        campos: [{ nombre: 'codigo', valor: dtoProcesado.codigo }],
                         idExcluir: id,
                         campoPk: this.campoPK,
                         estadosValidos: [...ESTADOS_VIVOS]
@@ -173,7 +154,7 @@ export class CargosService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            Object.assign(cargoActual, dto);
+            Object.assign(cargoActual, dtoProcesado);
             cargoActual.update(usuarioId);
 
             try {

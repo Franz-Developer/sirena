@@ -6,7 +6,6 @@ import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.con
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -75,36 +74,19 @@ export class UnidadesService extends BaseService {
                     campos: [{ nombre: 'unidad', valor: dto.unidad }],
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS]
-                })
+                }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (codigo, codigo_sin, unidad, estado_id, usuario_id_registro, fecha_registro)
-                VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-            const params = [
-                dto.codigo,
-                dto.codigo_sin,
-                dto.unidad,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const unidad = manager.create(Unidad, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        `Error al insertar la unidad "${dto.unidad}".`,
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(unidad);
+                return this.findOne<UnidadResponseDto>(saved.unidad_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
@@ -117,6 +99,14 @@ export class UnidadesService extends BaseService {
 
     async update(id: number, dto: UpdateUnidadDto, usuarioId: number): Promise<UnidadResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
+
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const unidadActual = await manager.findOne(Unidad, {
@@ -131,7 +121,7 @@ export class UnidadesService extends BaseService {
                 );
             }
 
-            dto = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
                 dto,
@@ -143,11 +133,11 @@ export class UnidadesService extends BaseService {
 
             const validaciones: Promise<any>[] = [];
 
-            if (dto.codigo && dto.codigo !== unidadActual.codigo) {
+            if (dtoProcesado.codigo && dtoProcesado.codigo !== unidadActual.codigo) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
-                        campos: [{ nombre: 'codigo', valor: dto.codigo }],
+                        campos: [{ nombre: 'codigo', valor: dtoProcesado.codigo }],
                         idExcluir: id,
                         campoPk: this.campoPK,
                         estadosValidos: [...ESTADOS_VIVOS]
@@ -155,11 +145,11 @@ export class UnidadesService extends BaseService {
                 );
             }
 
-            if (dto.unidad && dto.unidad !== unidadActual.unidad) {
+            if (dtoProcesado.unidad && dtoProcesado.unidad !== unidadActual.unidad) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
-                        campos: [{ nombre: 'unidad', valor: dto.unidad }],
+                        campos: [{ nombre: 'unidad', valor: dtoProcesado.unidad }],
                         idExcluir: id,
                         campoPk: this.campoPK,
                         estadosValidos: [...ESTADOS_VIVOS]

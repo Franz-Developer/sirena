@@ -6,7 +6,6 @@ import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.con
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -143,51 +142,21 @@ export class CufdsService extends BaseService {
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK,
-                })
+                }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ];
 
             await Promise.all(validaciones);
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (
-                    sucursal_id,
-                    punto_venta_id,
-                    codigo_cufd,
-                    codigo_control,
-                    fecha_vigencia,
-                    estado_id,
-                    usuario_id_registro,
-                    fecha_registro
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-
-            const params = [
-                dto.sucursal_id,
-                dto.punto_venta_id,
-                dto.codigo_cufd,
-                dto.codigo_control,
-                dto.fecha_vigencia,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const cufd = manager.create(Cufd, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        'Error al insertar el registro CUFD.',
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(cufd);
+                return this.findOne<CufdResponseDto>(saved.cufd_id, usuarioId, manager);
             } catch (error) {
                 if (isDomainException(error)) {
                     throw error;
@@ -200,17 +169,23 @@ export class CufdsService extends BaseService {
 
     async update(id: number, dto: UpdateCufdDto, usuarioId: number): Promise<CufdResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            let dtoNormalizado = { ...dto };
-
-            if (dtoNormalizado.codigo_cufd) {
-                dtoNormalizado.codigo_cufd = dtoNormalizado.codigo_cufd.trim().toUpperCase();
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
             }
 
-            if (dtoNormalizado.codigo_control) {
-                dtoNormalizado.codigo_control = dtoNormalizado.codigo_control.trim().toUpperCase();
+            if (dto.codigo_cufd) {
+                dto.codigo_cufd = dto.codigo_cufd.trim().toUpperCase();
             }
 
-            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
+            if (dto.codigo_control) {
+                dto.codigo_control = dto.codigo_control.trim().toUpperCase();
+            }
+
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const cufdActual = await manager.findOne(Cufd, {
                 where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
@@ -224,38 +199,54 @@ export class CufdsService extends BaseService {
                 );
             }
 
-            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
-                dtoNormalizado,
+                dto,
                 FindCufdsQueryDto.getDependencias(),
                 FindCufdsQueryDto.getCamposProtegidosConDependencias(),
                 this.campoPK,
                 usuarioId
             );
 
-            const nuevoSucursalId = dtoNormalizado.sucursal_id ?? cufdActual.sucursal_id;
-            const nuevoPuntoVentaId = dtoNormalizado.punto_venta_id !== undefined ? dtoNormalizado.punto_venta_id : cufdActual.punto_venta_id;
+            const nuevoSucursalId = dtoProcesado.sucursal_id ?? cufdActual.sucursal_id;
+            const nuevoPuntoVentaId = dtoProcesado.punto_venta_id !== undefined
+                ? dtoProcesado.punto_venta_id
+                : cufdActual.punto_venta_id;
 
-            const validaciones: Promise<any>[] = [
-                this.validarPertenenciaSucursalPuntoVenta(manager, nuevoSucursalId, nuevoPuntoVentaId)
-            ];
+            await this.validarPertenenciaSucursalPuntoVenta(
+                manager,
+                nuevoSucursalId,
+                nuevoPuntoVentaId
+            );
 
-            if (dtoNormalizado.sucursal_id !== undefined && dtoNormalizado.sucursal_id !== cufdActual.sucursal_id) {
+            const validaciones: Promise<any>[] = [];
+
+            if (dtoProcesado.sucursal_id !== undefined &&
+                dtoProcesado.sucursal_id !== cufdActual.sucursal_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dtoNormalizado.sucursal_id)
+                    this.tablaValidador.validarRegistrosActivos(
+                        'sucursales',
+                        'sucursal_id',
+                        dtoProcesado.sucursal_id
+                    )
                 );
             }
 
-            if (dtoNormalizado.punto_venta_id !== undefined && dtoNormalizado.punto_venta_id !== cufdActual.punto_venta_id) {
-                if (dtoNormalizado.punto_venta_id !== null) {
-                    validaciones.push(
-                        this.tablaValidador.validarRegistrosActivos('puntos_venta', 'punto_venta_id', dtoNormalizado.punto_venta_id)
-                    );
-                }
+            if (dtoProcesado.punto_venta_id !== undefined &&
+                dtoProcesado.punto_venta_id !== cufdActual.punto_venta_id &&
+                dtoProcesado.punto_venta_id !== null) {
+                validaciones.push(
+                    this.tablaValidador.validarRegistrosActivos(
+                        'puntos_venta',
+                        'punto_venta_id',
+                        dtoProcesado.punto_venta_id
+                    )
+                );
             }
 
-            if (dtoNormalizado.sucursal_id !== undefined || dtoNormalizado.punto_venta_id !== undefined) {
+            if (dtoProcesado.sucursal_id !== undefined ||
+                dtoProcesado.punto_venta_id !== undefined) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
@@ -270,12 +261,13 @@ export class CufdsService extends BaseService {
                 );
             }
 
-            if (dtoNormalizado.codigo_cufd !== undefined && dtoNormalizado.codigo_cufd !== cufdActual.codigo_cufd) {
+            if (dtoProcesado.codigo_cufd !== undefined &&
+                dtoProcesado.codigo_cufd !== cufdActual.codigo_cufd) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
-                            { nombre: 'codigo_cufd', valor: dtoNormalizado.codigo_cufd }
+                            { nombre: 'codigo_cufd', valor: dtoProcesado.codigo_cufd }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
@@ -288,7 +280,7 @@ export class CufdsService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            Object.assign(cufdActual, dtoNormalizado);
+            Object.assign(cufdActual, dtoProcesado);
             cufdActual.update(usuarioId);
 
             try {
@@ -298,8 +290,11 @@ export class CufdsService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+                this.logger.error(`Error al actualizar CUFD: ${getErrorMessage(error)}`, getErrorStack(error));
+                throw new DomainException(
+                    'Error inesperado al actualizar el registro CUFD.',
+                    { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
+                );
             }
         });
     }

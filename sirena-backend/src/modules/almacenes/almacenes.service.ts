@@ -6,7 +6,6 @@ import { ESTADO_ACTIVO, ESTADOS_VIVOS, TipoOperacionAlmacen, TIPO_OPERACION_ALMA
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -154,72 +153,56 @@ export class AlmacenesService extends BaseService {
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK
-                })
+                }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
-            this.validarCombinacionTipoAlmacen(
-                dto.tipo_operacion_almacen_id,
-                dto.tipo_almacen_id
-            );
+            this.validarCombinacionTipoAlmacen(dto.tipo_operacion_almacen_id, dto.tipo_almacen_id);
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (
-                    sucursal_id,
-                    almacen,
-                    codigo,
-                    tipo_almacen_id,
-                    tipo_operacion_almacen_id,
-                    descripcion,
-                    estado_id,
-                    usuario_id_registro,
-                    fecha_registro
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-
-            const params = [
-                dto.sucursal_id,
-                dto.almacen,
-                dto.codigo,
-                dto.tipo_almacen_id,
-                dto.tipo_operacion_almacen_id,
-                dto.descripcion || null,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const almacen = manager.create(Almacen, {
+                ...dto,
+                estado_id: ESTADO_ACTIVO,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] ?? 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        'Error al insertar el almacén.',
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(almacen);
+                return this.findOne<AlmacenResponseDto>(saved.almacen_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+
+                throw new DomainException(
+                    `Ocurrió un error inesperado al crear el almacén.`,
+                    {
+                        details: errorMessage,
+                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
+                    }
+                );
             }
         });
     }
 
     async update(id: number, dto: UpdateAlmacenDto, usuarioId: number): Promise<AlmacenResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
+
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const almacenActual = await manager.findOne(Almacen, {
-                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                lock: { mode: 'pessimistic_write' }
             });
 
             if (!almacenActual) {
@@ -229,7 +212,7 @@ export class AlmacenesService extends BaseService {
                 );
             }
 
-            dto = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
                 dto,
@@ -241,22 +224,22 @@ export class AlmacenesService extends BaseService {
 
             const validaciones: Promise<any>[] = [];
 
-            if (dto.sucursal_id !== undefined && dto.sucursal_id !== almacenActual.sucursal_id) {
+            if (dtoProcesado.sucursal_id !== undefined && dtoProcesado.sucursal_id !== almacenActual.sucursal_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dto.sucursal_id)
+                    this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dtoProcesado.sucursal_id)
                 );
             }
 
             if (
-                (dto.almacen !== undefined && dto.almacen !== almacenActual.almacen) ||
-                (dto.sucursal_id !== undefined && dto.sucursal_id !== almacenActual.sucursal_id)
+                (dtoProcesado.almacen !== undefined && dtoProcesado.almacen !== almacenActual.almacen) ||
+                (dtoProcesado.sucursal_id !== undefined && dtoProcesado.sucursal_id !== almacenActual.sucursal_id)
             ) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
-                            { nombre: 'almacen', valor: dto.almacen ?? almacenActual.almacen },
-                            { nombre: 'sucursal_id', valor: dto.sucursal_id ?? almacenActual.sucursal_id }
+                            { nombre: 'almacen', valor: dtoProcesado.almacen ?? almacenActual.almacen },
+                            { nombre: 'sucursal_id', valor: dtoProcesado.sucursal_id ?? almacenActual.sucursal_id }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
@@ -266,15 +249,15 @@ export class AlmacenesService extends BaseService {
             }
 
             if (
-                (dto.codigo !== undefined && dto.codigo !== almacenActual.codigo) ||
-                (dto.sucursal_id !== undefined && dto.sucursal_id !== almacenActual.sucursal_id)
+                (dtoProcesado.codigo !== undefined && dtoProcesado.codigo !== almacenActual.codigo) ||
+                (dtoProcesado.sucursal_id !== undefined && dtoProcesado.sucursal_id !== almacenActual.sucursal_id)
             ) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
-                            { nombre: 'codigo', valor: dto.codigo ?? almacenActual.codigo },
-                            { nombre: 'sucursal_id', valor: dto.sucursal_id ?? almacenActual.sucursal_id }
+                            { nombre: 'codigo', valor: dtoProcesado.codigo ?? almacenActual.codigo },
+                            { nombre: 'sucursal_id', valor: dtoProcesado.sucursal_id ?? almacenActual.sucursal_id }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
@@ -287,14 +270,14 @@ export class AlmacenesService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            const operacionId = dto.tipo_operacion_almacen_id ?? almacenActual.tipo_operacion_almacen_id;
-            const tipoId = dto.tipo_almacen_id ?? almacenActual.tipo_almacen_id;
+            const operacionId = dtoProcesado.tipo_operacion_almacen_id ?? almacenActual.tipo_operacion_almacen_id;
+            const tipoId = dtoProcesado.tipo_almacen_id ?? almacenActual.tipo_almacen_id;
 
-            if (dto.tipo_operacion_almacen_id !== undefined || dto.tipo_almacen_id !== undefined) {
+            if (dtoProcesado.tipo_operacion_almacen_id !== undefined || dtoProcesado.tipo_almacen_id !== undefined) {
                 this.validarCombinacionTipoAlmacen(operacionId, tipoId);
             }
 
-            Object.assign(almacenActual, dto);
+            Object.assign(almacenActual, dtoProcesado);
             almacenActual.update(usuarioId);
 
             try {
@@ -304,8 +287,15 @@ export class AlmacenesService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                throw new DomainException(
+                    `Ocurrió un error inesperado al actualizar: ${getErrorMessage(error)}`,
+                    {
+                        details: getErrorMessage(error),
+                        stack: getErrorStack(error),
+                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
+                    }
+                );
             }
         });
     }

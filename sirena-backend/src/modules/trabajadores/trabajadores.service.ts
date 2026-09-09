@@ -1,5 +1,5 @@
 // C:\sirena\sirena-backend\src\modules\trabajadores\trabajadores.service.ts
-import { Injectable, HttpStatus, Logger } from '@nestjs/common';
+import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ESTADOS_VIVOS, ESTADO_ACTIVO, Genero, EstadoCivilMasculino, ESTADO_CIVIL_MASCULINO_METADATA, EstadoCivilFemenino, ESTADO_CIVIL_FEMENINO_METADATA } from '../../common/constants/estados.constant';
@@ -17,11 +17,10 @@ import { TrabajadorResponseDto } from './dto/trabajador-response.dto';
 import { FindTrabajadoresQueryDto } from './dto/find-trabajadores-query.dto';
 import { UpdateTrabajadorDto } from './dto/update-trabajador.dto';
 import { Trabajador } from './entities/trabajador.entity';
+import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class TrabajadoresService extends BaseService {
-    private readonly customLogger = new Logger(TrabajadoresService.name);
-
     protected config: BaseServiceConfig = {
         nombreTabla: 'trabajadores',
         nombreEntidad: 'Trabajador',
@@ -148,6 +147,7 @@ export class TrabajadoresService extends BaseService {
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS],
                 }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
             const trabajador = manager.create(Trabajador, {
@@ -156,30 +156,41 @@ export class TrabajadoresService extends BaseService {
                 usuario_id_registro: Number(usuarioId),
             });
 
-            await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-            const saved = await manager.save(trabajador);
+            try {
+                await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
+                const saved = await manager.save(trabajador);
 
-            await this.generarQRUtil.generarQRParaTrabajador(
-                saved.trabajador_id,
-                false,
-                manager
-            );
+                await this.generarQRUtil.generarQRParaTrabajador(
+                    saved.trabajador_id,
+                    false,
+                    manager
+                );
 
-            return this.findOne<TrabajadorResponseDto>(saved.trabajador_id, usuarioId, manager);
+                return this.findOne<TrabajadorResponseDto>(saved.trabajador_id, usuarioId, manager);
+            } catch (error) {
+                if (isDomainException(error)) {
+                    throw error;
+                }
+                this.logger.error(`Error al crear trabajador: ${getErrorMessage(error)}`, getErrorStack(error));
+                throw new DomainException(
+                    'Error inesperado al crear el trabajador.',
+                    { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
+                );
+            }
         });
     }
 
     async update(id: number, dto: UpdateTrabajadorDto, usuarioId: number): Promise<TrabajadorResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            let dtoNormalizado = { ...dto };
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
 
-            await this.tablaValidador.validarPreUpdate(
-                this.nombreTabla,
-                id,
-                dtoNormalizado,
-                this.campoPK,
-                usuarioId,
-            );
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const trabajadorActual = await manager.findOne(Trabajador, {
                 where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
@@ -192,18 +203,18 @@ export class TrabajadoresService extends BaseService {
                 });
             }
 
-            if (dtoNormalizado.genero_id && dtoNormalizado.estado_civil_id) {
-                await this.validarEstadoCivilPorGenero(dtoNormalizado.genero_id, dtoNormalizado.estado_civil_id);
-            } else if (dtoNormalizado.genero_id && trabajadorActual.genero_id) {
-                await this.validarEstadoCivilPorGenero(dtoNormalizado.genero_id, trabajadorActual.estado_civil_id);
-            } else if (dtoNormalizado.estado_civil_id && trabajadorActual.genero_id) {
-                await this.validarEstadoCivilPorGenero(trabajadorActual.genero_id, dtoNormalizado.estado_civil_id);
+            if (dto.genero_id && dto.estado_civil_id) {
+                await this.validarEstadoCivilPorGenero(dto.genero_id, dto.estado_civil_id);
+            } else if (dto.genero_id && trabajadorActual.genero_id) {
+                await this.validarEstadoCivilPorGenero(dto.genero_id, trabajadorActual.estado_civil_id);
+            } else if (dto.estado_civil_id && trabajadorActual.genero_id) {
+                await this.validarEstadoCivilPorGenero(trabajadorActual.genero_id, dto.estado_civil_id);
             }
 
-            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
-                dtoNormalizado,
+                dto,
                 FindTrabajadoresQueryDto.getDependencias(),
                 FindTrabajadoresQueryDto.getCamposProtegidosConDependencias(),
                 this.campoPK,
@@ -212,7 +223,7 @@ export class TrabajadoresService extends BaseService {
 
             const validaciones: Promise<any>[] = [];
 
-            if (dtoNormalizado.nombres || dtoNormalizado.paterno || dtoNormalizado.materno !== undefined) {
+            if (dtoProcesado.nombres || dtoProcesado.paterno || dtoProcesado.materno !== undefined) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
@@ -221,15 +232,15 @@ export class TrabajadoresService extends BaseService {
                         campos: [
                             {
                                 nombre: 'nombres',
-                                valor: dtoNormalizado.nombres ?? trabajadorActual.nombres,
+                                valor: dtoProcesado.nombres ?? trabajadorActual.nombres,
                             },
                             {
                                 nombre: 'paterno',
-                                valor: dtoNormalizado.paterno ?? trabajadorActual.paterno,
+                                valor: dtoProcesado.paterno ?? trabajadorActual.paterno,
                             },
                             {
                                 nombre: 'materno',
-                                valor: dtoNormalizado.materno ?? trabajadorActual.materno ?? '',
+                                valor: dtoProcesado.materno ?? trabajadorActual.materno ?? '',
                             },
                         ],
                         estadosValidos: [...ESTADOS_VIVOS],
@@ -237,13 +248,13 @@ export class TrabajadoresService extends BaseService {
                 );
             }
 
-            if (dtoNormalizado.dni) {
+            if (dtoProcesado.dni) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campoPk: this.campoPK,
                         idExcluir: id,
-                        campos: [{ nombre: 'dni', valor: dtoNormalizado.dni }],
+                        campos: [{ nombre: 'dni', valor: dtoProcesado.dni }],
                         estadosValidos: [...ESTADOS_VIVOS],
                     }),
                 );
@@ -253,28 +264,39 @@ export class TrabajadoresService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            if (dtoNormalizado.foto) {
-                if (dtoNormalizado.foto === trabajadorActual.foto) {
-                    delete dtoNormalizado.foto;
+            if (dtoProcesado.foto) {
+                if (dtoProcesado.foto === trabajadorActual.foto) {
+                    delete dtoProcesado.foto;
                 }
             }
 
-            const camposAfectados = Object.keys(dtoNormalizado).filter(
-                key => key !== 'foto' && key !== 'qr',
-            );
+            try {
+                const camposAfectados = Object.keys(dtoProcesado).filter(
+                    key => key !== 'foto' && key !== 'qr',
+                );
 
-            if (camposAfectados.length > 0 || dtoNormalizado.foto !== undefined) {
-                manager.merge(Trabajador, trabajadorActual, dtoNormalizado);
-                trabajadorActual.update(usuarioId);
-                await manager.save(trabajadorActual);
+                if (camposAfectados.length > 0 || dtoProcesado.foto !== undefined) {
+                    manager.merge(Trabajador, trabajadorActual, dtoProcesado);
+                    trabajadorActual.update(usuarioId);
+                    await manager.save(trabajadorActual);
+                }
+
+                const nombreCambio = dtoProcesado.nombres || dtoProcesado.paterno || dtoProcesado.materno !== undefined;
+                if (dtoProcesado.dni || nombreCambio) {
+                    await this.generarQRUtil.regenerarQR(id, manager);
+                }
+
+                return this.findOne(id, usuarioId, manager);
+            } catch (error) {
+                if (isDomainException(error)) {
+                    throw error;
+                }
+                this.logger.error(`Error al actualizar trabajador: ${getErrorMessage(error)}`, getErrorStack(error));
+                throw new DomainException(
+                    'Error inesperado al actualizar el trabajador.',
+                    { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
+                );
             }
-
-            const nombreCambio = dtoNormalizado.nombres || dtoNormalizado.paterno || dtoNormalizado.materno !== undefined;
-            if (dtoNormalizado.dni || nombreCambio) {
-                await this.generarQRUtil.regenerarQR(id, manager);
-            }
-
-            return this.findOne<TrabajadorResponseDto>(id, usuarioId, manager);
         });
     }
 
@@ -299,7 +321,7 @@ export class TrabajadoresService extends BaseService {
 
             return `/api/persons/${nombreArchivo}`;
         } catch (error) {
-            this.customLogger.error(`Error al obtener URL de foto para trabajador ${trabajadorId}: ${error}`);
+            this.logger.error(`Error al obtener URL de foto para trabajador ${trabajadorId}: ${getErrorMessage(error)}`);
             return null;
         }
     }
@@ -312,7 +334,7 @@ export class TrabajadoresService extends BaseService {
             const nombreArchivo = trabajador.foto.replace(/^persons\//, '');
             return this.fileValidator.validarArchivoFisico(nombreArchivo, 'persons');
         } catch (error) {
-            this.customLogger.error(`Error al verificar foto física para trabajador ${trabajadorId}: ${error}`);
+            this.logger.error(`Error al verificar foto física para trabajador ${trabajadorId}: ${error}`);
             return false;
         }
     }
@@ -321,7 +343,7 @@ export class TrabajadoresService extends BaseService {
         try {
             return await this.configuracionService.obtenerValorTipado<any>('foto_trabajador_config');
         } catch (error) {
-            this.customLogger.error(`Error al obtener configuración de foto: ${error}`);
+            this.logger.error(`Error al obtener configuración de foto: ${error}`);
             return null;
         }
     }

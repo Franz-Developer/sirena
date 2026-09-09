@@ -14,6 +14,7 @@ import { BaseAuditEntity } from '../../../common/base/base-audit.entity';
 @Check('chk_roles_descripcion_notempty', 'descripcion IS NULL OR TRIM(descripcion) <> \'\'')
 @Index('uix_roles_codigo_unique', ['codigo'], { unique: true, where: 'estado_id IN (1000, 1002)' })
 @Index('uix_roles_rol_unique', ['rol'], { unique: true, where: 'estado_id IN (1000, 1002)' })
+@Index('uix_roles_unico_admin', ['es_admin'], { unique: true, where: 'es_admin = 1 AND estado_id = 1000' })
 export class Rol extends BaseAuditEntity {
     @PrimaryGeneratedColumn({ name: 'rol_id', type: 'bigint' })
     rol_id!: number;
@@ -26,4 +27,7 @@ export class Rol extends BaseAuditEntity {
 
     @Column({ name: 'descripcion', type: 'varchar', length: 500, nullable: true })
     descripcion?: string;
+
+    @Column({ name: 'es_admin', type: 'smallint', nullable: false, default: 0 })
+    es_admin!: number;
 }

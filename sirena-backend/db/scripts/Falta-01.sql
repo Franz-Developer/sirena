@@ -15,8 +15,8 @@ FALTA. Hacer el modulo roles_permisos_tablas
 FALTA. Hacer el modulo roles_permisos_sucesos 
 FALTA. Arreglar el modulo menus.
 FALTA. Arreglar el modulo roles_menus.
-FALTA. Ubicaciones
-FALTA. revisar el modulo sucursal se eliminio de usuarios sucursal_id 
+--FALTA. Ubicaciones
+--FALTA. revisar el modulo sucursal se eliminio de usuarios sucursal_id 
 --FALTA. MEJORAR usuarios eliminar FK sucursal_id
 --FALTA. MEJORAR AUTENTIFICACION 
 --FALTA. MEJORAR tabla y modulo trabajadores ADD sucursal_id
