@@ -25,7 +25,7 @@ export default defineNuxtConfig({
         public: {
             apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:3010',
             apiPredict: process.env.NUXT_PUBLIC_API_PREDICT || 'http://localhost:8000',
-            appName: process.env.NUXT_PUBLIC_APP_NAME || 'PRISMA',
+            appName: process.env.NUXT_PUBLIC_APP_NAME || 'SIRENA',
             appVersion: process.env.NUXT_PUBLIC_APP_VERSION || '1.0',
         },
     },

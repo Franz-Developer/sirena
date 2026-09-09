@@ -1,15 +1,16 @@
+<!-- C:\sirena\sirena-frontend\app\components\SidebarMenu.vue -->
 <template>
     <div class="modern-sidebar">
         <div class="menu-container custom-scrollbar pr-2">
-            <PanelMenu 
-                :model="primeMenu" 
+            <PanelMenu
+                :model="primeMenu"
                 v-model:expandedKeys="expandedKeys"
                 class="sismo-menu"
             >
                 <template #item="{ item }">
-                    <NuxtLink 
-                        v-if="item.to" 
-                        :to="item.to" 
+                    <NuxtLink
+                        v-if="item.to"
+                        :to="item.to"
                         class="p-panelmenu-header-action"
                         exact-active-class="active-link"
                         @click="closeOnMobile"
@@ -41,13 +42,13 @@
 
     const formatMenu = (items) => {
         if (!items || !items.length) return undefined;
-        
+
         return items.map(item => ({
             label: item.titulo || item.label,
             icon: item.icono || item.icon,
             to: item.url || item.to,
-            key: item.titulo || item.label, 
-            items: formatMenu(item.items) 
+            key: item.titulo || item.label,
+            items: formatMenu(item.items)
         }));
     };
 
@@ -135,7 +136,7 @@
             margin: 10px 0;
         }
         &::-webkit-scrollbar-thumb {
-            background: rgba($azul-fuerte, 0.15); 
+            background: rgba($azul-fuerte, 0.15);
             border-radius: 20px;
             transition: all 0.3s ease;
 
@@ -143,15 +144,15 @@
                 background: rgba($azul-fuerte, 0.4);
             }
         }
-        
+
         scrollbar-width: thin;
         scrollbar-color: rgba($azul-fuerte, 0.15) transparent;
     }
 
     :deep(.p-panelmenu) {
-        .p-panelmenu-panel { 
-            margin-bottom: 0.75rem; 
-            border: none !important; 
+        .p-panelmenu-panel {
+            margin-bottom: 0.75rem;
+            border: none !important;
         }
 
         .p-panelmenu-header-content {
@@ -171,9 +172,9 @@
             text-decoration: none;
             cursor: pointer;
 
-            .p-menuitem-icon { 
-                color: #51adcf !important; 
-                margin-right: 0.5rem; 
+            .p-menuitem-icon {
+                color: #51adcf !important;
+                margin-right: 0.5rem;
                 font-size: 1.1rem;
             }
         }
@@ -186,10 +187,10 @@
 
             .p-panelmenu-header-action {
                 padding: 0.6rem 1.2rem !important;
-                .p-menuitem-text { 
-                    color: $azul-sub !important; 
-                    font-weight: 600 !important; 
-                    font-size: 0.8rem; 
+                .p-menuitem-text {
+                    color: $azul-sub !important;
+                    font-weight: 600 !important;
+                    font-size: 0.8rem;
                 }
                 &:hover { background: rgba(255,255,255, 0.5) !important; }
             }
@@ -197,12 +198,12 @@
             .router-link-active {
                 background: white !important;
                 border-left: 4px solid $naranja-sis !important;
-                
+
                 .p-menuitem-text { color: $hover-link !important; font-weight: 800 !important; }
                 .p-menuitem-icon { color: $hover-link !important; }
 
                 &::after {
-                    content: "\e901"; 
+                    content: "\e901";
                     font-family: 'primeicons';
                     margin-left: auto;
                     font-size: 0.7rem;
@@ -245,7 +246,7 @@
                 .p-panelmenu-header-action {
                     color: #94a3b8 !important;
                     &:hover { background-color: #1e293b !important; }
-                    
+
                     &.router-link-active {
                         background-color: #1e293b !important;
                         .p-menuitem-text { color: #38bdf8 !important; }
@@ -259,17 +260,17 @@
         .modern-sidebar {
             padding: 0.75rem 0.5rem;
         }
-        
+
         :deep(.p-panelmenu) {
             .p-panelmenu-header-action {
                 padding: 0.65rem 0.75rem !important;
                 font-size: 0.85rem;
-                
+
                 .p-menuitem-icon {
                     font-size: 0.95rem !important;
                 }
             }
-            
+
             .p-panelmenu-content {
                 .p-panelmenu-header-action {
                     padding: 0.5rem 0.75rem !important;

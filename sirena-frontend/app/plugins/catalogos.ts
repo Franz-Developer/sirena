@@ -1,3 +1,4 @@
+// C:\sirena\sirena-frontend\app\plugins\catalogos.ts
 import { useCatalogosStore } from '~/stores/catalogos';
 import { useAuthStore } from '~/stores/auth';
 

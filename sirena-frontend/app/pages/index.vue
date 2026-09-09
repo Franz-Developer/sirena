@@ -1,4 +1,4 @@
-// C:\sirena\sirena-frontend\app\pages\index.vue
+<!-- C:\sirena\sirena-frontend\app\pages\index.vue -->
 <template>
     <main class="min-h-screen flex items-center justify-center bg-slate-100 p-4">
         <div class="w-full max-w-md">
@@ -64,7 +64,7 @@
 
             // 💾 MEDIR PERSISTENCIA (STORE + LOCALSTORAGE)
             const tStoreInicio = performance.now();
-            authStore.startSession(response.usuario, response.token, response.menu);
+            authStore.startSession(response.usuario, response.token, response.menu, response.permisos);
             const tStoreFin = performance.now();
             console.log(`⏱️ Store/Persistencia: ${(tStoreFin - tStoreInicio).toFixed(2)}ms`);
 

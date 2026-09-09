@@ -1,3 +1,4 @@
+// C:\sirena\sirena-frontend\app\plugins\validation-rules.ts
 export default defineNuxtPlugin(() => {
     const Rules = {
         // Regla: Campo Requerido (excluye null, undefined, cadena vacía)
@@ -110,7 +111,7 @@ export default defineNuxtPlugin(() => {
                 return num <= max || msg || `El valor no puede ser mayor a ${max}`;
             };
         },
-        
+
         // Regla: Solo números enteros (útil para Stock o Cantidades)
         soloEnteros(msg?: string) {
             return (v: any) => {
@@ -145,7 +146,7 @@ export default defineNuxtPlugin(() => {
             };
         },
     }
-    
+
     return {
         provide: {
             rules: Rules,

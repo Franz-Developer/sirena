@@ -1,16 +1,32 @@
+// C:\sirena\sirena-frontend\app\services\auth.service.ts
 export const useAuthService = () => {
     const config = useRuntimeConfig();
     const apiBase = config.public.apiBase;
 
     const login = async (username: string, password: string) => {
         try {
-            const data = await $fetch<any>(`${apiBase}/auth/login`, {
+            const data = await $fetch<any>(`${apiBase}/auth/validar`, {
                 method: 'POST',
-                body: { username, password }
+                body: {
+                    username: username.toUpperCase(),
+                    password
+                }
             });
             return data;
         } catch (error: any) {
-            throw error.data?.message || 'Error de conexión con el servidor';
+            const message = error?.data?.message;
+
+            if (Array.isArray(message)) {
+                throw message.join(', ');
+            }
+            if (typeof message === 'string') {
+                throw message;
+            }
+            if (error?.data?.error) {
+                throw error.data.error;
+            }
+
+            throw 'Error de conexión con el servidor';
         }
     };
 

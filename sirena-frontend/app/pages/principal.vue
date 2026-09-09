@@ -1,3 +1,4 @@
+<!-- C:\sirena\sirena-frontend\app\pages\principal.vue -->
 <template>
     <div class="min-h-screen bg-slate-100 dark:bg-slate-900 flex flex-col transition-colors duration-300">
         <main class="flex-1 p-6 md:p-12">

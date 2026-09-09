@@ -1,3 +1,4 @@
+<!-- C:\sirena\sirena-frontend\app\layouts\default.vue -->
 <template>
     <div class="flex flex-col h-screen bg-white dark:bg-[#0b1220] font-sans">
         <header class="h-16 bg-[var(--primary-dark)] flex items-center justify-between px-4 shadow-md z-30 border-b-4 border-[#ff9800]">
@@ -6,7 +7,7 @@
                     <i class="pi pi-bars text-xl"></i>
                     <span class="absolute bottom-1.5 right-1.5 w-2 h-2 bg-slate-400 rounded-full"></span>
                 </button>
-                <span class="text-white font-black tracking-tighter text-lg">PRISMA</span>
+                <span class="text-white font-black tracking-tighter text-lg">SIRENA</span>
             </div>
 
             <div class="flex items-center gap-5">
@@ -41,27 +42,31 @@
                         <div class="p-3 space-y-2">
                             <div class="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0">
                                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">NOMBRES</span>
-                                <span class="text-[11px] font-semibold text-slate-700">{{ authStore.user?.personaNombres }}</span>
+                                <span class="text-[11px] font-semibold text-slate-700">{{ authStore.user?.trabajador_nombres || '-' }}</span>
                             </div>
                             <div class="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0">
                                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">AP. PATERNO</span>
-                                <span class="text-[11px] font-semibold text-slate-700">{{ authStore.user?.personaApellidoPaterno }}</span>
+                                <span class="text-[11px] font-semibold text-slate-700">{{ authStore.user?.trabajador_paterno || '-' }}</span>
                             </div>
                             <div class="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0">
                                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">AP. MATERNO</span>
-                                <span class="text-[11px] font-semibold text-slate-700">{{ authStore.user?.personaApellidoMaterno }}</span>
+                                <span class="text-[11px] font-semibold text-slate-700">{{ authStore.user?.trabajador_materno || '-' }}</span>
                             </div>
                             <div class="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0">
                                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">EMPRESA</span>
-                                <span class="text-[11px] font-semibold text-slate-700">{{ authStore.user?.empresaNombre }}</span>
+                                <span class="text-[11px] font-semibold text-slate-700">{{ authStore.user?.empresa_nombre || 'Sin empresa' }}</span>
                             </div>
                             <div class="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0">
                                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">SUCURSAL</span>
-                                <span class="text-[11px] font-semibold text-slate-700">{{ authStore.user?.sucursalNombre }}</span>
+                                <span class="text-[11px] font-semibold text-slate-700">{{ authStore.user?.sucursal_nombre || 'Sin sucursal' }}</span>
                             </div>
                             <div class="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0">
                                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">CARGO</span>
-                                <span class="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{{ authStore.user?.rol }}</span>
+                                <span class="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{{ authStore.user?.cargo_nombre || '-' }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0">
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ROL</span>
+                                <span class="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{{ authStore.user?.rol_nombre || '-' }}</span>
                             </div>
                         </div>
 

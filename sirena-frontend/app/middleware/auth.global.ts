@@ -1,3 +1,4 @@
+// C:\sirena\sirena-frontend\app\middleware\auth.global.ts
 import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
 

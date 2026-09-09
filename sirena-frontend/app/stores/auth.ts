@@ -4,19 +4,46 @@ import Cookies from 'js-cookie';
 import { safeJSONParse } from '../utils/safe-json';
 import type { MenuItem } from '../types/menu';
 
+// ✅ Interfaz de permisos con snake_case
 interface PermisosMap {
     [menuTitulo: string]: {
         crear: boolean;
         editar: boolean;
         eliminar: boolean;
+        anular?: boolean;
         archivar?: boolean;
         desarchivar?: boolean;
     };
 }
 
+interface UserData {
+    usuario_id: number;
+    login: string;
+    avatar: string;
+    rol_id: number;
+    rol_codigo: string;
+    rol_nombre: string;
+    trabajador_id: number;
+    trabajador_nombres: string;
+    trabajador_paterno: string;
+    trabajador_materno: string | null;
+    trabajador_dni: string;
+    trabajador_nombre_completo: string;
+    empresa_id?: number | null;
+    empresa_nombre?: string | null;
+    empresa_codigo?: string | null;
+    sucursal_id?: number | null;
+    sucursal_nombre?: string | null;
+    sucursal_codigo?: string | null;
+    cargo_id?: number | null;
+    cargo_nombre?: string | null;
+    cargo_codigo?: string | null;
+    [key: string]: any;
+}
+
 interface AuthData {
-    user: any;
-    token: string;
+    user: UserData | null;
+    token: string | null;
     menu: MenuItem[];
     permisos: PermisosMap;
 }
@@ -36,18 +63,19 @@ export const useAuthStore = defineStore('auth', {
 
     getters: {
         isLoggedIn: (state) => !!state.token,
+
         can: (state) => (menuTitulo: string, accion: string) => {
-            if (state.user?.rolCodigo === 'ADM') return true;
+            if (state.user?.rol_codigo === 'ADM') { return true; }
             return state.permisos[menuTitulo]?.[accion as keyof PermisosMap[string]] === true;
         }
     },
 
     actions: {
-        startSession(userData: any, token: string, menuData: MenuItem[], permisosData: PermisosMap) {
-            this.user = userData;
+        startSession(userData: UserData, token: string, menuData: MenuItem[], permisosData: PermisosMap) {
+            this.user = { ...userData };
             this.token = token;
-            this.menu = menuData;
-            this.permisos = permisosData;
+            this.menu = [...menuData];
+            this.permisos = { ...permisosData };
 
             Cookies.set('auth_token', token, {
                 expires: 1,
@@ -58,10 +86,10 @@ export const useAuthStore = defineStore('auth', {
 
             if (process.client) {
                 localStorage.setItem('auth_data', JSON.stringify({
-                    user: userData,
-                    token: token,
-                    menu: menuData,
-                    permisos: permisosData
+                    user: this.user,
+                    token: this.token,
+                    menu: this.menu,
+                    permisos: this.permisos
                 }));
             }
         },
