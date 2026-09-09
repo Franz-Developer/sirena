@@ -184,10 +184,10 @@ Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-    "banco": "arbdomob Ba4 ssse 8",
-    "codigo_asfi": "23",
-    "abreviatura": "Ase NíÑOsm BA3",
-    "descripcion": "mmm bd"
+    "banco": "arbdomob Ba4 sss7",
+    "codigo_asfi": "26",
+    "abreviatura": "bbbBA5",
+    "descripcion": "NIñóS ss"
 }
 
 ### Búsqueda exacta con acentos
@@ -219,7 +219,7 @@ GET {{baseUrl_bancos}}/3
 Authorization: Bearer {{authToken}}
 
 ### ACTUALIZAR TODOS LOS CAMPOS
-PATCH {{baseUrl_bancos}}/3
+PATCH {{baseUrl_bancos}}/17
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
@@ -275,11 +275,11 @@ Authorization: Bearer {{authToken}}
 # ==============================================================================
 
 ### ARCHIVAR BANCO (ACTIVO → HISTÓRICO)
-PATCH {{baseUrl_bancos}}/52/archivar
+PATCH {{baseUrl_bancos}}/17/archivar
 Authorization: Bearer {{authToken}}
 
 ### k. DESARCHIVAR BANCO (HISTÓRICO → ACTIVO)
-PATCH {{baseUrl_bancos}}/52/desarchivar
+PATCH {{baseUrl_bancos}}/17/desarchivar
 Authorization: Bearer {{authToken}}
 
 ### 11.1 Buscar bancos activos que contengan "BANCO", ordenados por nombre, página 1

@@ -51,12 +51,12 @@ export class EmpresasService extends BaseService {
 
     async create(dto: CreateEmpresaDto, usuarioId: number): Promise<EmpresaResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            await this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear');
-
             await Promise.all([
+                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.unicidadValidador.validarUnicidad({ tabla: this.nombreTabla, campos: [{ nombre: 'empresa', valor: dto.empresa }], campoPk: this.campoPK, estadosValidos: [...ESTADOS_VIVOS] }),
                 this.unicidadValidador.validarUnicidad({ tabla: this.nombreTabla, campos: [{ nombre: 'codigo', valor: dto.codigo }], campoPk: this.campoPK, estadosValidos: [...ESTADOS_VIVOS] }),
                 this.unicidadValidador.validarUnicidad({ tabla: this.nombreTabla, campos: [{ nombre: 'matricula_comercio', valor: dto.matricula_comercio }], campoPk: this.campoPK, estadosValidos: [...ESTADOS_VIVOS] }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
             const empresa = manager.create(Empresa, {
@@ -65,6 +65,7 @@ export class EmpresasService extends BaseService {
             });
 
             try {
+                await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
                 const saved = await manager.save(empresa);
                 return this.findOne<EmpresaResponseDto>(saved.empresa_id, usuarioId, manager);
             } catch (error: unknown) {
@@ -79,6 +80,14 @@ export class EmpresasService extends BaseService {
 
     async update(id: number, dto: UpdateEmpresaDto, usuarioId: number): Promise<EmpresaResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
+
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const empresaActual = await manager.findOne(Empresa, {
@@ -105,7 +114,7 @@ export class EmpresasService extends BaseService {
 
             try {
                 const saved = await manager.save(empresaActual);
-                return this.findOne<EmpresaResponseDto>(saved.empresa_id, usuarioId, manager);
+                return this.findOne(saved.empresa_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;

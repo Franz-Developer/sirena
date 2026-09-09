@@ -15,6 +15,7 @@
     "crear:password": "ts-node src/scripts/crear-password.ts",
     "reiniciar:password": "ts-node src/scripts/reiniciar-passwords.ts",
     "db:query": "ts-node src/scripts/query.ts",
+    "db:ddl": "ts-node src/scripts/generar-ddl.ts",
     "clean": "if exist dist rmdir /s /q dist && if exist tsconfig.tsbuildinfo del tsconfig.tsbuildinfo"
   },
   "dependencies": {

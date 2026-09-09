@@ -7,7 +7,6 @@ import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { formatOnlyDate } from '../../common/utils/date-formatter.util';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -136,63 +135,18 @@ export class EmpresasNitsService extends BaseService {
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK
                 }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (
-                    empresa_id,
-                    ambiente_id,
-                    nit,
-                    razon_social,
-                    actividad_economica_principal,
-                    etiqueta,
-                    modalidad_facturacion_id,
-                    certificado_digital,
-                    certificado_password,
-                    token_siat,
-                    fecha_inicio_vigencia,
-                    fecha_fin_vigencia,
-                    email_fiscal,
-                    estado_id,
-                    usuario_id_registro,
-                    fecha_registro
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-
-            const params = [
-                dto.empresa_id,
-                dto.ambiente_id,
-                dto.nit,
-                dto.razon_social,
-                dto.actividad_economica_principal,
-                dto.etiqueta,
-                dto.modalidad_facturacion_id,
-                dto.certificado_digital || null,
-                dto.certificado_password || null,
-                dto.token_siat || null,
-                dto.fecha_inicio_vigencia,
-                dto.fecha_fin_vigencia,
-                dto.email_fiscal,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const empresaNit = manager.create(EmpresaNit, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        'Error al insertar el NIT de la empresa.',
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(empresaNit);
+                return this.findOne<EmpresaNitResponseDto>(saved.empresa_nit_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
@@ -205,6 +159,14 @@ export class EmpresasNitsService extends BaseService {
 
         async update(id: number, dto: UpdateEmpresaNitDto, usuarioId: number): Promise<EmpresaNitResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
+
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
             this.validarReglasNegocio(dto);
 

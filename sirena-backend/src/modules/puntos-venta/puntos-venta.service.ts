@@ -6,7 +6,6 @@ import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.con
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -87,7 +86,8 @@ export class PuntosVentaService extends BaseService {
         return runInTransaction(this.dataSource, async (manager) => {
             await Promise.all([
                 this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dto.sucursal_id),
-                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear')
+                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
             // VALIDACIÓN DE UNICIDAD: Código y Nombre son únicos por sucursal para estados vivos (1000, 1002)
@@ -112,44 +112,15 @@ export class PuntosVentaService extends BaseService {
                 })
             ]);
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (
-                    sucursal_id,
-                    codigo,
-                    nombre,
-                    tipo_punto_venta_id,
-                    estado_id,
-                    usuario_id_registro,
-                    fecha_registro
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-
-            const params = [
-                dto.sucursal_id,
-                dto.codigo,
-                dto.nombre,
-                dto.tipo_punto_venta_id,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const puntoVenta = manager.create(PuntoVenta, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        'Error al insertar el punto de venta.',
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(puntoVenta);
+                return this.findOne<PuntoVentaResponseDto>(saved.punto_venta_id, usuarioId, manager);
             } catch (error) {
                 if (isDomainException(error)) {
                     throw error;
@@ -162,9 +133,15 @@ export class PuntosVentaService extends BaseService {
 
     async update(id: number, dto: UpdatePuntoVentaDto, usuarioId: number): Promise<PuntoVentaResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            let dtoNormalizado = { ...dto };
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
 
-            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const puntoVentaActual = await manager.findOne(PuntoVenta, {
                 where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
@@ -173,39 +150,35 @@ export class PuntosVentaService extends BaseService {
 
             if (!puntoVentaActual) {
                 throw new DomainException(
-                    `Punto de venta no encontrado.`,
+                    'Punto de venta no encontrado.',
                     { id, httpStatus: HttpStatus.NOT_FOUND }
                 );
             }
 
-            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
-                dtoNormalizado,
+                dto,
                 FindPuntosVentaQueryDto.getDependencias(),
                 FindPuntosVentaQueryDto.getCamposProtegidosConDependencias(),
                 this.campoPK,
                 usuarioId
             );
 
-            if (dtoNormalizado.sucursal_id !== undefined && dtoNormalizado.sucursal_id !== puntoVentaActual.sucursal_id) {
-                await this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dtoNormalizado.sucursal_id);
+            if (dtoProcesado.sucursal_id !== undefined && dtoProcesado.sucursal_id !== puntoVentaActual.sucursal_id) {
+                await this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dtoProcesado.sucursal_id);
             }
 
-            const nuevoSucursalId = dtoNormalizado.sucursal_id ?? puntoVentaActual.sucursal_id;
-            const nuevoCodigo = dtoNormalizado.codigo ?? puntoVentaActual.codigo;
-            const nuevoNombre = dtoNormalizado.nombre ?? puntoVentaActual.nombre;
+            const validaciones: Promise<any>[] = [];
+            const nuevaSucursalId = dtoProcesado.sucursal_id ?? puntoVentaActual.sucursal_id;
 
-            // VALIDACIÓN DE UNICIDAD EN UPDATE
-            const validacionesUnicidad: Promise<any>[] = [];
-
-            if (dtoNormalizado.sucursal_id !== undefined || dtoNormalizado.codigo !== undefined) {
-                validacionesUnicidad.push(
+            if (dtoProcesado.sucursal_id !== undefined || dtoProcesado.codigo !== undefined) {
+                validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
-                            { nombre: 'sucursal_id', valor: nuevoSucursalId },
-                            { nombre: 'codigo', valor: nuevoCodigo }
+                            { nombre: 'sucursal_id', valor: nuevaSucursalId },
+                            { nombre: 'codigo', valor: dtoProcesado.codigo ?? puntoVentaActual.codigo }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
@@ -214,13 +187,13 @@ export class PuntosVentaService extends BaseService {
                 );
             }
 
-            if (dtoNormalizado.sucursal_id !== undefined || dtoNormalizado.nombre !== undefined) {
-                validacionesUnicidad.push(
+            if (dtoProcesado.sucursal_id !== undefined || dtoProcesado.nombre !== undefined) {
+                validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
-                            { nombre: 'sucursal_id', valor: nuevoSucursalId },
-                            { nombre: 'nombre', valor: nuevoNombre }
+                            { nombre: 'sucursal_id', valor: nuevaSucursalId },
+                            { nombre: 'nombre', valor: dtoProcesado.nombre ?? puntoVentaActual.nombre }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
@@ -229,11 +202,11 @@ export class PuntosVentaService extends BaseService {
                 );
             }
 
-            if (validacionesUnicidad.length > 0) {
-                await Promise.all(validacionesUnicidad);
+            if (validaciones.length > 0) {
+                await Promise.all(validaciones);
             }
 
-            Object.assign(puntoVentaActual, dtoNormalizado);
+            Object.assign(puntoVentaActual, dtoProcesado);
             puntoVentaActual.update(usuarioId);
 
             try {

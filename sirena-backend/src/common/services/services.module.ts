@@ -1,4 +1,4 @@
-// src/common/services/services.module.ts
+// C:\sirena\sirena-backend\src\common\services\services.module.ts
 import { Module, Global } from '@nestjs/common'; // ← Importar Global
 import { ConfigModule } from '@nestjs/config';
 import { DataSource } from 'typeorm';

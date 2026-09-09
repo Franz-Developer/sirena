@@ -1,7 +1,5 @@
 // C:\sirena\sirena-backend\src\common\constants\estados.constant.ts
-// ==========================================
-// INTERFAZ GENERAL PARA CONSTANTES PARAMÉTRICOS
-// ==========================================
+
 export interface ConstanteMetadata {
     id: number;
     abreviatura: string;
@@ -12,7 +10,6 @@ export interface ConstanteMetadata {
 
 // ==========================================
 // ESTADO
-// ==========================================
 export enum Estado {
     ACTIVO = 1000,
     BORRADO = 1001,
@@ -58,7 +55,6 @@ export const ESTADO_METADATA: Record<Estado, ConstanteMetadata & { es_defecto?: 
 
 // ==========================================
 // EVENTO
-// ==========================================
 export enum Evento {
     COMPRA = 1050,
     VENTA = 1051,
@@ -109,7 +105,6 @@ export const EVENTO_METADATA: Record<Evento, ConstanteMetadata & { es_defecto?: 
 
 // ==========================================
 // TIPO COMPROBANTE
-// ==========================================
 export enum TipoComprobante {
     FACTURA = 1100,
     RECIBO = 1101,
@@ -126,7 +121,6 @@ export const TIPO_COMPROBANTE_METADATA: Record<TipoComprobante, ConstanteMetadat
 
 // ==========================================
 // TIPO CLIENTE
-// ==========================================
 export enum TipoCliente {
     NATURAL = 1150,
     JURIDICA = 1151,
@@ -139,7 +133,6 @@ export const TIPO_CLIENTE_METADATA: Record<TipoCliente, ConstanteMetadata & { es
 
 // ==========================================
 // GENERO
-// ==========================================
 export enum Genero {
     MASCULINO = 1200,
     FEMENINO = 1201,
@@ -152,7 +145,6 @@ export const GENERO_METADATA: Record<Genero, ConstanteMetadata & { es_defecto?: 
 
 // ==========================================
 // ESTADO CIVIL MASCULINO
-// ==========================================
 export enum EstadoCivilMasculino {
     SOLTERO = 1250,
     CASADO = 1251,
@@ -171,7 +163,6 @@ export const ESTADO_CIVIL_MASCULINO_METADATA: Record<EstadoCivilMasculino, Const
 
 // ==========================================
 // ESTADO CIVIL FEMENINO
-// ==========================================
 export enum EstadoCivilFemenino {
     SOLTERA = 1300,
     CASADA = 1301,
@@ -190,7 +181,6 @@ export const ESTADO_CIVIL_FEMENINO_METADATA: Record<EstadoCivilFemenino, Constan
 
 // ==========================================
 // TIPO VENTA
-// ==========================================
 export enum TipoVenta {
     NINGUNO = 1350,
     CON_FACTURA = 1351,
@@ -205,7 +195,6 @@ export const TIPO_VENTA_METADATA: Record<TipoVenta, ConstanteMetadata & { es_def
 
 // ==========================================
 // TIPO PAGO
-// ==========================================
 export enum TipoPago {
     NINGUNO = 1400,
     EFECTIVO = 1401,
@@ -234,7 +223,6 @@ export const TIPO_PAGO_METADATA: Record<TipoPago, ConstanteMetadata & { es_defec
 
 // ==========================================
 // TIPO MODELO
-// ==========================================
 export enum TipoModelo {
     ARIMA = 1450,
     SARIMA = 1451,
@@ -257,7 +245,6 @@ export const TIPO_MODELO_METADATA: Record<TipoModelo, ConstanteMetadata & { es_d
 
 // ==========================================
 // TIPO BENEFICIO
-// ==========================================
 export enum TipoBeneficio {
     DESCUENTO = 1500,
     PORCENTAJE = 1501,
@@ -276,7 +263,6 @@ export const TIPO_BENEFICIO_METADATA: Record<TipoBeneficio, ConstanteMetadata & 
 
 // ==========================================
 // ESTADO PRONOSTICO
-// ==========================================
 export enum EstadoPronostico {
     PENDIENTE = 1550,
     PROCESADO = 1551,
@@ -293,7 +279,6 @@ export const ESTADO_PRONOSTICO_METADATA: Record<EstadoPronostico, ConstanteMetad
 
 // ==========================================
 // TEMPORADA
-// ==========================================
 export enum Temporada {
     NINGUNO = 1600,
     ALTA = 1601,
@@ -310,7 +295,6 @@ export const TEMPORADA_METADATA: Record<Temporada, ConstanteMetadata & { es_defe
 
 // ==========================================
 // ESTADO FISCAL
-// ==========================================
 export enum EstadoFiscal {
     ACTIVO = 1650,
     AGOTADO = 1651,
@@ -327,7 +311,6 @@ export const ESTADO_FISCAL_METADATA: Record<EstadoFiscal, ConstanteMetadata & { 
 
 // ==========================================
 // TIPO ALMACEN
-// ==========================================
 export enum TipoAlmacen {
     NORMAL = 1700,
     REFRIGERADO = 1701,
@@ -384,7 +367,6 @@ export const TIPOS_ALMACEN_LOGISTICA_INTERNA_METADATA = Object.fromEntries(TIPOS
 
 // ==========================================
 // TIPO CUENTA
-// ==========================================
 export enum TipoCuenta {
     CUENTA_CORRIENTE = 1750,
     CAJA_AHORROS = 1751,
@@ -405,7 +387,6 @@ export const TIPO_CUENTA_METADATA: Record<TipoCuenta, ConstanteMetadata & { es_d
 
 // ==========================================
 // TIPO DATO
-// ==========================================
 export enum TipoDato {
     STRING = 1800,
     INTEGER = 1801,
@@ -426,7 +407,6 @@ export const TIPO_DATO_METADATA: Record<TipoDato, ConstanteMetadata & { es_defec
 
 // ==========================================
 // NIVEL URGENCIA
-// ==========================================
 export enum NivelUrgencia {
     BAJA = 1850,
     MEDIA = 1851,
@@ -445,7 +425,6 @@ export const NIVEL_URGENCIA_METADATA: Record<NivelUrgencia, ConstanteMetadata & 
 
 // ==========================================
 // MOTIVO OUTLIER
-// ==========================================
 export enum MotivoOutlier {
     BLOQUEO = 1900,
     FERIADO_LOCAL = 1901,
@@ -470,7 +449,6 @@ export const MOTIVO_OUTLIER_METADATA: Record<MotivoOutlier, ConstanteMetadata & 
 
 // ==========================================
 // FORMATO PDF
-// ==========================================
 export enum FormatoPDF {
     ESTANDAR = 1950,
     RESUMIDO = 1951,
@@ -485,7 +463,6 @@ export const FORMATO_PDF_METADATA: Record<FormatoPDF, ConstanteMetadata & { es_d
 
 // ==========================================
 // ESTADO MODELO
-// ==========================================
 export enum EstadoModelo {
     SIN_DATOS = 2000,
     ENTRENANDO = 2001,
@@ -504,7 +481,6 @@ export const ESTADO_MODELO_METADATA: Record<EstadoModelo, ConstanteMetadata & { 
 
 // ==========================================
 // CALIDAD RATING
-// ==========================================
 export enum CalidadRating {
     PESIMO = 2050,
     DEFICIENTE = 2051,
@@ -525,7 +501,6 @@ export const CALIDAD_RATING_METADATA: Record<CalidadRating, ConstanteMetadata & 
 
 // ==========================================
 // ESTADO TRASPASO
-// ==========================================
 export enum EstadoTraspaso {
     EN_TRANSITO = 2100,
     RECIBIDO = 2101,
@@ -542,7 +517,6 @@ export const ESTADO_TRASPASO_METADATA: Record<EstadoTraspaso, ConstanteMetadata 
 
 // ==========================================
 // MODULO ESTRATEGICO
-// ==========================================
 export enum ModuloEstrategico {
     FLUJO_CAJA = 2150,
     DEMANDA_INVENTARIO = 2151,
@@ -567,7 +541,6 @@ export const MODULO_ESTRATEGICO_METADATA: Record<ModuloEstrategico, ConstanteMet
 
 // ==========================================
 // TIPO DOCUMENTO
-// ==========================================
 export enum TipoDocumento {
     CEDULA_IDENTIDAD = 2200,
     CEDULA_IDENTIDAD_EXTRANJERO = 2201,
@@ -586,7 +559,6 @@ export const TIPO_DOCUMENTO_METADATA: Record<TipoDocumento, ConstanteMetadata & 
 
 // ==========================================
 // ESTADO PEDIDO
-// ==========================================
 export enum EstadoPedido {
     COTIZADO = 2250,
     APROBADO = 2251,
@@ -611,7 +583,6 @@ export const ESTADO_PEDIDO_METADATA: Record<EstadoPedido, ConstanteMetadata & { 
 
 // ==========================================
 // TIPO MONEDA
-// ==========================================
 export enum TipoMoneda {
     BOLIVIANO = 2300,
     DOLAR = 2301,
@@ -628,7 +599,6 @@ export const TIPO_MONEDA_METADATA: Record<TipoMoneda, ConstanteMetadata & { es_d
 
 // ==========================================
 // TIPO FACTURA
-// ==========================================
 export enum TipoFactura {
     CON_FACTURA = 2350,
     SIN_FACTURA = 2351,
@@ -645,7 +615,6 @@ export const TIPO_FACTURA_METADATA: Record<TipoFactura, ConstanteMetadata & { es
 
 // ==========================================
 // ESTADO FINANCIERO
-// ==========================================
 export enum EstadoFinanciero {
     CANCELADO = 2400,
     PENDIENTE = 2401,
@@ -662,7 +631,6 @@ export const ESTADO_FINANCIERO_METADATA: Record<EstadoFinanciero, ConstanteMetad
 
 // ==========================================
 // MOTIVO ANULACION
-// ==========================================
 export enum MotivoAnulacion {
     FACTURA_MAL_EMITIDA = 2450,
     ERROR_DATOS_CLIENTE = 2451,
@@ -683,7 +651,6 @@ export const MOTIVO_ANULACION_METADATA: Record<MotivoAnulacion, ConstanteMetadat
 
 // ==========================================
 // ESTADO LOTE
-// ==========================================
 export enum EstadoLote {
     VIGENTE = 2500,
     VENCIDO = 2501,
@@ -700,7 +667,6 @@ export const ESTADO_LOTE_METADATA: Record<EstadoLote, ConstanteMetadata & { es_d
 
 // ==========================================
 // ESTADO PAGO
-// ==========================================
 export enum EstadoPago {
     PENDIENTE = 2550,
     PARCIAL = 2551,
@@ -721,7 +687,6 @@ export const ESTADO_PAGO_METADATA: Record<EstadoPago, ConstanteMetadata & { es_d
 
 // ==========================================
 // TIPO MOVIMIENTO
-// ==========================================
 export enum TipoMovimiento {
     INGRESO = 2600,
     EGRESO = 2601,
@@ -734,7 +699,6 @@ export const TIPO_MOVIMIENTO_METADATA: Record<TipoMovimiento, ConstanteMetadata 
 
 // ==========================================
 // ESTADO CAJA
-// ==========================================
 export enum EstadoCaja {
     ABIERTA = 2650,
     CERRADA = 2651,
@@ -747,7 +711,6 @@ export const ESTADO_CAJA_METADATA: Record<EstadoCaja, ConstanteMetadata & { es_d
 
 // ==========================================
 // TIPO ALERTA NOTIFICACION
-// ==========================================
 export enum TipoAlertaNotificacion {
     SISTEMA = 2700,
     ALERTA_STOCK = 2701,
@@ -812,7 +775,6 @@ export const TIPO_ALERTA_NOTIFICACION_METADATA: Record<TipoAlertaNotificacion, C
 
 // ==========================================
 // AMBIENTE
-// ==========================================
 export enum Ambiente {
     PRODUCCION = 2750,
     PILOTO_PRUEBAS = 2751,
@@ -825,7 +787,6 @@ export const AMBIENTE_METADATA: Record<Ambiente, ConstanteMetadata & { es_defect
 
 // ==========================================
 // SUBTIPO ALERTA
-// ==========================================
 export enum SubtipoAlerta {
     SARIMA = 2800,
     PROPHET = 2801,
@@ -860,7 +821,6 @@ export const SUBTIPO_ALERTA_METADATA: Record<SubtipoAlerta, ConstanteMetadata & 
 
 // ==========================================
 // ORIGEN ALERTA
-// ==========================================
 export enum OrigenAlerta {
     SISTEMA = 2850,
     IA = 2851,
@@ -877,7 +837,6 @@ export const ORIGEN_ALERTA_METADATA: Record<OrigenAlerta, ConstanteMetadata & { 
 
 // ==========================================
 // NIVEL CRITICO
-// ==========================================
 export enum NivelCritico {
     CRITICO = 2900,
     ALTA = 2901,
@@ -898,7 +857,6 @@ export const NIVEL_CRITICO_METADATA: Record<NivelCritico, ConstanteMetadata & { 
 
 // ==========================================
 // ESTADO ALERTA
-// ==========================================
 export enum EstadoAlerta {
     PENDIENTE = 2950,
     EN_PROCESO = 2951,
@@ -919,7 +877,6 @@ export const ESTADO_ALERTA_METADATA: Record<EstadoAlerta, ConstanteMetadata & { 
 
 // ==========================================
 // FRAMEWORK
-// ==========================================
 export enum Framework {
     STATSMODELS = 3000,
     SCIKIT_LEARN = 3001,
@@ -938,7 +895,6 @@ export const FRAMEWORK_METADATA: Record<Framework, ConstanteMetadata & { es_defe
 
 // ==========================================
 // ESTADO EJECUCION
-// ==========================================
 export enum EstadoEjecucion {
     EN_PROCESO = 3050,
     COMPLETADO = 3051,
@@ -955,7 +911,6 @@ export const ESTADO_EJECUCION_METADATA: Record<EstadoEjecucion, ConstanteMetadat
 
 // ==========================================
 // TIPO METRICAS
-// ==========================================
 export enum TipoMetrica {
     REGRESION = 3100,
     CLASIFICACION = 3101,
@@ -972,7 +927,6 @@ export const TIPO_METRICA_METADATA: Record<TipoMetrica, ConstanteMetadata & { es
 
 // ==========================================
 // NIVEL LOG
-// ==========================================
 export enum NivelLog {
     INFO = 3150,
     WARNING = 3151,
@@ -989,7 +943,6 @@ export const NIVEL_LOG_METADATA: Record<NivelLog, ConstanteMetadata & { es_defec
 
 // ==========================================
 // TIPO UBICACION MOVIMIENTO
-// ==========================================
 export enum TipoUbicacionMovimiento {
     INGRESO = 3200,
     EGRESO = 3201,
@@ -1002,7 +955,6 @@ export const TIPO_UBICACION_MOVIMIENTO_METADATA: Record<TipoUbicacionMovimiento,
 
 // ==========================================
 // TIPO UMBRAL
-// ==========================================
 export enum TipoUmbral {
     STOCK_MINIMO = 3250,
     DIAS_VENCIMIENTO = 3251,
@@ -1019,7 +971,6 @@ export const TIPO_UMBRAL_METADATA: Record<TipoUmbral, ConstanteMetadata & { es_d
 
 // ==========================================
 // ESTADO DOCUMENTO
-// ==========================================
 export enum EstadoDocumento {
     EMITIDO = 3300,
     ANULADO = 3301,
@@ -1034,7 +985,6 @@ export const ESTADO_DOCUMENTO_METADATA: Record<EstadoDocumento, ConstanteMetadat
 
 // ==========================================
 // FRECUENCIA
-// ==========================================
 export enum Frecuencia {
     MINUTOS = 3350,
     HORAS = 3351,
@@ -1063,7 +1013,6 @@ export const FRECUENCIA_METADATA: Record<Frecuencia, ConstanteMetadata & { es_de
 
 // ==========================================
 // TIPO TAREA
-// ==========================================
 export enum TipoTarea {
     REPORTE = 3400,
     IA_MODELO = 3401,
@@ -1092,7 +1041,6 @@ export const TIPO_TAREA_METADATA: Record<TipoTarea, ConstanteMetadata & { es_def
 
 // ==========================================
 // SUBTIPO TAREA
-// ==========================================
 export enum SubtipoTarea {
     SARIMA = 3450,
     SARIMAX = 3451,
@@ -1125,7 +1073,6 @@ export const SUBTIPO_TAREA_METADATA: Record<SubtipoTarea, ConstanteMetadata & { 
 
 // ==========================================
 // MOTIVO DEVOLUCION
-// ==========================================
 export enum MotivoDevolucion {
     PRODUCTO_VENCIDO = 3500,
     PRODUCTO_DAÑADO = 3501,
@@ -1150,7 +1097,6 @@ export const MOTIVO_DEVOLUCION_METADATA: Record<MotivoDevolucion, ConstanteMetad
 
 // ==========================================
 // TIPO DESPACHO
-// ==========================================
 export enum TipoDespacho {
     VENTA_MOSTRADOR = 3550,
     DOMICILIO = 3551,
@@ -1169,7 +1115,6 @@ export const TIPO_DESPACHO_METADATA: Record<TipoDespacho, ConstanteMetadata & { 
 
 // ==========================================
 // METRICA PRECISION
-// ==========================================
 export enum MetricaPrecision {
     MAE = 3600,
     RMSE = 3601,
@@ -1190,7 +1135,6 @@ export const METRICA_PRECISION_METADATA: Record<MetricaPrecision, ConstanteMetad
 
 // ==========================================
 // FACTOR ESTACIONALIDAD
-// ==========================================
 export enum FactorEstacionalidad {
     NONE = 3650,
     DIARIO = 3651,
@@ -1211,7 +1155,6 @@ export const FACTOR_ESTACIONALIDAD_METADATA: Record<FactorEstacionalidad, Consta
 
 // ==========================================
 // ESTADO PEDIDO ONLINE
-// ==========================================
 export enum EstadoPedidoOnline {
     PENDIENTE = 3700,
     CONFIRMADO = 3701,
@@ -1234,7 +1177,6 @@ export const ESTADO_PEDIDO_ONLINE_METADATA: Record<EstadoPedidoOnline, Constante
 
 // ==========================================
 // METODO CALCULO
-// ==========================================
 export enum MetodoCalculo {
     PONDERADO = 3750,
     FIFO = 3751,
@@ -1249,7 +1191,6 @@ export const METODO_CALCULO_METADATA: Record<MetodoCalculo, ConstanteMetadata & 
 
 // ==========================================
 // GRADO EQUIVALENCIA
-// ==========================================
 export enum GradoEquivalencia {
     TOTAL = 3800,
     PARCIAL = 3801,
@@ -1266,7 +1207,6 @@ export const GRADO_EQUIVALENCIA_METADATA: Record<GradoEquivalencia, ConstanteMet
 
 // ==========================================
 // TIPO RECETA
-// ==========================================
 export enum TipoReceta {
     SIMPLE = 3850,
     ARCHIVADA = 3851,
@@ -1283,7 +1223,6 @@ export const TIPO_RECETA_METADATA: Record<TipoReceta, ConstanteMetadata & { es_d
 
 // ==========================================
 // MODALIDAD FACTURACION
-// ==========================================
 export enum ModalidadFacturacion {
     NINGUNO = 3900,
     ELECTRONICA = 3901,
@@ -1300,7 +1239,6 @@ export const MODALIDAD_FACTURACION_METADATA: Record<ModalidadFacturacion, Consta
 
 // ==========================================
 // TIPO PUNTO VENTA
-// ==========================================
 export enum TipoPuntoVenta {
     NINGUNO = 3950,
     CAJA = 3951,
@@ -1313,7 +1251,6 @@ export const TIPO_PUNTO_VENTA_METADATA: Record<TipoPuntoVenta, ConstanteMetadata
 
 // ==========================================
 // ESTADO PROFORMA
-// ==========================================
 export enum EstadoProforma {
     NO_APLICA = 4000,
     PENDIENTE = 4001,
@@ -1332,7 +1269,6 @@ export const ESTADO_PROFORMA_METADATA: Record<EstadoProforma, ConstanteMetadata 
 
 // ==========================================
 // TIPO OPERACION ALMACEN
-// ==========================================
 export enum TipoOperacionAlmacen {
     LOGISTICA_INTERNA = 4050,
     VENTA_DIRECTA = 4051,
@@ -1345,7 +1281,6 @@ export const TIPO_OPERACION_ALMACEN_METADATA: Record<TipoOperacionAlmacen, Const
 
 // ==========================================
 // ENTIDAD AFECTADA
-// ==========================================
 export enum EntidadAfectada {
     PRODUCTOS = 4100,
     LOTES = 4101,
@@ -1378,7 +1313,6 @@ export const ENTIDAD_AFECTADA_METADATA: Record<EntidadAfectada, ConstanteMetadat
 
 // ==========================================
 // CRITICIDAD MEDICA
-// ==========================================
 export enum CriticidadMedica {
     NORMAL = 4150,
     CRITICO = 4151,
@@ -1391,7 +1325,6 @@ export const CRITICIDAD_MEDICA_METADATA: Record<CriticidadMedica, ConstanteMetad
 
 // ==========================================
 // TIPO PATRON
-// ==========================================
 export enum TipoPatron {
     DEMANDA = 4200,
 }
@@ -1402,7 +1335,6 @@ export const TIPO_PATRON_METADATA: Record<TipoPatron, ConstanteMetadata & { es_d
 
 // ==========================================
 // FUENTE EXOGENA
-// ==========================================
 export enum FuenteExogena {
     SENAMHI = 4250,
     INE = 4251,
@@ -1423,7 +1355,6 @@ export const FUENTE_EXOGENA_METADATA: Record<FuenteExogena, ConstanteMetadata & 
 
 // ==========================================
 // TIPO BILLETE MONEDA
-// ==========================================
 export enum TipoBilleteMoneda {
     NINGUNO = 4300,
     B200 = 4301,
@@ -1464,7 +1395,6 @@ export const TIPO_BILLETE_MONEDA_METADATA: Record<TipoBilleteMoneda, ConstanteMe
 
 // ==========================================
 // TIPO APLICACION
-// ==========================================
 export enum TipoAplicacion {
     GLOBAL = 4350,
     CATEGORIA = 4351,
@@ -1481,7 +1411,6 @@ export const TIPO_APLICACION_METADATA: Record<TipoAplicacion, ConstanteMetadata 
 
 // ==========================================
 // TIPO ASISTENCIA
-// ==========================================
 export enum TipoAsistencia {
     NORMAL = 4400,
     LICENCIA = 4401,
@@ -1498,7 +1427,6 @@ export const TIPO_ASISTENCIA_METADATA: Record<TipoAsistencia, ConstanteMetadata 
 
 // ==========================================
 // ESTADO ASISTENCIA
-// ==========================================
 export enum EstadoAsistencia {
     PRESENTE = 4450,
     AUSENTE = 4451,
@@ -1515,7 +1443,6 @@ export const ESTADO_ASISTENCIA_METADATA: Record<EstadoAsistencia, ConstanteMetad
 
 // ==========================================
 // METODO MARCACION
-// ==========================================
 export enum MetodoMarcacion {
     MANUAL = 4500,
     BIOMETRICO = 4501,
@@ -1532,7 +1459,6 @@ export const METODO_MARCACION_METADATA: Record<MetodoMarcacion, ConstanteMetadat
 
 // ==========================================
 // TIPO ALERTA RRHH
-// ==========================================
 export enum TipoAlertaRRHH {
     RRHH = 4550,
     FALTAS_CONSECUTIVAS = 4551,
@@ -1551,7 +1477,6 @@ export const TIPO_ALERTA_RRHH_METADATA: Record<TipoAlertaRRHH, ConstanteMetadata
 
 // ==========================================
 // TIPO PLANILLA
-// ==========================================
 export enum TipoPlanilla {
     SUELDOS = 4600,
     JORNALES = 4601,
@@ -1566,7 +1491,6 @@ export const TIPO_PLANILLA_METADATA: Record<TipoPlanilla, ConstanteMetadata & { 
 
 // ==========================================
 // ESTADO PLANILLA
-// ==========================================
 export enum EstadoPlanilla {
     BORRADOR = 4650,
     CALCULADA = 4651,
@@ -1585,7 +1509,6 @@ export const ESTADO_PLANILLA_METADATA: Record<EstadoPlanilla, ConstanteMetadata 
 
 // ==========================================
 // ESTADO CONTRATO
-// ==========================================
 export enum EstadoContrato {
     VIGENTE = 4700,
     FINALIZADO = 4701,
@@ -1602,7 +1525,6 @@ export const ESTADO_CONTRATO_METADATA: Record<EstadoContrato, ConstanteMetadata 
 
 // ==========================================
 // TIPO CONTRATO
-// ==========================================
 export enum TipoContrato {
     INDEFINIDO = 4750,
     FIJO = 4751,
@@ -1621,7 +1543,6 @@ export const TIPO_CONTRATO_METADATA: Record<TipoContrato, ConstanteMetadata & { 
 
 // ==========================================
 // TIPO JORNADA
-// ==========================================
 export enum TipoJornada {
     COMPLETA = 4800,
     MEDIA = 4801,
@@ -1636,7 +1557,6 @@ export const TIPO_JORNADA_METADATA: Record<TipoJornada, ConstanteMetadata & { es
 
 // ==========================================
 // ESTADO RESERVA
-// ==========================================
 export enum EstadoReserva {
     NO_APLICA = 4850,
     PENDIENTE = 4851,
@@ -1655,7 +1575,6 @@ export const ESTADO_RESERVA_METADATA: Record<EstadoReserva, ConstanteMetadata & 
 
 // ==========================================
 // ESTADO CARRITO
-// ==========================================
 export enum EstadoCarrito {
     PENDIENTE = 4900,
     PROCESADO = 4901,
@@ -1675,3 +1594,5 @@ export const ESTADO_CARRITO_METADATA: Record<EstadoCarrito, ConstanteMetadata & 
     [EstadoCarrito.RESERVADO]: { id: EstadoCarrito.RESERVADO, abreviatura: 'RESERVADO', prefijo: null, valor: 0, descripcion: 'Carrito con stock apartado. Pendiente de confirmación final.' },
     [EstadoCarrito.NINGUNO]: { id: EstadoCarrito.NINGUNO, abreviatura: 'NINGUNO', prefijo: null, valor: 0, descripcion: 'Sin estado de carrito definido. Valor por defecto para registros comodín o casos excepcionales.', es_defecto: true },
 };
+
+// ==========================================

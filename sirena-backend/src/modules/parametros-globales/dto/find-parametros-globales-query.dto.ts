@@ -74,6 +74,7 @@ export class FindParametrosGlobalesQueryDto extends BasePaginationQueryDto {
             'clave',
             'valor',
             'tipo_dato_id',
+            'descripcion',
             'editable',
             'fecha_registro'
         ];
@@ -97,6 +98,8 @@ export class FindParametrosGlobalesQueryDto extends BasePaginationQueryDto {
             'clave': `${alias}.clave`,
             'valor': `${alias}.valor`,
             'tipo_dato_id': `${alias}.tipo_dato_id`,
+            'datos_json': `${alias}.datos_json`,
+            'descripcion': `${alias}.descripcion`,
             'editable': `${alias}.editable`,
             'estado_id': `${alias}.estado_id`,
             'usuario_id_registro': `${alias}.usuario_id_registro`,

@@ -6,7 +6,6 @@ import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.con
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -55,67 +54,39 @@ export class BancosService extends BaseService {
 
     async create(dto: CreateBancoDto, usuarioId: number): Promise<BancoResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            const codigoAsfiNormalizado = dto.codigo_asfi.trim().padStart(2, '0');
-            const descripcionNormalizada = dto.descripcion?.trim() || null;
-
-            const dtoNormalizado = {
-                ...dto,
-                codigo_asfi: codigoAsfiNormalizado,
-                descripcion: descripcionNormalizada
-            };
-
             await Promise.all([
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
-                    campos: [{ nombre: 'codigo_asfi', valor: dtoNormalizado.codigo_asfi }],
+                    campos: [{ nombre: 'codigo_asfi', valor: dto.codigo_asfi }],
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS]
                 }),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
-                    campos: [{ nombre: 'abreviatura', valor: dtoNormalizado.abreviatura }],
+                    campos: [{ nombre: 'abreviatura', valor: dto.abreviatura }],
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS]
                 }),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
-                    campos: [{ nombre: 'banco', valor: dtoNormalizado.banco }],
+                    campos: [{ nombre: 'banco', valor: dto.banco }],
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS]
                 }),
                 this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
-            const query = `
-                INSERT INTO ${this.nombreTabla}
-                (banco, codigo_asfi, abreviatura, descripcion, estado_id, usuario_id_registro, fecha_registro)
-                VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-            const params = [
-                dtoNormalizado.banco,
-                dtoNormalizado.codigo_asfi,
-                dtoNormalizado.abreviatura,
-                dtoNormalizado.descripcion,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const banco = manager.create(Banco, {
+                ...dto,
+                descripcion: dto.descripcion ?? null,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] ?? 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        `Error al insertar el banco "${dtoNormalizado.banco}".`,
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(banco);
+                return this.findOne<BancoResponseDto>(saved.banco_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
@@ -128,21 +99,16 @@ export class BancosService extends BaseService {
 
     async update(id: number, dto: UpdateBancoDto, usuarioId: number): Promise<BancoResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            let dtoNormalizado = { ...dto };
 
-            if (dtoNormalizado.banco) {
-                dtoNormalizado.banco = dtoNormalizado.banco.trim().toUpperCase();
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
             }
 
-            if (dtoNormalizado.codigo_asfi) {
-                dtoNormalizado.codigo_asfi = dtoNormalizado.codigo_asfi.trim().padStart(2, '0');
-            }
-
-            if (dtoNormalizado.descripcion !== undefined) {
-                dtoNormalizado.descripcion = dtoNormalizado.descripcion?.trim() || null;
-            }
-
-            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const bancoActual = await manager.findOne(Banco, {
                 where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
@@ -151,36 +117,28 @@ export class BancosService extends BaseService {
 
             if (!bancoActual) {
                 throw new DomainException(
-                    `Banco no encontrado.`,
+                    'Banco no encontrado.',
                     { httpStatus: HttpStatus.NOT_FOUND }
                 );
             }
 
-            if (dtoNormalizado.descripcion !== undefined &&
-                dtoNormalizado.descripcion !== bancoActual.descripcion) {
-                this.logger.log(
-                    `[AUDITORIA] Banco ID ${id}: descripcion cambiada de "${bancoActual.descripcion}" a "${dtoNormalizado.descripcion}"`
-                );
-            }
-
-            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
-                dtoNormalizado,
+                dto,
                 FindBancosQueryDto.getDependencias(),
                 FindBancosQueryDto.getCamposProtegidosConDependencias(),
                 this.campoPK,
                 usuarioId
             );
 
-            // Validaciones de unicidad
-            const validaciones: Promise<any>[] = [];
+            const validaciones: Promise<void>[] = [];
 
-            if (dtoNormalizado.codigo_asfi && dtoNormalizado.codigo_asfi !== bancoActual.codigo_asfi) {
+            if (dtoProcesado.codigo_asfi !== undefined && dtoProcesado.codigo_asfi !== bancoActual.codigo_asfi) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
-                        campos: [{ nombre: 'codigo_asfi', valor: dtoNormalizado.codigo_asfi }],
+                        campos: [{ nombre: 'codigo_asfi', valor: dtoProcesado.codigo_asfi }],
                         idExcluir: id,
                         campoPk: this.campoPK,
                         estadosValidos: [...ESTADOS_VIVOS]
@@ -188,11 +146,11 @@ export class BancosService extends BaseService {
                 );
             }
 
-            if (dtoNormalizado.abreviatura && dtoNormalizado.abreviatura !== bancoActual.abreviatura) {
+            if (dtoProcesado.abreviatura !== undefined && dtoProcesado.abreviatura !== bancoActual.abreviatura) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
-                        campos: [{ nombre: 'abreviatura', valor: dtoNormalizado.abreviatura }],
+                        campos: [{ nombre: 'abreviatura', valor: dtoProcesado.abreviatura }],
                         idExcluir: id,
                         campoPk: this.campoPK,
                         estadosValidos: [...ESTADOS_VIVOS]
@@ -200,11 +158,11 @@ export class BancosService extends BaseService {
                 );
             }
 
-            if (dtoNormalizado.banco && dtoNormalizado.banco !== bancoActual.banco) {
+            if (dtoProcesado.banco !== undefined && dtoProcesado.banco !== bancoActual.banco) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
-                        campos: [{ nombre: 'banco', valor: dtoNormalizado.banco }],
+                        campos: [{ nombre: 'banco', valor: dtoProcesado.banco }],
                         idExcluir: id,
                         campoPk: this.campoPK,
                         estadosValidos: [...ESTADOS_VIVOS]
@@ -216,7 +174,7 @@ export class BancosService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            Object.assign(bancoActual, dtoNormalizado);
+            Object.assign(bancoActual, dtoProcesado);
             bancoActual.update(usuarioId);
 
             try {
@@ -224,7 +182,10 @@ export class BancosService extends BaseService {
                 return this.findOne(id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) throw error;
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
+                this.logger.error(
+                    `Error actualizando banco ${id}: ${getErrorMessage(error)}`,
+                    getErrorStack(error)
+                );
                 throw error;
             }
         });

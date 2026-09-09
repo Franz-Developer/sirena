@@ -143,7 +143,8 @@ export class CuisService extends BaseService {
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK,
-                })
+                }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ];
 
             await Promise.all(validaciones);

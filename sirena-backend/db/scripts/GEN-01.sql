@@ -451,7 +451,7 @@ export enum TipoAlmacen {
     CUARENTENA = 1712,
 }
 
-export const TIPO_ALMACEN_VALIDOS = [
+export const TIPOS_ALMACEN_VENTA_DIRECTA = [
     TipoAlmacen.NORMAL,
     TipoAlmacen.REFRIGERADO,
     TipoAlmacen.CONGELADO,
@@ -462,7 +462,7 @@ export const TIPO_ALMACEN_VALIDOS = [
     TipoAlmacen.MATERIA_PRIMA,
 ] as const;
 
-export const TIPO_ALMACEN_PROHIBIDOS = [
+export const TIPOS_ALMACEN_LOGISTICA_INTERNA = [
     TipoAlmacen.TRANSITO,
 	TipoAlmacen.RECEPCION,
 	TipoAlmacen.DEVOLUCIONES,
@@ -486,8 +486,8 @@ export const TIPO_ALMACEN_METADATA: Record<TipoAlmacen, ConstanteMetadata & { es
     [TipoAlmacen.CUARENTENA]: { id: TipoAlmacen.CUARENTENA, abreviatura: 'CUARENTENA', prefijo: null, valor: 0, descripcion: 'Área de cuarentena sanitaria para productos en revisión, análisis o evaluación. Incluye productos sospechosos de contaminación, lotes en investigación o productos pendientes de liberación por control de calidad.' },
 };
 
-export const TIPO_ALMACEN_VALIDOS_METADATA = Object.fromEntries(TIPO_ALMACEN_VALIDOS.map(id => [id, TIPO_ALMACEN_METADATA[id]]));
-export const TIPO_ALMACEN_PROHIBIDOS_METADATA = Object.fromEntries(TIPO_ALMACEN_PROHIBIDOS.map(id => [id, TIPO_ALMACEN_METADATA[id]]));
+export const TIPOS_ALMACEN_VENTA_DIRECTA_METADATA = Object.fromEntries(TIPOS_ALMACEN_VENTA_DIRECTA.map(id => [id, TIPO_ALMACEN_METADATA[id]]));
+export const TIPOS_ALMACEN_LOGISTICA_INTERNA_METADATA = Object.fromEntries(TIPOS_ALMACEN_LOGISTICA_INTERNA.map(id => [id, TIPO_ALMACEN_METADATA[id]]));
 
 // ==========================================
 // TIPO CUENTA
@@ -1783,6 +1783,7 @@ export const ESTADO_CARRITO_METADATA: Record<EstadoCarrito, ConstanteMetadata & 
     [EstadoCarrito.NINGUNO]: { id: EstadoCarrito.NINGUNO, abreviatura: 'NINGUNO', prefijo: null, valor: 0, descripcion: 'Sin estado de carrito definido. Valor por defecto para registros comodín o casos excepcionales.', es_defecto: true },
 };
 
+
 ### ARCHIVOS DE SALIDA REQUERIDOS:
 Genera exactamente los 6 archivos separados en bloques independientes de Markdown con sus respectivas rutas:
 1. `C:\sirena\sirena-backend\src\modules\[modulo]\dto\create-[modulo].dto.ts`
@@ -2226,100 +2227,33 @@ export class Cliente extends BaseAuditEntity {
 
 
 DDL PRINCIPAL 
-CREATE TABLE productos (
-    producto_id BIGSERIAL PRIMARY KEY,
-    categoria_id BIGINT NOT NULL DEFAULT 1,
-    laboratorio_id BIGINT NOT NULL DEFAULT 1,
-    marca_id BIGINT NOT NULL DEFAULT 1,
-    forma_id BIGINT NOT NULL DEFAULT 1,
-    presentacion_id BIGINT NOT NULL DEFAULT 1,
-    concentracion_id BIGINT NOT NULL DEFAULT 1,
-    unidad_venta_id BIGINT NOT NULL DEFAULT 1,
-    tipo_almacen_id SMALLINT NOT NULL DEFAULT 1700,        -- 1700=NORMAL, 1701=REFRIGERADO, 1702=CONGELADO, 1703=ESPECIAL, 1704=TRANSITO, 1705=MATERIAL_MEDICO, 1706=COSMETICA, 1707=ALIMENTOS, 1708=MATERIA_PRIMA, 1709=RECEPCION, 1710=DEVOLUCIONES, 1711=DESPACHO, 1712=CUARENTENA
-    codigo VARCHAR(100) NOT NULL,
-    codigo_barras VARCHAR(100) NULL,
-    sku VARCHAR(60) NULL,
-    isbn VARCHAR(30) NULL,
-	serie VARCHAR(60) NULL,
-	modelo VARCHAR(150) NULL,
-    nombre VARCHAR(600) NOT NULL,
-    nombre_generico VARCHAR(600) NULL,
-    pcompra DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    p_factor_venta DECIMAL(12,2) NOT NULL DEFAULT 1.50,
-    p_factor_facturacion DECIMAL(12,2) NOT NULL DEFAULT 1.19,
-    pventa DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    pventaf DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    stock_minimo DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    stock_maximo DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    punto_reorden DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    requiere_receta SMALLINT NOT NULL DEFAULT 0,
-    controlado SMALLINT NOT NULL DEFAULT 0,
-    tiene_registro_sanitario SMALLINT NOT NULL DEFAULT 0,
-    descripcion VARCHAR(3000) NULL,
-    observacion VARCHAR(3000) NULL,
-    foto1 VARCHAR(255) NULL,
-    foto2 VARCHAR(255) NULL,
-    foto3 VARCHAR(255) NULL,
-    criticidad_medica_id SMALLINT DEFAULT 4150,         -- 4150=NORMAL, 4151=CRITICO
-	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+CREATE TABLE sucesos (
+    suceso_id INT PRIMARY KEY,
+    tabla_id BIGINT NOT NULL DEFAULT 1,
+    codigo VARCHAR(15) NOT NULL,
+    suceso VARCHAR(30) NOT NULL,
+    descripcion VARCHAR(200) NOT NULL,
+    estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
     usuario_id_baja BIGINT NULL,
     fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMPTZ NULL,
     fecha_baja TIMESTAMPTZ NULL,
-    CONSTRAINT fk_productos_categoria_id FOREIGN KEY (categoria_id) REFERENCES categorias(categoria_id),
-    CONSTRAINT fk_productos_laboratorio_id FOREIGN KEY (laboratorio_id) REFERENCES laboratorios(laboratorio_id),
-    CONSTRAINT fk_productos_marca_id FOREIGN KEY (marca_id) REFERENCES marcas(marca_id),
-    CONSTRAINT fk_productos_forma_id FOREIGN KEY (forma_id) REFERENCES formas(forma_id),
-    CONSTRAINT fk_productos_presentacion_id FOREIGN KEY (presentacion_id) REFERENCES presentaciones(presentacion_id),
-    CONSTRAINT fk_productos_concentracion_id FOREIGN KEY (concentracion_id) REFERENCES concentraciones(concentracion_id),
-    CONSTRAINT fk_productos_unidad_venta_id FOREIGN KEY (unidad_venta_id) REFERENCES unidades(unidad_id),
-    CONSTRAINT chk_productos_tipoalmacenid CHECK (tipo_almacen_id IN (1700, 1701, 1702, 1703, 1704, 1705, 1706, 1707, 1708, 1709, 1710, 1711, 1712)),
-    CONSTRAINT chk_productos_estadoid CHECK (estado_id IN (1000, 1001, 1002)),
-    CONSTRAINT chk_productos_codigo_notempty CHECK (TRIM(codigo) <> ''),
-    CONSTRAINT chk_productos_codigo_minlength CHECK (LENGTH(TRIM(codigo)) >= 3),
-    CONSTRAINT chk_productos_codigo_mayusculas CHECK (codigo = UPPER(codigo)),
-    CONSTRAINT chk_productos_codigo CHECK (codigo ~ '^[A-Z0-9_-]+$'),
-    CONSTRAINT chk_productos_codigobarras_notempty CHECK (codigo_barras IS NULL OR TRIM(codigo_barras) <> ''),
-    CONSTRAINT chk_productos_sku_notempty CHECK (sku IS NULL OR TRIM(sku) <> ''),
-    CONSTRAINT chk_productos_isbn_notempty CHECK (isbn IS NULL OR TRIM(isbn) <> ''),
-    CONSTRAINT chk_productos_modelo_notempty CHECK (modelo IS NULL OR TRIM(modelo) <> ''),
-    CONSTRAINT chk_productos_nombre_notempty CHECK (TRIM(nombre) <> ''),
-    CONSTRAINT chk_productos_nombre_minlength CHECK (LENGTH(TRIM(nombre)) >= 3),
-    CONSTRAINT chk_productos_nombregenerico_notempty CHECK (nombre_generico IS NULL OR TRIM(nombre_generico) <> ''),
-    CONSTRAINT chk_productos_pfactorventa CHECK (p_factor_venta > 1),
-    CONSTRAINT chk_productos_pfactorfacturacion CHECK (p_factor_facturacion > 1),
-    CONSTRAINT chk_productos_pcompra CHECK (pcompra >= 0),
-    CONSTRAINT chk_productos_pventa CHECK (pventa >= 0),
-    CONSTRAINT chk_productos_pventaf CHECK (pventaf >= 0),
-    CONSTRAINT chk_productos_precios CHECK (
-        (producto_id = 1 AND pcompra = 0 AND pventa = 0 AND pventaf = 0) OR
-        (pcompra >= 0 AND pventa >= 0 AND pventaf >= 0)
-    ),
-    CONSTRAINT chk_productos_stockminimo CHECK (stock_minimo >= 0),
-    CONSTRAINT chk_productos_stockmaximo CHECK (stock_maximo >= 0),
-    CONSTRAINT chk_productos_stockmaximo_stockminimo CHECK (stock_maximo >= stock_minimo),
-    CONSTRAINT chk_productos_puntoreorden CHECK (punto_reorden >= 0),
-    CONSTRAINT chk_productos_requierereceta CHECK (requiere_receta IN (0, 1)),
-    CONSTRAINT chk_productos_controlado CHECK (controlado IN (0, 1)),
-    CONSTRAINT chk_productos_tieneregistrosanitario CHECK (tiene_registro_sanitario IN (0, 1)),
-    CONSTRAINT chk_productos_descripcion_notempty CHECK (descripcion IS NULL OR TRIM(descripcion) <> ''),
-    CONSTRAINT chk_productos_observacion_notempty CHECK (observacion IS NULL OR TRIM(observacion) <> ''),
-    CONSTRAINT chk_productos_foto1_notempty CHECK (foto1 IS NULL OR TRIM(foto1) <> ''),
-    CONSTRAINT chk_productos_foto2_notempty CHECK (foto2 IS NULL OR TRIM(foto2) <> ''),
-    CONSTRAINT chk_productos_foto3_notempty CHECK (foto3 IS NULL OR TRIM(foto3) <> ''),
-    CONSTRAINT chk_productos_criticidadmedicaid CHECK (criticidad_medica_id IS NULL OR criticidad_medica_id IN (4150, 4151))
+    CONSTRAINT fk_sucesos_tabla FOREIGN KEY (tabla_id) REFERENCES tablas(tabla_id),
+    CONSTRAINT chk_suceso_estadoid CHECK (estado_id IN (1000, 1001)),
+    CONSTRAINT chk_sucesos_codigo_notempty CHECK (TRIM(codigo) <> ''),
+    CONSTRAINT chk_sucesos_codigo_minlength CHECK (LENGTH(TRIM(codigo)) >= 3),
+    CONSTRAINT chk_sucesos_codigo_mayusculas CHECK (codigo = UPPER(codigo)),
+    CONSTRAINT chk_sucesos_codigo_formato CHECK (codigo ~ '^[A-Z0-9_-]+$'),
+    CONSTRAINT chk_sucesos_suceso_not_empty CHECK (TRIM(suceso) <> ''),
+    CONSTRAINT chk_sucesos_suceso_minlength CHECK (LENGTH(TRIM(suceso)) >= 3),
+    CONSTRAINT chk_sucesos_suceso_mayusculas CHECK (suceso = UPPER(suceso)),
+    CONSTRAINT chk_sucesos_descripcion_notempty CHECK (TRIM(descripcion) <> '')
 );
-CREATE UNIQUE INDEX uix_productos_codigo_unique ON productos (codigo) WHERE estado_id IN (1000, 1002);
-CREATE UNIQUE INDEX uix_productos_codigobarras_unique ON productos (codigo_barras) WHERE codigo_barras IS NOT NULL AND estado_id IN (1000, 1002);
-CREATE UNIQUE INDEX uix_productos_isbn_unique ON productos (isbn) WHERE isbn IS NOT NULL AND estado_id IN (1000, 1002);
-CREATE INDEX idx_productos_nombre_trgm ON productos USING GIN (nombre gin_trgm_ops) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_productos_nombregenericotrgm ON productos USING GIN (nombre_generico gin_trgm_ops) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_productos_varios ON productos (categoria_id, laboratorio_id, marca_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_productos_tipoalmacen ON productos (tipo_almacen_id) WHERE estado_id IN (1000, 1002);
-CREATE INDEX idx_presentaciones_unidadid ON presentaciones(unidad_id);
-CREATE INDEX idx_productos_unidadventaid ON productos(unidad_venta_id);
-CREATE INDEX idx_productos_formaid ON productos(forma_id);
-CREATE INDEX idx_productos_presentacionid ON productos(presentacion_id);
-CREATE INDEX idx_productos_concentracionid ON productos(concentracion_id);
+CREATE UNIQUE INDEX uix_sucesos_codigo_unique ON sucesos (codigo) WHERE estado_id = 1000;
+CREATE UNIQUE INDEX uix_sucesos_suceso_unique ON sucesos (suceso) WHERE estado_id = 1000;
+
+COMMENT ON TABLE sucesos IS 'Reglas de la tabla - sucesos
+R.0: La tabla sucesos define los nombres de los eventos.';
+

@@ -26,7 +26,7 @@ export class CreateParametroGlobalDto {
     @IsIn(getEnumValues(TipoDato), {
         message: createEnumMessage(TIPO_DATO_METADATA, getEnumValues(TipoDato), 'tipo_dato_id')
     })
-    tipo_dato_id: number = 1800;
+    tipo_dato_id: number;
 
     @ValidateIf((o) => o.tipo_dato_id === TipoDato.JSONB)
     @IsDefined({ message: 'datos_json es obligatorio cuando el tipo de dato es JSON.' })
@@ -53,5 +53,5 @@ export class CreateParametroGlobalDto {
     @IsOptional()
     @IsInt({ message: 'editable debe ser un número entero.' })
     @IsIn([0, 1], { message: 'editable debe ser 0 o 1.' })
-    editable: number = 1;
+    editable: number;
 }

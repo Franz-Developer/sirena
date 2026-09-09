@@ -1,12 +1,12 @@
-// C:\sirena\sirena-backend\src\modules\trabajadores-cargos\dto\find-trabajadores-cargos-query.dto.ts
+// C:\sirena\sirena-backend\src\modules\sucesos\dto\find-sucesos-query.dto.ts
 import { Type } from 'class-transformer';
-import { IsOptional, IsInt, IsIn, IsString, Min } from 'class-validator';
-import { ESTADO_METADATA, ESTADOS_CONSULTA, TipoMoneda, TIPO_MONEDA_METADATA } from '../../../common/constants/estados.constant';
+import { IsOptional, IsString, IsIn, IsInt, Min } from 'class-validator';
+import { ESTADO_METADATA, ESTADOS_CONSULTA } from '../../../common/constants/estados.constant';
 import { BasePaginationQueryDto } from '../../../common/dto/base-pagination-query.dto';
 import { PaginatedResult } from '../../../common/interfaces/pagination.interface';
-import { createEnumMessage, getEnumValues } from '../../../common/utils/validation-helper.util';
+import { createEnumMessage } from '../../../common/utils/validation-helper.util';
 
-export class FindTrabajadoresCargosQueryDto extends BasePaginationQueryDto {
+export class FindSucesosQueryDto extends BasePaginationQueryDto {
     @IsOptional()
     @IsString({ message: 'El parámetro q debe ser un texto.' })
     q?: string;
@@ -19,8 +19,21 @@ export class FindTrabajadoresCargosQueryDto extends BasePaginationQueryDto {
 
     @IsOptional()
     @Type(() => Number)
-    @IsInt({ message: 'usuario_id debe ser un número entero.' })
-    usuario_id?: number;
+    @IsInt({ message: 'suceso_id debe ser un número entero.' })
+    @Min(1, { message: 'suceso_id debe ser mayor a 0.' })
+    suceso_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'tabla_id debe ser un número entero.' })
+    @Min(1, { message: 'tabla_id debe ser mayor a 0.' })
+    tabla_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'rol_id debe ser un número entero.' })
+    @Min(1, { message: 'rol_id debe ser mayor a 0.' })
+    rol_id?: number;
 
     @IsOptional()
     @Type(() => Number)
@@ -30,108 +43,86 @@ export class FindTrabajadoresCargosQueryDto extends BasePaginationQueryDto {
     })
     estado_id?: number;
 
-    @IsOptional()
-    @Type(() => Number)
-    @IsInt({ message: 'trabajador_id debe ser un número entero.' })
-    @Min(1, { message: 'trabajador_id debe ser mayor o igual a 1.' })
-    trabajador_id?: number;
-
-    @IsOptional()
-    @Type(() => Number)
-    @IsInt({ message: 'cargo_id debe ser un número entero.' })
-    @Min(1, { message: 'cargo_id debe ser mayor o igual a 1.' })
-    cargo_id?: number;
-
-    @IsOptional()
-    @Type(() => Number)
-    @IsInt({ message: 'tipo_moneda_id debe ser un número entero.' })
-    @IsIn(getEnumValues(TipoMoneda), {
-        message: createEnumMessage(TIPO_MONEDA_METADATA, getEnumValues(TipoMoneda), 'tipo_moneda_id')
-    })
-    tipo_moneda_id?: number;
-
     static getCampos(): string[] {
         const alias = 't';
-        const aliasTrabajador = 'tr';
-        const aliasCargo = 'c';
+        const aliasTabla = 'tb';
+        const aliasRol = 'r';
         return [
-            `${alias}.trabajador_cargo_id`,
-            `${alias}.trabajador_id`,
-            `${aliasTrabajador}.nombres AS trabajador_nombres`,
-            `${aliasTrabajador}.paterno AS trabajador_paterno`,
-            `${aliasTrabajador}.materno AS trabajador_materno`,
-            `${aliasTrabajador}.dni AS trabajador_dni`,
-            `${alias}.cargo_id`,
-            `${aliasCargo}.cargo AS cargo_nombre`,
-            `${aliasCargo}.codigo AS cargo_codigo`,
-            `${alias}.sueldo_base`,
-            `${alias}.tipo_moneda_id`,
-            `${alias}.fecha_desde`,
-            `${alias}.fecha_hasta`,
-            `${alias}.es_activo`,
-            `${alias}.observaciones`,
+            `${alias}.suceso_id`,
+            `${alias}.tabla_id`,
+            `${alias}.codigo`,
+            `${alias}.suceso`,
+            `${alias}.descripcion`,
             `${alias}.estado_id`,
             `${alias}.usuario_id_registro`,
             `${alias}.usuario_id_actualizacion`,
             `${alias}.usuario_id_baja`,
             `${alias}.fecha_registro`,
             `${alias}.fecha_actualizacion`,
-            `${alias}.fecha_baja`
+            `${alias}.fecha_baja`,
+            `${aliasTabla}.nombre AS tabla_nombre`,
+            `${aliasRol}.rol_id AS rol_id`,
+            `${aliasRol}.rol AS rol_nombre`,
+            `${aliasRol}.codigo AS rol_codigo`
         ];
     }
 
     static getCamposParaQ(): string[] {
-        return ['observaciones', 'tr.nombres', 'tr.paterno', 'tr.materno', 'tr.dni', 'c.cargo', 'c.codigo'];
+        return [
+            't.codigo',
+            't.suceso',
+            't.descripcion',
+            'tb.nombre',
+            'r.rol',
+            'r.codigo'
+        ];
     }
 
     static getCamposPermitidosParaOrdenar(): string[] {
         return [
-            'trabajador_cargo_id',
-            'trabajador_id',
-            'cargo_id',
-            'sueldo_base',
-            'tipo_moneda_id',
-            'fecha_desde',
-            'fecha_hasta',
-            'es_activo',
-            'trabajador_dni',
-            'cargo_nombre',
-            'cargo_codigo'
+            'suceso_id',
+            'tabla_id',
+            'codigo',
+            'suceso',
+            'descripcion',
+            'tabla_nombre',
+            'rol_id',
+            'rol_nombre',
+            'rol_codigo'
         ];
     }
 
     static getDependencias(): Array<string | { tabla: string; campoFk: string }> {
-        return [];
+        return [
+            { tabla: 'roles_permisos_sucesos', campoFk: 'suceso_id' }
+        ];
     }
 
     static getCamposProtegidosConDependencias(): string[] {
-        return [];
+        return ['codigo', 'suceso', 'tabla_id'];
     }
 
     static getEquivalenciasMapeo(): Record<string, string> {
         const alias = 't';
-        const aliasTrabajador = 'tr';
-        const aliasCargo = 'c';
+        const aliasTabla = 'tb';
+        const aliasRol = 'r';
         return {
-            'trabajador_cargo_id': `${alias}.trabajador_cargo_id`,
-            'trabajador_id': `${alias}.trabajador_id`,
-            'trabajador_dni': `${aliasTrabajador}.dni`,
-            'cargo_id': `${alias}.cargo_id`,
-            'cargo_nombre': `${aliasCargo}.cargo`,
-            'cargo_codigo': `${aliasCargo}.codigo`,
-            'sueldo_base': `${alias}.sueldo_base`,
-            'tipo_moneda_id': `${alias}.tipo_moneda_id`,
-            'fecha_desde': `${alias}.fecha_desde`,
-            'fecha_hasta': `${alias}.fecha_hasta`,
-            'es_activo': `${alias}.es_activo`,
-            'observaciones': `${alias}.observaciones`,
+            'suceso_id': `${alias}.suceso_id`,
+            'tabla_id': `${alias}.tabla_id`,
+            'codigo': `${alias}.codigo`,
+            'suceso': `${alias}.suceso`,
+            'descripcion': `${alias}.descripcion`,
             'estado_id': `${alias}.estado_id`,
             'usuario_id_registro': `${alias}.usuario_id_registro`,
             'usuario_id_actualizacion': `${alias}.usuario_id_actualizacion`,
             'usuario_id_baja': `${alias}.usuario_id_baja`,
             'fecha_registro': `${alias}.fecha_registro`,
             'fecha_actualizacion': `${alias}.fecha_actualizacion`,
-            'fecha_baja': `${alias}.fecha_baja`
+            'fecha_baja': `${alias}.fecha_baja`,
+            'tabla_nombre': `${aliasTabla}.nombre`,
+            'rol_id': `${aliasRol}.rol_id`,
+            'rol_nombre': `${aliasRol}.rol`,
+            'rol_codigo': `${aliasRol}.codigo`
         };
     }
 }

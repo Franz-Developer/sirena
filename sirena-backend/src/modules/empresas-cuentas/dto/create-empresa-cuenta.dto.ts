@@ -5,7 +5,6 @@ import { IsSafeText } from '../../../common/decorators/safe-text.decorator';
 import { TipoMoneda, TIPO_MONEDA_METADATA, TipoCuenta, TIPO_CUENTA_METADATA } from '../../../common/constants/estados.constant';
 import { createEnumMessage, getEnumValues } from '../../../common/utils/validation-helper.util';
 
-
 export class CreateEmpresaCuentaDto {
     @IsInt({ message: 'empresa_id debe ser un número entero.' })
     @IsNotEmpty({ message: 'empresa_id es obligatorio.' })

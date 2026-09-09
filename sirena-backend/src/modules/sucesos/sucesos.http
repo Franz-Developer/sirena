@@ -1,16 +1,12 @@
-# C:\sirena\sirena-backend\src\modules\trabajadores-cargos\trabajadores-cargos.http
+// C:\sirena\sirena-backend\src\modules\sucesos\sucesos.http
 # ----------------------------------------------------------------------
 # DEFINICIÓN DE VARIABLES
 # ----------------------------------------------------------------------
 @baseUrl = http://localhost:3010/api
-@baseUrl_trabajadores_cargos = {{baseUrl}}/trabajadores-cargos
-@baseUrl_trabajadores = {{baseUrl}}/trabajadores
-@baseUrl_cargos = {{baseUrl}}/cargos
-@baseUrl_constantes = {{baseUrl}}/constantes
+@baseUrl_sucesos = {{baseUrl}}/sucesos
 @rest-client.previewOption = body
 
 ### 1. OBTENER TOKEN DE AUTENTICACIÓN.
-# Se debe presionar primero.
 # @name login
 POST {{baseUrl}}/auth/validar
 Content-Type: application/json
@@ -21,7 +17,6 @@ Content-Type: application/json
 }
 
 ### 2. GUARDAR TOKEN EN VARIABLE.
-# No se debe presionar es automático.
 @authToken = {{login.response.body.token}}
 
 # ==============================================================================
@@ -42,180 +37,242 @@ Content-Type: application/json
 # @authToken = {{loginUser3.response.body.token}}
 
 # ==============================================================================
-# ENDPOINT EXTRAS
+# LISTAR SUCESOS (GET)
 # ==============================================================================
 
-### LISTAR TRABAJADORES ACTIVOS
-GET {{baseUrl_trabajadores}}?estado_id=1000
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_sucesos}}
 Authorization: Bearer {{authToken}}
 
-### LISTAR CARGOS ACTIVOS
-GET {{baseUrl_cargos}}?estado_id=1000
-Authorization: Bearer {{authToken}}
-
-### LISTAR TIPOS DE MONEDA
-GET {{baseUrl_constantes}}?tipo=tipo_moneda_id
-Authorization: Bearer {{authToken}}
-
-# ==============================================================================
-# LISTAR TRABAJADORES CARGOS (GET)
-# ==============================================================================
-
-### LISTAR TODOS
-GET {{baseUrl_trabajadores_cargos}}
-Authorization: Bearer {{authToken}}
-
-### LISTAR POR ESTADO ACTIVOS (1000)
-GET {{baseUrl_trabajadores_cargos}}?estado_id=1000
+### b. LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_sucesos}}?estado_id=1000
 Authorization: Bearer {{authToken}}
 
 ### HISTÓRICOS (1002)
-GET {{baseUrl_trabajadores_cargos}}?estado_id=1002
+GET {{baseUrl_sucesos}}?estado_id=1002
 Authorization: Bearer {{authToken}}
 
-# ==============================================================================
-# FILTROS POR TRABAJADOR, CARGO Y MONEDA
-# ==============================================================================
-
-### FILTRAR POR TRABAJADOR_ID
-GET {{baseUrl_trabajadores_cargos}}?trabajador_id=3
-Authorization: Bearer {{authToken}}
-
-### FILTRAR POR CARGO_ID
-GET {{baseUrl_trabajadores_cargos}}?cargo_id=4
-Authorization: Bearer {{authToken}}
-
-### FILTRAR POR TIPO_MONEDA_ID
-GET {{baseUrl_trabajadores_cargos}}?tipo_moneda_id=2300
+### LISTAR POR TABLA
+GET {{baseUrl_sucesos}}?tabla_id=1
 Authorization: Bearer {{authToken}}
 
 # ==============================================================================
 # BÚSQUEDA POR TEXTO (q)
 # ==============================================================================
 
-### BUSCAR POR TRABAJADOR O CARGO
-GET {{baseUrl_trabajadores_cargos}}?q=Juan
+### BÚSQUEDA FLEXIBLE POR CÓDIGO, SUCESO O DESCRIPCIÓN
+GET {{baseUrl_sucesos}}?q=VENTA
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA POR CÓDIGO ESPECÍFICO
+GET {{baseUrl_sucesos}}?q=DEV_CLI
+Authorization: Bearer {{authToken}}
+
+### Búsqueda por coincidencia exacta
+GET {{baseUrl_sucesos}}?q=COMPRA&exactMatch=1
 Authorization: Bearer {{authToken}}
 
 # ==============================================================================
 # PAGINACIÓN
 # ==============================================================================
 
-### PÁGINA 1: Registros 0 al 9
-GET {{baseUrl_trabajadores_cargos}}?offset=0&limit=10
-Authorization: Bearer {{authToken}}
-
-### PÁGINA 2: Registros 10 al 19
-GET {{baseUrl_trabajadores_cargos}}?offset=10&limit=10
+### PÁGINA 1: Registros 0 al 15
+GET {{baseUrl_sucesos}}?offset=0&limit=16
 Authorization: Bearer {{authToken}}
 
 ### Paginación con filtro de estado
-GET {{baseUrl_trabajadores_cargos}}?estado_id=1000&offset=0&limit=10
+GET {{baseUrl_sucesos}}?estado_id=1000&offset=0&limit=5
 Authorization: Bearer {{authToken}}
 
 # ==============================================================================
 # ORDENAMIENTO
 # ==============================================================================
 
-### ORDENAR POR ID (Ascendente)
-GET {{baseUrl_trabajadores_cargos}}?sortField=trabajador_cargo_id&sortOrder=1
+### ORDENAR POR CÓDIGO (Ascendente)
+GET {{baseUrl_sucesos}}?sortField=codigo&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR SUCESO (Descendente)
+GET {{baseUrl_sucesos}}?sortField=suceso&sortOrder=-1
 Authorization: Bearer {{authToken}}
 
 ### ORDENAR POR ID (Descendente)
-GET {{baseUrl_trabajadores_cargos}}?sortField=trabajador_cargo_id&sortOrder=-1
-Authorization: Bearer {{authToken}}
-
-### ORDENAR POR FECHA REGISTRO (Más recientes primero)
-GET {{baseUrl_trabajadores_cargos}}?sortField=fecha_registro&sortOrder=-1
-Authorization: Bearer {{authToken}}
-
-# ==============================================================================
-# COMBINACIÓN DE FILTROS + ORDENAMIENTO + PAGINACIÓN
-# ==============================================================================
-
-### ASIGNACIONES ACTIVAS, ordenadas por ID
-GET {{baseUrl_trabajadores_cargos}}?estado_id=1000&sortField=trabajador_cargo_id&sortOrder=1&offset=0&limit=100
+GET {{baseUrl_sucesos}}?sortField=suceso_id&sortOrder=-1
 Authorization: Bearer {{authToken}}
 
 # ==============================================================================
 # OBTENER POR ID
 # ==============================================================================
 
-### OBTENER ASIGNACIÓN POR ID
-GET {{baseUrl_trabajadores_cargos}}/17
+### OBTENER SUCESO POR ID
+GET {{baseUrl_sucesos}}/1
+Authorization: Bearer {{authToken}}
+
+### OBTENER SUCESO POR ID CON DEPENDENCIAS
+GET {{baseUrl_sucesos}}/1
 Authorization: Bearer {{authToken}}
 
 # ==============================================================================
-# CRUD TRABAJADORES CARGOS
+# CRUD SUCESO
 # ==============================================================================
 
-### CREAR NUEVA ASIGNACIÓN
-POST {{baseUrl_trabajadores_cargos}}
+### CREAR NUEVO SUCESO
+POST {{baseUrl_sucesos}}
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-    "trabajador_id": 18,
-    "cargo_id": 9,
-    "sueldo_base": 3500.00,
-    "tipo_moneda_id": 2300,
-    "fecha_desde": "2026-01-01",
-    "fecha_hasta": null,
-    "es_activo": 1,
-    "observaciones": "Asignación inicial de cargo"
+    "tabla_id": 1,
+    "codigo": "DEV_CLI",
+    "suceso": "DEVOLUCION_CLIENTE",
+    "descripcion": "Devolución de mercadería por parte del cliente."
 }
 
-
-### OBTENER ASIGNACIÓN POR TRABAJADOR
-GET {{baseUrl_trabajadores_cargos}}?trabajador_id=18
-Authorization: Bearer {{authToken}}
-
-### OBTENER ASIGNACIÓN POR ID
-GET {{baseUrl_trabajadores_cargos}}/18
-Authorization: Bearer {{authToken}}
-
-### LISTAR TRABAJADORES ACTIVOS
-GET {{baseUrl_trabajadores}}?estado_id=1000
-Authorization: Bearer {{authToken}}
-
-### LISTAR CARGOS ACTIVOS
-GET {{baseUrl_cargos}}?estado_id=1000
-Authorization: Bearer {{authToken}}
-
-### LISTAR TIPOS DE MONEDA
-GET {{baseUrl_constantes}}?tipo=tipo_moneda_id
-Authorization: Bearer {{authToken}}
-
-# ==============================================================================
-# ACTUALIZAR TRABAJADOR CARGO
-# ==============================================================================
-
-### ACTUALIZAR SUELDO Y OBSERVACIONES (PATCH)
-PATCH {{baseUrl_trabajadores_cargos}}/1
+### CREAR SUCESO CON ESTADO ESPECÍFICO
+POST {{baseUrl_sucesos}}
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-    "sueldo_base": 3800.00,
-    "observaciones": "Ajuste salarial por evaluación"
+    "tabla_id": 1,
+    "codigo": "ANULACION",
+    "suceso": "ANULACION_VENTA",
+    "descripcion": "Anulación de transacción de venta.",
+    "estado_id": 1000
+}
+
+### ACTUALIZAR SUCESO
+PATCH {{baseUrl_sucesos}}/1
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "descripcion": "Devolución de mercadería por parte del cliente (actualizado)"
+}
+
+### ACTUALIZAR SUCESO - CAMBIAR CÓDIGO
+PATCH {{baseUrl_sucesos}}/1
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "codigo": "DEV_CLIENTE"
+}
+
+### ACTUALIZAR SUCESO - CAMBIAR TABLA
+PATCH {{baseUrl_sucesos}}/1
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "tabla_id": 2
+}
+
+### ELIMINAR SUCESO (ACTIVO → BORRADO)
+DELETE {{baseUrl_sucesos}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de estado)
+# ==============================================================================
+
+### ARCHIVAR SUCESO (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_sucesos}}/1/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR SUCESO (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_sucesos}}/1/desarchivar
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# VALIDACIONES DE ERRORES
+# ==============================================================================
+
+### INTENTAR CREAR SUCESO CON CÓDIGO DUPLICADO
+POST {{baseUrl_sucesos}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "tabla_id": 1,
+    "codigo": "COMPRA",
+    "suceso": "COMPRA_DUPLICADA",
+    "descripcion": "Intento de crear suceso con código duplicado"
+}
+
+### INTENTAR CREAR SUCESO CON SUCESO DUPLICADO
+POST {{baseUrl_sucesos}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "tabla_id": 1,
+    "codigo": "COMPRA_DUP",
+    "suceso": "COMPRA",
+    "descripcion": "Intento de crear suceso con suceso duplicado"
+}
+
+### INTENTAR CREAR SUCESO CON CÓDIGO EN MINÚSCULAS (debe fallar)
+POST {{baseUrl_sucesos}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "tabla_id": 1,
+    "codigo": "compra_test",
+    "suceso": "COMPRA_TEST",
+    "descripcion": "Intento de crear suceso con código en minúsculas"
+}
+
+### INTENTAR CREAR SUCESO CON CÓDIGO "NINGUNO" (reservado)
+POST {{baseUrl_sucesos}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "tabla_id": 1,
+    "codigo": "NINGUNO",
+    "suceso": "NINGUNO_TEST",
+    "descripcion": "Intento de crear suceso con código reservado"
+}
+
+### INTENTAR CREAR SUCESO CON CÓDIGO Y SUCESO IGUALES
+POST {{baseUrl_sucesos}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "tabla_id": 1,
+    "codigo": "TEST_IGUAL",
+    "suceso": "TEST_IGUAL",
+    "descripcion": "Intento de crear suceso con codigo y suceso iguales"
+}
+
+### INTENTAR ELIMINAR SUCESO CON DEPENDENCIAS
+DELETE {{baseUrl_sucesos}}/1
+Authorization: Bearer {{authToken}}
+
+### INTENTAR MODIFICAR CÓDIGO DE SUCESO CON DEPENDENCIAS (usuario no admin)
+PATCH {{baseUrl_sucesos}}/1
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "codigo": "CODIGO_NUEVO"
 }
 
 # ==============================================================================
-# ELIMINAR (Borrado lógico)
+# FILTROS AVANZADOS
 # ==============================================================================
 
-### ELIMINAR ASIGNACIÓN (ACTIVO → BORRADO)
-DELETE {{baseUrl_trabajadores_cargos}}/17
+### FILTRAR POR TABLA Y ESTADO
+GET {{baseUrl_sucesos}}?tabla_id=1&estado_id=1000
 Authorization: Bearer {{authToken}}
 
-# ==============================================================================
-# ARCHIVAR / DESARCHIVAR
-# ==============================================================================
-
-### ARCHIVAR ASIGNACIÓN (ACTIVO → HISTÓRICO)
-PATCH {{baseUrl_trabajadores_cargos}}/18/archivar
+### BÚSQUEDA CON PAGINACIÓN Y FILTROS
+GET {{baseUrl_sucesos}}?q=DEV&tabla_id=1&estado_id=1000&offset=0&limit=10
 Authorization: Bearer {{authToken}}
 
-### DESARCHIVAR ASIGNACIÓN (HISTÓRICO → ACTIVO)
-PATCH {{baseUrl_trabajadores_cargos}}/18/desarchivar
+### ORDENAR POR DESCRIPCIÓN (Ascendente)
+GET {{baseUrl_sucesos}}?sortField=descripcion&sortOrder=1
 Authorization: Bearer {{authToken}}

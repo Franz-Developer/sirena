@@ -260,7 +260,6 @@ export class UsuariosService extends BaseService {
 
             try {
                 await manager.save(usuarioActual);
-
                 return this.findOne(id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {

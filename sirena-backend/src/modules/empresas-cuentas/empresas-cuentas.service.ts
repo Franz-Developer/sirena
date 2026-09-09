@@ -6,7 +6,6 @@ import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.con
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -105,10 +104,10 @@ export class EmpresasCuentasService extends BaseService {
             await Promise.all([
                 this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', dto.empresa_id),
                 this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dto.banco_id),
-                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear')
+                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
-            // VALIDACIÓN DE UNICIDAD (empresa_id, banco_id, nro_cuenta, tipo_moneda_id, tipo_cuenta_id) para ACTIVO (1000) e HISTORICO (1002)
             await this.unicidadValidador.validarUnicidad({
                 tabla: this.nombreTabla,
                 campos: [
@@ -122,47 +121,15 @@ export class EmpresasCuentasService extends BaseService {
                 campoPk: this.campoPK,
             });
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (
-                    empresa_id,
-                    banco_id,
-                    tipo_moneda_id,
-                    nro_cuenta,
-                    tipo_cuenta_id,
-                    titular,
-                    estado_id,
-                    usuario_id_registro,
-                    fecha_registro
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-
-            const params = [
-                dto.empresa_id,
-                dto.banco_id,
-                dto.tipo_moneda_id,
-                dto.nro_cuenta,
-                dto.tipo_cuenta_id,
-                dto.titular,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const empresaCuenta = manager.create(EmpresaCuenta, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        'Error al insertar la cuenta bancaria de la empresa.',
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(empresaCuenta);
+                return this.findOne<EmpresaCuentaResponseDto>(saved.empresa_cuenta_id, usuarioId, manager);
             } catch (error) {
                 if (isDomainException(error)) {
                     throw error;
@@ -175,6 +142,14 @@ export class EmpresasCuentasService extends BaseService {
 
     async update(id: number, dto: UpdateEmpresaCuentaDto, usuarioId: number): Promise<EmpresaCuentaResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
+
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const cuentaActual = await manager.findOne(EmpresaCuenta, {

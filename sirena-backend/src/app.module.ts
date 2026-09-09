@@ -33,11 +33,12 @@ import { TrabajadoresModule } from './modules/trabajadores/trabajadores.module';
 import { TrabajadoresCargosModule } from './modules/trabajadores-cargos/trabajadores-cargos.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
-import { RolesTablasModule } from './modules/roles-tablas/roles-tablas.module';
+
 import { MenusModule } from './modules/menus/menus.module';
-import { RolesMenusModule } from './modules/roles-menus/roles-menus.module';
+
 import { InventariosFisicosModule } from './modules/inventarios-fisicos/inventarios-fisicos.module';
 import { ClientesModule } from './modules/clientes/clientes.module';
+import { SucesosModule } from './modules/sucesos/sucesos.module';
 
 
 import { ParametrosGlobalesModule } from './modules/parametros-globales/parametros-globales.module';
@@ -87,11 +88,12 @@ import { ParametrosGlobalesModule } from './modules/parametros-globales/parametr
         TrabajadoresCargosModule,
         RolesModule,
         UsuariosModule,
-        RolesTablasModule,
+
         MenusModule,
-        RolesMenusModule,
+
         InventariosFisicosModule,
         ClientesModule,
+        SucesosModule,
     ],
     controllers: [],
     providers: [

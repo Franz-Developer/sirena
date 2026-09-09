@@ -122,58 +122,32 @@ export class TiposCambiosService extends BaseService {
     async create(dto: CreateTipoCambioDto, usuarioId: number): Promise<TipoCambioResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
             this.validarReglasNegocio(dto);
-            await this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear');
 
-            await this.unicidadValidador.validarUnicidad({
-                tabla: this.nombreTabla,
-                campos: [
-                    { nombre: 'origen_moneda_id', valor: dto.origen_moneda_id },
-                    { nombre: 'destino_moneda_id', valor: dto.destino_moneda_id },
-                    { nombre: 'fecha_cotizacion', valor: dto.fecha_cotizacion }
-                ],
-                campoPk: this.campoPK,
-                estadosValidos: [...ESTADOS_VIVOS],
+            await Promise.all([
+                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
+                this.unicidadValidador.validarUnicidad({
+                    tabla: this.nombreTabla,
+                    campos: [
+                        { nombre: 'origen_moneda_id', valor: dto.origen_moneda_id },
+                        { nombre: 'destino_moneda_id', valor: dto.destino_moneda_id },
+                        { nombre: 'fecha_cotizacion', valor: dto.fecha_cotizacion }
+                    ],
+                    campoPk: this.campoPK,
+                    estadosValidos: [...ESTADOS_VIVOS],
+                }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+            ]);
+
+            const tipoCambio = manager.create(TipoCambio, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
             });
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (
-                    origen_moneda_id,
-                    destino_moneda_id,
-                    factor_compra,
-                    factor_venta,
-                    fecha_cotizacion,
-                    estado_id,
-                    usuario_id_registro,
-                    fecha_registro
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-
-            const params = [
-                dto.origen_moneda_id,
-                dto.destino_moneda_id,
-                dto.factor_compra,
-                dto.factor_venta,
-                dto.fecha_cotizacion,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        `Error al insertar el tipo de cambio.`,
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(tipoCambio);
+                return this.findOne<TipoCambioResponseDto>(saved.tipo_cambio_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
@@ -195,10 +169,16 @@ export class TiposCambiosService extends BaseService {
 
     async update(id: number, dto: UpdateTipoCambioDto, usuarioId: number): Promise<TipoCambioResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            let dtoNormalizado = { ...dto };
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
 
-            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
-            this.validarReglasNegocio(dtoNormalizado);
+            this.validarReglasNegocio(dto);
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const tipoCambioActual = await manager.findOne(TipoCambio, {
                 where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
@@ -212,23 +192,34 @@ export class TiposCambiosService extends BaseService {
                 );
             }
 
-            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
-                dtoNormalizado,
+                dto,
                 FindTiposCambiosQueryDto.getDependencias(),
                 FindTiposCambiosQueryDto.getCamposProtegidosConDependencias(),
                 this.campoPK,
                 usuarioId
             );
 
-            if (dtoNormalizado.origen_moneda_id !== undefined || dtoNormalizado.destino_moneda_id !== undefined || dtoNormalizado.fecha_cotizacion !== undefined) {
+            if (dtoProcesado.origen_moneda_id !== undefined ||
+                dtoProcesado.destino_moneda_id !== undefined ||
+                dtoProcesado.fecha_cotizacion !== undefined) {
                 await this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
                     campos: [
-                        { nombre: 'origen_moneda_id', valor: dtoNormalizado.origen_moneda_id ?? tipoCambioActual.origen_moneda_id },
-                        { nombre: 'destino_moneda_id', valor: dtoNormalizado.destino_moneda_id ?? tipoCambioActual.destino_moneda_id },
-                        { nombre: 'fecha_cotizacion', valor: dtoNormalizado.fecha_cotizacion ?? tipoCambioActual.fecha_cotizacion }
+                        {
+                            nombre: 'origen_moneda_id',
+                            valor: dtoProcesado.origen_moneda_id ?? tipoCambioActual.origen_moneda_id
+                        },
+                        {
+                            nombre: 'destino_moneda_id',
+                            valor: dtoProcesado.destino_moneda_id ?? tipoCambioActual.destino_moneda_id
+                        },
+                        {
+                            nombre: 'fecha_cotizacion',
+                            valor: dtoProcesado.fecha_cotizacion ?? tipoCambioActual.fecha_cotizacion
+                        }
                     ],
                     idExcluir: id,
                     campoPk: this.campoPK,
@@ -236,7 +227,7 @@ export class TiposCambiosService extends BaseService {
                 });
             }
 
-            Object.assign(tipoCambioActual, dtoNormalizado);
+            Object.assign(tipoCambioActual, dtoProcesado);
             tipoCambioActual.update(usuarioId);
 
             try {

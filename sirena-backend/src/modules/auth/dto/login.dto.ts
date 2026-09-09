@@ -1,4 +1,4 @@
-// src/modules/auth/dto/login.dto.ts
+// C:\sirena\sirena-backend\src\modules\auth\dto\login.dto.ts
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, Matches, Length } from 'class-validator';
 import { IsSafeText } from '../../../common/decorators/safe-text.decorator';

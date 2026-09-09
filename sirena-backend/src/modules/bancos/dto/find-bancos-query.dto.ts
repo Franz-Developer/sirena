@@ -4,7 +4,7 @@ import { IsOptional, IsString, IsIn, IsInt, Min } from 'class-validator';
 import { ESTADO_METADATA, ESTADOS_CONSULTA } from '../../../common/constants/estados.constant';
 import { BasePaginationQueryDto } from '../../../common/dto/base-pagination-query.dto';
 import { PaginatedResult } from '../../../common/interfaces/pagination.interface';
-import { createEnumMessage, } from '../../../common/utils/validation-helper.util';
+import { createEnumMessage } from '../../../common/utils/validation-helper.util';
 
 export class FindBancosQueryDto extends BasePaginationQueryDto {
     @IsOptional()

@@ -72,7 +72,8 @@ export class FindEmpresasQueryDto extends BasePaginationQueryDto {
         return [
             { tabla: 'sucursales', campoFk: 'empresa_id' },
             { tabla: 'empresas_nits', campoFk: 'empresa_id' },
-            { tabla: 'empresas_cuentas', campoFk: 'empresa_id' }
+            { tabla: 'empresas_cuentas', campoFk: 'empresa_id' },
+            { tabla: 'historicos', campoFk: 'empresa_id' },
         ];
     }
 

@@ -1,46 +1,24 @@
-// C:\sirena\sirena-backend\src\modules\trabajadores-cargos\dto\trabajador-cargo-response.dto.ts
+// C:\sirena\sirena-backend\src\modules\sucesos\dto\suceso-response.dto.ts
 import { Expose, Transform } from 'class-transformer';
-import { Estado, ESTADO_METADATA, TipoMoneda, TIPO_MONEDA_METADATA } from '../../../common/constants/estados.constant';
+import { Estado, ESTADO_METADATA } from '../../../common/constants/estados.constant';
 import { formatLocalDate } from '../../../common/utils/date-formatter.util';
 
-const transformEstado = ({ obj }: { obj: TrabajadorCargoRawResult }) => {
+const transformEstado = ({ obj }: { obj: SucesoRawResult }) => {
     const estadoId = Number(obj.estado_id);
     const metadata = ESTADO_METADATA[estadoId as Estado];
     return metadata ? metadata.abreviatura : '';
 };
 
-const transformTipoMoneda = (tipoMonedaId: unknown) => {
-    const id = Number(tipoMonedaId);
-    if (!Number.isInteger(id)) {
-        return { abreviatura: '', valor: 0, prefijo: '' };
-    }
-    const metadata = TIPO_MONEDA_METADATA[id as TipoMoneda];
-    if (!metadata) {
-        return { abreviatura: '', valor: 0, prefijo: '' };
-    }
-    return {
-        abreviatura: metadata.abreviatura,
-        valor: metadata.valor,
-        prefijo: metadata.prefijo ?? '',
-    };
-};
-
-export interface TrabajadorCargoRawResult {
-    trabajador_cargo_id: string | number;
-    trabajador_id: string | number;
-    trabajador_nombres?: string;
-    trabajador_paterno?: string;
-    trabajador_materno?: string | null;
-    trabajador_dni?: string;
-    cargo_id: string | number;
-    cargo_nombre?: string;
-    cargo_codigo?: string;
-    sueldo_base: string | number;
-    tipo_moneda_id: string | number;
-    fecha_desde: string | Date;
-    fecha_hasta?: string | Date | null;
-    es_activo: string | number;
-    observaciones?: string | null;
+export interface SucesoRawResult {
+    suceso_id: string | number;
+    tabla_id: string | number;
+    tabla_nombre?: string;
+    codigo: string;
+    suceso: string;
+    descripcion: string;
+    rol_id?: string | number;
+    rol_nombre?: string;
+    rol_codigo?: string;
     estado_id: string | number;
     estado_registro: string;
     usuario_operacion: string;
@@ -55,62 +33,39 @@ export interface TrabajadorCargoRawResult {
     campos_protegidos?: string[];
 }
 
-export class TrabajadorCargoResponseDto {
-    @Expose() trabajador_cargo_id!: number;
-    @Expose() trabajador_id!: number;
+export class SucesoResponseDto {
+    @Expose() suceso_id!: number;
+    @Expose() tabla_id!: number;
 
     @Expose()
-    @Transform(({ obj }) => {
-        const partes = [obj.trabajador_nombres, obj.trabajador_paterno, obj.trabajador_materno].filter(Boolean);
-        return partes.join(' ');
-    })
-    trabajador_nombre_completo!: string;
+    @Transform(({ obj }) => obj.tabla_nombre || null)
+    tabla_nombre!: string;
+
+    @Expose() codigo!: string;
+    @Expose() suceso!: string;
+    @Expose() descripcion!: string;
 
     @Expose()
-    @Transform(({ obj }) => obj.trabajador_dni || null)
-    trabajador_dni!: string;
-
-    @Expose() cargo_id!: number;
+    @Transform(({ obj }) => obj.rol_id !== undefined && obj.rol_id !== null ? Number(obj.rol_id) : null)
+    rol_id!: number;
 
     @Expose()
-    @Transform(({ obj }) => obj.cargo_nombre || null)
-    cargo_nombre!: string;
+    @Transform(({ obj }) => obj.rol_nombre || null)
+    rol_nombre!: string;
 
     @Expose()
-    @Transform(({ obj }) => obj.cargo_codigo || null)
-    cargo_codigo!: string;
+    @Transform(({ obj }) => obj.rol_codigo || null)
+    rol_codigo!: string;
 
-    @Expose()
-    @Transform(({ value }) => Number(value))
-    sueldo_base!: number;
-
-    @Expose() tipo_moneda_id!: number;
-
-    @Expose()
-    @Transform(({ obj }) => transformTipoMoneda(obj.tipo_moneda_id))
-    tipo_moneda!: {
-        abreviatura: string;
-        valor: number;
-        prefijo: string;
-    };
-
-    @Expose()
-    @Transform(({ value }) => formatLocalDate(value))
-    fecha_desde!: string | null;
-
-    @Expose()
-    @Transform(({ value }) => formatLocalDate(value))
-    fecha_hasta?: string | null;
-
-    @Expose() es_activo!: number;
-    @Expose() observaciones?: string | null;
     @Expose() estado_id!: number;
 
     @Expose()
     @Transform(transformEstado)
     estado_registro!: string;
 
-    @Expose() usuario_operacion!: string;
+    @Expose()
+    usuario_operacion!: string;
+
     @Expose() usuario_id_registro!: number;
     @Expose() usuario_id_actualizacion?: number | null;
     @Expose() usuario_id_baja?: number | null;
@@ -127,6 +82,9 @@ export class TrabajadorCargoResponseDto {
     @Transform(({ value }) => formatLocalDate(value))
     fecha_baja?: string | null;
 
-    @Expose() tiene_dependencias!: boolean;
-    @Expose() campos_protegidos?: string[];
+    @Expose()
+    tiene_dependencias!: boolean;
+
+    @Expose()
+    campos_protegidos?: string[];
 }

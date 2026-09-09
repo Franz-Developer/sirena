@@ -1,106 +1,63 @@
-{
-  "name": "rutas-backend",
-  "version": "1.0",
-  "description": "Backend del portal rutas",
-  "private": true,
-  "scripts": {
-    "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
-    "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main.js",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "gen:keys": "ts-node src/scripts/generar-llaves.ts",
-    "crear:password": "ts-node src/scripts/crear-password.ts",
-    "reiniciar:password": "ts-node src/scripts/reiniciar-passwords.ts",
-    "db:query": "ts-node src/scripts/query.ts",
-    "clean": "if exist dist rmdir /s /q dist && if exist tsconfig.tsbuildinfo del tsconfig.tsbuildinfo"
-  },
-  "dependencies": {
-    "@nestjs-modules/mailer": "^2.0.2",
-    "@nestjs/axios": "^4.0.1",
-    "@nestjs/common": "^11.1.12",
-    "@nestjs/config": "^4.0.2",
-    "@nestjs/core": "^11.1.12",
-    "@nestjs/jwt": "^11.0.2",
-    "@nestjs/microservices": "^11.1.12",
-    "@nestjs/passport": "^11.0.5",
-    "@nestjs/platform-express": "^11.1.12",
-    "@nestjs/schedule": "^6.1.0",
-    "@nestjs/serve-static": "^5.0.4",
-    "@nestjs/swagger": "^11.2.5",
-    "@nestjs/terminus": "^11.0.0",
-    "@nestjs/throttler": "^6.5.0",
-    "@nestjs/typeorm": "^11.0.0",
-    "archiver": "^7.0.1",
-    "axios": "^1.13.2",
-    "bcrypt": "^6.0.0",
-    "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.3",
-    "compression": "^1.8.1",
-    "date-fns-tz": "^3.2.0",
-    "hashids": "^2.3.0",
-    "helmet": "^8.1.0",
-    "ioredis": "^5.11.1",
-    "joi": "^18.0.2",
-    "jwt-decode": "^4.0.0",
-    "moment": "^2.30.1",
-    "nestjs-pino": "^4.5.0",
-    "node-cache": "^5.1.2",
-    "nodemailer": "^7.0.12",
-    "passport": "^0.7.0",
-    "passport-jwt": "^4.0.1",
-    "pg": "^8.20.0",
-    "pino": "^10.3.0",
-    "pino-pretty": "^13.1.3",
-    "pino-roll": "^4.0.0",
-    "qrcode": "^1.5.4",
-    "reflect-metadata": "^0.2.2",
-    "rijndael-js": "^2.0.0",
-    "rxjs": "^7.8.2",
-    "sharp": "^0.34.5",
-    "swagger-ui-express": "^5.0.1",
-    "typeorm": "^0.3.28",
-    "unzipper": "^0.12.3",
-    "xss": "^1.0.15"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3.3.3",
-    "@eslint/js": "^9.39.2",
-    "@nestjs/cli": "^11.0.16",
-    "@nestjs/schematics": "^11.0.9",
-    "@nestjs/testing": "^11.1.12",
-    "@types/archiver": "^7.0.0",
-    "@types/bcrypt": "^6.0.0",
-    "@types/compression": "^1.8.1",
-    "@types/csurf": "^1.11.5",
-    "@types/express": "^5.0.6",
-    "@types/ioredis": "^4.28.10",
-    "@types/jest": "^30.0.0",
-    "@types/multer": "^2.0.0",
-    "@types/node": "^25.0.10",
-    "@types/passport-jwt": "^4.0.1",
-    "@types/pg": "^8.20.0",
-    "@types/qrcode": "^1.5.6",
-    "@types/serve-static": "^2.2.0",
-    "@types/supertest": "^6.0.3",
-    "@types/unzipper": "^0.10.11",
-    "@types/uuid": "^10.0.0",
-    "eslint": "^9.39.2",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.5",
-    "globals": "^17.1.0",
-    "jest": "^30.2.0",
-    "nodemon": "^3.1.11",
-    "prettier": "^3.8.1",
-    "source-map-support": "^0.5.21",
-    "supertest": "^7.2.2",
-    "ts-jest": "^29.4.6",
-    "ts-loader": "^9.5.4",
-    "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.53.1"
-  }
-}
+LISTA DE ERRORES
+
+almacenes.service.ts
+
+    ERROR No. 1
+
+        Archivo: almacenes.service.ts
+
+        Función: validarCombinacionTipoAlmacen
+
+        Explicación: Lógica de validación invertida. La regla de negocio R.2 de la tabla almacenes y la restricción chk_almacenes_tipoalmacenid en el DDL indican que LOGISTICA_INTERNA (4050) solo permite TIPO_ALMACEN_PROHIBIDOS y VENTA_DIRECTA (4051) solo permite TIPO_ALMACEN_VALIDOS. El código actual tiene esta lógica al revés, lo que permitiría crear almacenes de tránsito para venta directa y almacenes normales para logística interna, violando la restricción de la base de datos y las reglas de negocio.
+
+    ERROR No. 2
+
+        Archivo: almacenes.service.ts
+
+        Función: create y update
+
+        Explicación: No se valida que el codigo del almacén cumpla con el formato de mayúsculas y el patrón definido en la base de datos (^[A-Z0-9_-]+$). La entidad y el DTO tienen validaciones, pero el servicio no fuerza la conversión a mayúsculas (toUpperCase()) antes de la inserción o actualización. Si el DTO no lo hace, la base de datos rechazará la operación con un error inesperado.
+
+    ERROR No. 3
+
+        Archivo: almacenes.service.ts
+
+        Función: create y update
+
+        Explicación: No se valida el tipo_operacion_almacen_id para los almacenes existentes o nuevos. Si el campo tipo_operacion_almacen_id se actualiza para un almacén que ya tiene relaciones en almacenes_puntos_venta, la lógica de negocio R.G.5 indica que debe invalidarse, pero no se valida.
+
+create-almacen.dto.ts
+
+    ERROR No. 4
+
+        Archivo: create-almacen.dto.ts
+
+        Función: codigo
+
+        Explicación: El DTO aplica transform para convertir el valor a mayúsculas, pero la validación @Matches(/^[A-Z0-9_-]+$/) es correcta. El servicio aún debería forzar esto como medida de seguridad adicional.
+
+    ERROR No. 5
+
+        Archivo: create-almacen.dto.ts
+
+        Función: almacen
+
+        Explicación: El campo almacen tiene @IsSafeText() y @MaxLength(200). La base de datos tiene VARCHAR(200) NOT NULL. La validación es correcta.
+
+almacen-response.dto.ts
+
+    ERROR No. 6
+
+        Archivo: almacen-response.dto.ts
+
+        Función: transformTipoAlmacen, transformTipoOperacionAlmacen
+
+        Explicación: Los transformadores para tipo_almacen y tipo_operacion_almacen devuelven un objeto con abreviatura, valor, y prefijo. El DDL define tipo_almacen_id y tipo_operacion_almacen_id como SMALLINT. No hay un prefijo en la tabla, por lo que este campo puede ser superfluo o malinterpretado.
+
+    ERROR No. 7
+
+        Archivo: almacen-response.dto.ts
+
+        Función: transformEstado
+
+        Explicación: El transformador usa ESTADO_METADATA para obtener la abreviatura del estado. ESTADO_METADATA define es_defecto como una propiedad adicional. No hay problema con esto, es correcto.

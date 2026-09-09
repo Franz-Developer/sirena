@@ -1,6 +1,6 @@
 
 ANALIZALO a fondo 
-Dime si existe un error o algo que no se esta validando en el modulo clientes
+Dime si existe un error o algo que no se esta validando en el modulo bancos
 Debes advertirme si algo no se esta controlando o algo es ilogico o algo no es coherente con el DDL de la tabla 
 La validación y normalización de datos DEBE estar en el DTO. El servicio NO debe duplicar esta lógica.
 La validación y normalización de datos DEBE estar en el DTO. El servicio NO debe duplicar esta lógica.

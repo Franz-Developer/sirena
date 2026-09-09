@@ -1,19 +1,18 @@
-// C:\sirena\sirena-backend\src\modules\trabajadores-cargos\trabajadores-cargos.module.ts
-/*import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+// C:\sirena\sirena-backend\src\modules\sucesos\sucesos.module.ts
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { TrabajadoresCargosController } from './trabajadores-cargos.controller';
-import { TrabajadoresCargosService } from './trabajadores-cargos.service';
-import { TrabajadorCargo } from './entities/trabajador-cargo.entity';
+import { ConfigModule } from '@nestjs/config';
+import { SucesosController } from './sucesos.controller';
+import { SucesosService } from './sucesos.service';
+import { Suceso } from './entities/suceso.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([TrabajadorCargo]),
+        TypeOrmModule.forFeature([Suceso]),
         ConfigModule,
     ],
-    controllers: [TrabajadoresCargosController],
-    providers: [TrabajadoresCargosService],
-    exports: [TrabajadoresCargosService],
+    controllers: [SucesosController],
+    providers: [SucesosService],
+    exports: [SucesosService],
 })
-export class TrabajadoresCargosModule {}
-*/
+export class SucesosModule {}

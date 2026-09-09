@@ -6,7 +6,6 @@ import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.con
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -117,59 +116,19 @@ export class SucursalesService extends BaseService {
                     ],
                     estadosValidos: [ESTADO_ACTIVO],
                     campoPk: this.campoPK
-                })
+                }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (
-                    empresa_id,
-                    sucursal,
-                    sucursal_largo,
-                    codigo,
-                    codigo_sin,
-                    telefono,
-                    ubicacion,
-                    horario_atencion,
-                    factor_venta,
-                    factor_facturacion,
-                    estado_id,
-                    usuario_id_registro,
-                    fecha_registro
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-
-            const params = [
-                dto.empresa_id,
-                dto.sucursal,
-                dto.sucursal_largo,
-                dto.codigo,
-                dto.codigo_sin,
-                dto.telefono || null,
-                dto.ubicacion || null,
-                dto.horario_atencion || null,
-                dto.factor_venta ?? 1.50,
-                dto.factor_facturacion ?? 1.19,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const sucursal = manager.create(Sucursal, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        'Error al insertar la sucursal.',
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(sucursal);
+                return this.findOne<SucursalResponseDto>(saved.sucursal_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
@@ -180,11 +139,17 @@ export class SucursalesService extends BaseService {
         });
     }
 
-    async update(id: number, dto: UpdateSucursalDto, usuarioId: number): Promise<SucursalResponseDto> {
+        async update(id: number, dto: UpdateSucursalDto, usuarioId: number): Promise<SucursalResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            let dtoNormalizado = { ...dto };
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
 
-            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const sucursalActual = await manager.findOne(Sucursal, {
                 where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
@@ -193,39 +158,35 @@ export class SucursalesService extends BaseService {
 
             if (!sucursalActual) {
                 throw new DomainException(
-                    `Sucursal no encontrada.`,
+                    'Sucursal no encontrada.',
                     { httpStatus: HttpStatus.NOT_FOUND }
                 );
             }
 
-            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
-                dtoNormalizado,
+                dto,
                 FindSucursalesQueryDto.getDependencias(),
                 FindSucursalesQueryDto.getCamposProtegidosConDependencias(),
                 this.campoPK,
                 usuarioId
             );
 
+            if (dtoProcesado.empresa_id !== undefined && dtoProcesado.empresa_id !== sucursalActual.empresa_id) {
+                await this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', dtoProcesado.empresa_id);
+            }
+
             const validaciones: Promise<any>[] = [];
+            const empresaIdEval = dtoProcesado.empresa_id ?? sucursalActual.empresa_id;
 
-            if (dtoNormalizado.empresa_id !== undefined && dtoNormalizado.empresa_id !== sucursalActual.empresa_id) {
-                validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', dtoNormalizado.empresa_id)
-                );
-            }
-
-            const empresaIdEval = dtoNormalizado.empresa_id ?? sucursalActual.empresa_id;
-
-            if (dtoNormalizado.sucursal !== undefined && dtoNormalizado.sucursal !== sucursalActual.sucursal ||
-                dtoNormalizado.empresa_id !== undefined && dtoNormalizado.empresa_id !== sucursalActual.empresa_id) {
+            if (dtoProcesado.sucursal !== undefined || dtoProcesado.empresa_id !== undefined) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
                             { nombre: 'empresa_id', valor: empresaIdEval },
-                            { nombre: 'sucursal', valor: dtoNormalizado.sucursal ?? sucursalActual.sucursal }
+                            { nombre: 'sucursal', valor: dtoProcesado.sucursal ?? sucursalActual.sucursal }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
@@ -234,14 +195,13 @@ export class SucursalesService extends BaseService {
                 );
             }
 
-            if (dtoNormalizado.sucursal_largo !== undefined && dtoNormalizado.sucursal_largo !== sucursalActual.sucursal_largo ||
-                dtoNormalizado.empresa_id !== undefined && dtoNormalizado.empresa_id !== sucursalActual.empresa_id) {
+            if (dtoProcesado.sucursal_largo !== undefined || dtoProcesado.empresa_id !== undefined) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
                             { nombre: 'empresa_id', valor: empresaIdEval },
-                            { nombre: 'sucursal_largo', valor: dtoNormalizado.sucursal_largo ?? sucursalActual.sucursal_largo }
+                            { nombre: 'sucursal_largo', valor: dtoProcesado.sucursal_largo ?? sucursalActual.sucursal_largo }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
@@ -250,14 +210,13 @@ export class SucursalesService extends BaseService {
                 );
             }
 
-            if (dtoNormalizado.codigo !== undefined && dtoNormalizado.codigo !== sucursalActual.codigo ||
-                dtoNormalizado.empresa_id !== undefined && dtoNormalizado.empresa_id !== sucursalActual.empresa_id) {
+            if (dtoProcesado.codigo !== undefined || dtoProcesado.empresa_id !== undefined) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
                             { nombre: 'empresa_id', valor: empresaIdEval },
-                            { nombre: 'codigo', valor: dtoNormalizado.codigo ?? sucursalActual.codigo }
+                            { nombre: 'codigo', valor: dtoProcesado.codigo ?? sucursalActual.codigo }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
@@ -266,14 +225,13 @@ export class SucursalesService extends BaseService {
                 );
             }
 
-            if (dtoNormalizado.codigo_sin !== undefined && dtoNormalizado.codigo_sin !== sucursalActual.codigo_sin ||
-                dtoNormalizado.empresa_id !== undefined && dtoNormalizado.empresa_id !== sucursalActual.empresa_id) {
+            if (dtoProcesado.codigo_sin !== undefined || dtoProcesado.empresa_id !== undefined) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
                             { nombre: 'empresa_id', valor: empresaIdEval },
-                            { nombre: 'codigo_sin', valor: dtoNormalizado.codigo_sin ?? sucursalActual.codigo_sin }
+                            { nombre: 'codigo_sin', valor: dtoProcesado.codigo_sin ?? sucursalActual.codigo_sin }
                         ],
                         idExcluir: id,
                         estadosValidos: [ESTADO_ACTIVO],
@@ -286,7 +244,7 @@ export class SucursalesService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            Object.assign(sucursalActual, dtoNormalizado);
+            Object.assign(sucursalActual, dtoProcesado);
             sucursalActual.update(usuarioId);
 
             try {

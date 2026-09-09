@@ -1,41 +1,32 @@
-// C:\sirena\sirena-backend\src\modules\trabajadores-cargos\entities\trabajador-cargo.entity.ts
-/*import { Entity, Column, PrimaryGeneratedColumn, Index, Check } from 'typeorm';
+// C:\sirena\sirena-backend\src\modules\sucesos\entities\suceso.entity.ts
+import { Entity, Column, PrimaryGeneratedColumn, Index, Check } from 'typeorm';
 import { BaseAuditEntity } from '../../../common/base/base-audit.entity';
 
-@Entity({ name: 'trabajadores_cargos' })
-@Check('chk_trabajadorescargos_tipomonedaid', 'tipo_moneda_id IN (2300, 2301, 2302, 2303)')
-@Check('chk_trabajadorescargos_estadoid', 'estado_id IN (1000, 1001)')
-@Check('chk_trabajadorescargos_sueldobase', 'sueldo_base >= 0')
-@Check('chk_trabajadorescargos_esactivo', 'es_activo IN (0, 1)')
-@Check('chk_trabajadorescargos_observaciones_notempty', "observaciones IS NULL OR TRIM(observaciones) <> ''")
-@Check('chk_trabajadorescargos_fechas', 'fecha_hasta IS NULL OR fecha_hasta >= fecha_desde')
-@Index('uix_trabajadorescargos_varios_unique', ['trabajador_id', 'cargo_id'], { unique: true, where: "es_activo = 1 AND estado_id = 1000" })
-export class TrabajadorCargo extends BaseAuditEntity {
-    @PrimaryGeneratedColumn({ name: 'trabajador_cargo_id', type: 'bigint' })
-    trabajador_cargo_id!: number;
+@Entity({ name: 'sucesos' })
+@Check('chk_suceso_estadoid', 'estado_id IN (1000, 1001)')
+@Check('chk_sucesos_codigo_notempty', "TRIM(codigo) <> ''")
+@Check('chk_sucesos_codigo_minlength', 'LENGTH(TRIM(codigo)) >= 3')
+@Check('chk_sucesos_codigo_mayusculas', 'codigo = UPPER(codigo)')
+@Check('chk_sucesos_codigo_formato', "codigo ~ '^[A-Z0-9_-]+$'")
+@Check('chk_sucesos_suceso_not_empty', "TRIM(suceso) <> ''")
+@Check('chk_sucesos_suceso_minlength', 'LENGTH(TRIM(suceso)) >= 3')
+@Check('chk_sucesos_suceso_mayusculas', 'suceso = UPPER(suceso)')
+@Check('chk_sucesos_descripcion_notempty', "TRIM(descripcion) <> ''")
+@Index('uix_sucesos_codigo_unique', ['codigo'], { unique: true, where: "estado_id = 1000" })
+@Index('uix_sucesos_suceso_unique', ['suceso'], { unique: true, where: "estado_id = 1000" })
+export class Suceso extends BaseAuditEntity {
+    @PrimaryGeneratedColumn({ name: 'suceso_id', type: 'int' })
+    suceso_id!: number;
 
-    @Column({ name: 'trabajador_id', type: 'bigint', nullable: false, default: 1 })
-    trabajador_id!: number;
+    @Column({ name: 'tabla_id', type: 'bigint', nullable: false, default: 1 })
+    tabla_id!: number;
 
-    @Column({ name: 'cargo_id', type: 'bigint', nullable: false, default: 1 })
-    cargo_id!: number;
+    @Column({ name: 'codigo', type: 'varchar', length: 15, nullable: false })
+    codigo!: string;
 
-    @Column({ name: 'sueldo_base', type: 'decimal', precision: 12, scale: 2, nullable: false, default: 0.00 })
-    sueldo_base!: number;
+    @Column({ name: 'suceso', type: 'varchar', length: 30, nullable: false })
+    suceso!: string;
 
-    @Column({ name: 'tipo_moneda_id', type: 'smallint', nullable: false, default: 2300 })
-    tipo_moneda_id!: number;
-
-    @Column({ name: 'fecha_desde', type: 'date', nullable: false, default: () => 'CURRENT_DATE' })
-    fecha_desde!: Date;
-
-    @Column({ name: 'fecha_hasta', type: 'date', nullable: true })
-    fecha_hasta?: Date | null;
-
-    @Column({ name: 'es_activo', type: 'smallint', nullable: false, default: 1 })
-    es_activo!: number;
-
-    @Column({ name: 'observaciones', type: 'varchar', length: 500, nullable: true })
-    observaciones?: string | null;
+    @Column({ name: 'descripcion', type: 'varchar', length: 200, nullable: false })
+    descripcion!: string;
 }
-*/

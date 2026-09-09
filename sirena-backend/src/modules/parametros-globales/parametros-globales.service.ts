@@ -194,6 +194,14 @@ export class ParametrosGlobalesService extends BaseService {
         return runInTransaction(this.dataSource, async (manager) => {
             let dtoNormalizado = { ...dto };
 
+            const hasFields = Object.values(dtoNormalizado).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
+
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
             this.validarReglasNegocio(dtoNormalizado);
 
@@ -248,6 +256,11 @@ export class ParametrosGlobalesService extends BaseService {
             }
 
             const claveAnterior = parametroActual.clave;
+
+            if (dtoNormalizado.clave && dtoNormalizado.clave !== claveAnterior) {
+                this.logger.warn(`[AUDITORÍA] El parámetro "${claveAnterior}" (ID: ${id}) cambió su clave a "${dtoNormalizado.clave}" por el usuario ${usuarioId}`);
+            }
+
             Object.assign(parametroActual, dtoNormalizado);
             parametroActual.update(usuarioId);
 

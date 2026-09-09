@@ -25,5 +25,5 @@ export class Banco extends BaseAuditEntity {
     abreviatura!: string;
 
     @Column({ name: 'descripcion', type: 'varchar', length: 255, nullable: true })
-    descripcion?: string;
+    descripcion: string | null = null;
 }

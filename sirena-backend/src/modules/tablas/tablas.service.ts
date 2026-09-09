@@ -26,7 +26,7 @@ export class TablasService extends BaseService {
         responseDto: TablaResponseDto,
         camposBusquedaEnQ: FindTablasQueryDto.getCamposParaQ(),
         tablasDependientes: FindTablasQueryDto.getDependencias(),
-        joins: [], // No hay joins necesarios para esta entidad
+        joins: [],
         configuracionFiltros: [
             {
                 nombreCampo: 'estado_id',
@@ -122,7 +122,17 @@ export class TablasService extends BaseService {
 
     async update(id: number, dto: UpdateTablaDto, usuarioId: number): Promise<TablaResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
+            let dtoNormalizado = { ...dto };
+
+            const hasFields = Object.values(dtoNormalizado).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
+
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
 
             const tablaActual = await manager.findOne(Tabla, {
                 where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
@@ -136,10 +146,10 @@ export class TablasService extends BaseService {
                 );
             }
 
-            dto = await this.tablaValidador.procesarCamposProtegidos(
+            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
-                dto,
+                dtoNormalizado,
                 FindTablasQueryDto.getDependencias(),
                 FindTablasQueryDto.getCamposProtegidosConDependencias(),
                 this.campoPK,
@@ -148,12 +158,11 @@ export class TablasService extends BaseService {
 
             const validaciones: Promise<any>[] = [];
 
-            // Validar unicidad del nombre solo si cambió
-            if (dto.nombre !== undefined && dto.nombre !== tablaActual.nombre) {
+            if (dtoNormalizado.nombre !== undefined && dtoNormalizado.nombre !== tablaActual.nombre) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
-                        campos: [{ nombre: 'nombre', valor: dto.nombre }],
+                        campos: [{ nombre: 'nombre', valor: dtoNormalizado.nombre }],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
                         campoPk: this.campoPK,
@@ -165,7 +174,7 @@ export class TablasService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            Object.assign(tablaActual, dto);
+            Object.assign(tablaActual, dtoNormalizado);
             tablaActual.update(usuarioId);
 
             try {

@@ -427,7 +427,7 @@ export enum TipoAlmacen {
     CUARENTENA = 1712,
 }
 
-export const TIPO_ALMACEN_VALIDOS = [
+export const TIPOS_ALMACEN_VENTA_DIRECTA = [
     TipoAlmacen.NORMAL,
     TipoAlmacen.REFRIGERADO,
     TipoAlmacen.CONGELADO,
@@ -438,7 +438,7 @@ export const TIPO_ALMACEN_VALIDOS = [
     TipoAlmacen.MATERIA_PRIMA,
 ] as const;
 
-export const TIPO_ALMACEN_PROHIBIDOS = [
+export const TIPOS_ALMACEN_LOGISTICA_INTERNA = [
     TipoAlmacen.TRANSITO,
 	TipoAlmacen.RECEPCION,
 	TipoAlmacen.DEVOLUCIONES,
@@ -462,8 +462,8 @@ export const TIPO_ALMACEN_METADATA: Record<TipoAlmacen, ConstanteMetadata & { es
     [TipoAlmacen.CUARENTENA]: { id: TipoAlmacen.CUARENTENA, abreviatura: 'CUARENTENA', prefijo: null, valor: 0, descripcion: 'Área de cuarentena sanitaria para productos en revisión, análisis o evaluación. Incluye productos sospechosos de contaminación, lotes en investigación o productos pendientes de liberación por control de calidad.' },
 };
 
-export const TIPO_ALMACEN_VALIDOS_METADATA = Object.fromEntries(TIPO_ALMACEN_VALIDOS.map(id => [id, TIPO_ALMACEN_METADATA[id]]));
-export const TIPO_ALMACEN_PROHIBIDOS_METADATA = Object.fromEntries(TIPO_ALMACEN_PROHIBIDOS.map(id => [id, TIPO_ALMACEN_METADATA[id]]));
+export const TIPOS_ALMACEN_VENTA_DIRECTA_METADATA = Object.fromEntries(TIPOS_ALMACEN_VENTA_DIRECTA.map(id => [id, TIPO_ALMACEN_METADATA[id]]));
+export const TIPOS_ALMACEN_LOGISTICA_INTERNA_METADATA = Object.fromEntries(TIPOS_ALMACEN_LOGISTICA_INTERNA.map(id => [id, TIPO_ALMACEN_METADATA[id]]));
 
 // ==========================================
 // TIPO CUENTA
@@ -2804,74 +2804,295 @@ export class TablaValidadorService {
     }
 }
 
-// C:\sirena\sirena-backend\src\common\decorators\safe-text.decorator.ts
-import { registerDecorator, ValidationArguments, ValidationOptions } from 'class-validator';
-import xss from 'xss';
 
-export function IsSafeText(
-    validationOptions?: ValidationOptions,
-): PropertyDecorator {
-    return (
-        target: object,
-        propertyKey: string | symbol,
-    ): void => {
-        const decoratorOptions = {
-            name: 'isSafeText',
-            target: target.constructor,
-            propertyName: String(propertyKey),
-            validator: {
-                validate(value: unknown): boolean {
-                    if (
-                        value === null ||
-                        value === undefined ||
-                        value === ''
-                    ) {
-                        return true;
-                    }
-
-                    if (typeof value !== 'string') {
-                        return false;
-                    }
-
-                    // Caracteres de control no permitidos.
-                    const controlChars =
-                        /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F\u202E]/;
-
-                    if (controlChars.test(value)) {
-                        return false;
-                    }
-
-                    // Rechazar HTML, scripts y etiquetas.
-                    const sanitized = xss(value, {
-                        whiteList: {},
-                        stripIgnoreTag: true,
-                        stripIgnoreTagBody: [
-                            'script',
-                            'style',
-                            'iframe',
-                        ],
-                    });
-
-                    return sanitized === value;
-                },
-
-                defaultMessage(
-                    args: ValidationArguments,
-                ): string {
-                    return `${args.property} contiene caracteres o contenido no permitido.`;
-                },
-            },
-
-            ...(validationOptions !== undefined
-                ? { options: validationOptions }
-                : {}),
-        };
-
-        registerDecorator(decoratorOptions);
-    };
-}
 
 EJEMPLOS 
+// C:\sirena\sirena-backend\src\modules\clientes\clientes.service.ts
+import { Injectable, HttpStatus } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
+import { DomainException } from '../../common/exceptions/domain.exception';
+import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
+import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
+import { logSqlQuery } from '../../common/utils/sql-logger.util';
+import { runInTransaction } from '../../common/utils/transaction.helper';
+import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
+import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
+import { CreateClienteDto } from './dto/create-cliente.dto';
+import { FindClientesQueryDto } from './dto/find-clientes-query.dto';
+import { ClienteResponseDto } from './dto/cliente-response.dto';
+import { UpdateClienteDto } from './dto/update-cliente.dto';
+import { Cliente } from './entities/cliente.entity';
+
+@Injectable()
+export class ClientesService extends BaseService {
+    protected config: BaseServiceConfig = {
+        nombreTabla: 'clientes',
+        nombreEntidad: 'Cliente',
+        campoPK: 'cliente_id',
+        alias: 't',
+        responseDto: ClienteResponseDto,
+        camposBusquedaEnQ: FindClientesQueryDto.getCamposParaQ(),
+        tablasDependientes: FindClientesQueryDto.getDependencias(),
+        joins: [
+            {
+                table: 'bancos',
+                alias: 'b',
+                onCondition: 'b.banco_id = t.banco_base_id',
+                selectColumns: [
+                    'b.banco AS banco_base_nombre',
+                    'b.abreviatura AS banco_base_abreviatura'
+                ],
+                type: 'INNER'
+            }
+        ],
+        configuracionFiltros: [
+            {
+                nombreCampo: 'tipo_cliente_id',
+                nombreColumna: 'tipo_cliente_id',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+            {
+                nombreCampo: 'tipo_documento_id',
+                nombreColumna: 'tipo_documento_id',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+            {
+                nombreCampo: 'banco_base_id',
+                nombreColumna: 'banco_base_id',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+            {
+                nombreCampo: 'habilitado_ventas',
+                nombreColumna: 'habilitado_ventas',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+            {
+                nombreCampo: 'estado_id',
+                nombreColumna: 'estado_id',
+                tipoDatoFiltro: 'number',
+                operador: 'eq',
+            },
+        ],
+        configuracionOrden: {
+            campoOrdenPorDefecto: 'cliente_id',
+            camposPermitidosParaOrdenar: FindClientesQueryDto.getCamposPermitidosParaOrdenar(),
+            equivalenciasMapeo: FindClientesQueryDto.getEquivalenciasMapeo(),
+        },
+        getCamposProtegidosConDependencias: () => FindClientesQueryDto.getCamposProtegidosConDependencias(),
+    };
+
+    constructor(
+        @InjectDataSource()
+        dataSource: DataSource,
+        tablaValidador: TablaValidadorService,
+        private readonly unicidadValidador: UnicidadValidadorService,
+    ) {
+        super(dataSource, tablaValidador);
+    }
+
+    private get nombreTabla(): string {
+        return this.config.nombreTabla;
+    }
+
+    private get campoPK(): string {
+        return this.config.campoPK;
+    }
+
+    async create(dto: CreateClienteDto, usuarioId: number): Promise<ClienteResponseDto> {
+        return runInTransaction(this.dataSource, async (manager) => {
+            const validaciones: Promise<any>[] = [
+                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear')
+            ];
+
+            if (dto.banco_base_id) {
+                validaciones.push(
+                    this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dto.banco_base_id)
+                );
+            }
+
+            if (dto.documento && dto.documento !== '0') {
+                const camposUnicidad = [
+                    { nombre: 'tipo_documento_id', valor: dto.tipo_documento_id ?? 2200 },
+                    { nombre: 'documento', valor: dto.documento }
+                ];
+
+                if (dto.documento_complemento) {
+                    camposUnicidad.push({ nombre: 'documento_complemento', valor: dto.documento_complemento });
+                }
+
+                validaciones.push(
+                    this.unicidadValidador.validarUnicidad({
+                        tabla: this.nombreTabla,
+                        campos: camposUnicidad,
+                        estadosValidos: [...ESTADOS_VIVOS],
+                        campoPk: this.campoPK
+                    })
+                );
+            }
+
+            await Promise.all(validaciones);
+
+            const query = `
+                INSERT INTO ${this.nombreTabla} (
+                    tipo_cliente_id,
+                    cliente,
+                    nit,
+                    razon_social,
+                    documento,
+                    documento_complemento,
+                    tipo_documento_id,
+                    direccion,
+                    telefono,
+                    email,
+                    banco_base_id,
+                    numero_cuenta,
+                    habilitado_ventas,
+                    limite_credito,
+                    estado_id,
+                    usuario_id_registro,
+                    fecha_registro
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP)
+                RETURNING ${this.campoPK}
+            `;
+
+            const params = [
+                dto.tipo_cliente_id,
+                dto.cliente,
+                dto.nit || null,
+                dto.razon_social || null,
+                dto.documento,
+                dto.documento_complemento || null,
+                dto.tipo_documento_id,
+                dto.direccion || null,
+                dto.telefono || null,
+                dto.email || null,
+                dto.banco_base_id,
+                dto.numero_cuenta || null,
+                dto.habilitado_ventas,
+                dto.limite_credito,
+                ESTADO_ACTIVO,
+                Number(usuarioId)
+            ];
+
+            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+
+            try {
+                await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
+                const insertResult = await manager.query(query, params);
+                const newId = Number(insertResult[0]?.[this.campoPK] ?? 0);
+
+                if (newId === 0) {
+                    throw new DomainException(
+                        'Error al registrar el cliente.',
+                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
+                    );
+                }
+
+                return this.findOne(newId, usuarioId, manager);
+            } catch (error: unknown) {
+                if (isDomainException(error)) {
+                    throw error;
+                }
+                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
+                throw error;
+            }
+        });
+    }
+
+    async update(id: number, dto: UpdateClienteDto, usuarioId: number): Promise<ClienteResponseDto> {
+        return runInTransaction(this.dataSource, async (manager) => {
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
+
+            const clienteActual = await manager.findOne(Cliente, {
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                lock: { mode: 'pessimistic_write' }
+            });
+
+            if (!clienteActual) {
+                throw new DomainException(
+                    'Cliente no encontrado.',
+                    { httpStatus: HttpStatus.NOT_FOUND }
+                );
+            }
+
+            dto = await this.tablaValidador.procesarCamposProtegidos(
+                this.nombreTabla,
+                id,
+                dto,
+                FindClientesQueryDto.getDependencias(),
+                FindClientesQueryDto.getCamposProtegidosConDependencias(),
+                this.campoPK,
+                usuarioId
+            );
+
+            const validaciones: Promise<any>[] = [];
+
+            if (dto.banco_base_id !== undefined && dto.banco_base_id !== clienteActual.banco_base_id) {
+                validaciones.push(
+                    this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dto.banco_base_id)
+                );
+            }
+
+            const tipoDocumentoEvaluado = dto.tipo_documento_id ?? clienteActual.tipo_documento_id;
+            const documentoEvaluado = dto.documento ?? clienteActual.documento;
+            const complementoEvaluado = dto.documento_complemento !== undefined
+                ? dto.documento_complemento
+                : clienteActual.documento_complemento;
+
+            const huboCambioDocumentacion =
+                (dto.tipo_documento_id !== undefined && dto.tipo_documento_id !== clienteActual.tipo_documento_id) ||
+                (dto.documento !== undefined && dto.documento !== clienteActual.documento) ||
+                (dto.documento_complemento !== undefined && dto.documento_complemento !== clienteActual.documento_complemento);
+
+            if (huboCambioDocumentacion && documentoEvaluado !== '0') {
+                const camposUnicidad = [
+                    { nombre: 'tipo_documento_id', valor: tipoDocumentoEvaluado },
+                    { nombre: 'documento', valor: documentoEvaluado }
+                ];
+
+                if (complementoEvaluado) {
+                    camposUnicidad.push({ nombre: 'documento_complemento', valor: complementoEvaluado });
+                }
+
+                validaciones.push(
+                    this.unicidadValidador.validarUnicidad({
+                        tabla: this.nombreTabla,
+                        campos: camposUnicidad,
+                        idExcluir: id,
+                        estadosValidos: [...ESTADOS_VIVOS],
+                        campoPk: this.campoPK
+                    })
+                );
+            }
+
+            if (validaciones.length > 0) {
+                await Promise.all(validaciones);
+            }
+
+            Object.assign(clienteActual, dto);
+            clienteActual.update(usuarioId);
+
+            try {
+                await manager.save(clienteActual);
+                return this.findOne(id, usuarioId, manager);
+            } catch (error: unknown) {
+                if (isDomainException(error)) {
+                    throw error;
+                }
+                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
+                throw error;
+            }
+        });
+    }
+}
+
 // C:\sirena\sirena-backend\src\modules\clientes\dto\find-clientes-query.dto.ts
 import { Type } from 'class-transformer';
 import { IsOptional, IsInt, IsIn, IsString, Min } from 'class-validator';
@@ -2978,16 +3199,17 @@ export class FindClientesQueryDto extends BasePaginationQueryDto {
             'tipo_documento_id',
             'banco_base_id',
             'habilitado_ventas',
-            'limite_credito',
-            'fecha_registro'
+            'limite_credito'
         ];
     }
 
     static getDependencias(): Array<string | { tabla: string; campoFk: string }> {
         return [
-            { tabla: 'sucursales', campoFk: 'empresa_id' },
-            { tabla: 'empresas_nits', campoFk: 'empresa_id' },
-            { tabla: 'empresas_cuentas', campoFk: 'empresa_id' }
+            { tabla: 'carritos_compra', campoFk: 'cliente_id' },
+            { tabla: 'historicos', campoFk: 'cliente_id' },
+            { tabla: 'kardex', campoFk: 'cliente_id' },
+            { tabla: 'pedidos_online', campoFk: 'cliente_id' },
+            { tabla: 'recetas', campoFk: 'cliente_id' },
         ];
     }
 
@@ -3180,161 +3402,209 @@ export class ClienteResponseDto {
     @Expose() campos_protegidos?: string[];
 }
 
-// C:\sirena\sirena-backend\src\common\validators\unicidad-validador.service.ts
-import { Injectable, HttpStatus, Logger } from '@nestjs/common';
-import { DataSource } from 'typeorm';
-import { ESTADOS_VIVOS } from '../constants/estados.constant';
-import { DomainException } from '../exceptions/domain.exception';
-import { getErrorMessage, getErrorStack, isDomainException } from '../utils/error.util';
+// C:\sirena\sirena-backend\src\modules\roles-menus\dto\find-roles-menus-query.dto.ts
+import { Type } from 'class-transformer';
+import { IsOptional, IsInt, IsIn, IsString, Min } from 'class-validator';
+import { ESTADOS_CONSULTA, ESTADO_METADATA } from '../../../common/constants/estados.constant';
+import { BasePaginationQueryDto } from '../../../common/dto/base-pagination-query.dto';
+import { PaginatedResult } from '../../../common/interfaces/pagination.interface';
+import { createEnumMessage } from '../../../common/utils/validation-helper.util';
 
-export interface UnicidadConfig {
-    tabla: string;                      // Nombre de la tabla
-    campos: {                           // Array de campos a validar
-        nombre: string;                 // Nombre de la columna
-        valor: any;                     // Valor a validar
-    }[];
-    idExcluir?: number;                 // ID a excluir (para updates)
-    campoPk?: string;                   // Nombre del campo PK (por defecto 'id')
-    incluirEstado?: boolean;            // Incluir filtro de estado
-    estadosValidos?: number[];          // Estados a considerar
-    caseInsensitive?: boolean;          // Case insensitive
-    permitirNull?: boolean;             // Permitir NULL
-    condicionesExtra?: {                // Para filtros adicionales (ej. estado_contrato_id = 4750)
-        nombre: string;
-        valor: any;
-    }[];
-}
+export class FindRolesMenusQueryDto extends BasePaginationQueryDto {
+    @IsOptional()
+    @IsString({ message: 'El parámetro q debe ser un texto.' })
+    q?: string;
 
-@Injectable()
-export class UnicidadValidadorService {
-    private readonly logger = new Logger(UnicidadValidadorService.name);
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'El campo exactMatch debe ser un número entero.' })
+    @IsIn([0, 1], { message: 'El campo exactMatch debe ser 0 (flexible) o 1 (exacta).' })
+    exactMatch: number = 0;
 
-    constructor(
-        private readonly dataSource: DataSource,
-    ) {}
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'usuario_id debe ser un número entero.' })
+    usuario_id?: number;
 
-    async validarUnicidad(config: UnicidadConfig): Promise<void> {
-        const defaults = {
-            campoPk: 'id',
-            incluirEstado: true,
-            estadosValidos: ESTADOS_VIVOS as unknown as number[],
-            caseInsensitive: false,
-            permitirNull: false,
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'El estado_id debe ser un número entero.' })
+    @IsIn(ESTADOS_CONSULTA, {
+        message: createEnumMessage(ESTADO_METADATA, ESTADOS_CONSULTA, 'estado_id')
+    })
+    estado_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'El ID de rol debe ser un número entero.' })
+    @Min(1, { message: 'El ID de rol debe ser un número entero mayor o igual a 1.' })
+    rol_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'El ID de menú debe ser un número entero.' })
+    @Min(1, { message: 'El ID de menú debe ser un número entero mayor o igual a 1.' })
+    menu_id?: number;
+
+    static getCampos(): string[] {
+        const alias = 't';
+        const aliasRol = 'r';
+        const aliasMenu = 'm';
+        return [
+            `${alias}.rol_menu_id`,
+            `${alias}.rol_id`,
+            `${alias}.menu_id`,
+            `${alias}.estado_id`,
+            `${alias}.usuario_id_registro`,
+            `${alias}.usuario_id_actualizacion`,
+            `${alias}.usuario_id_baja`,
+            `${alias}.fecha_registro`,
+            `${alias}.fecha_actualizacion`,
+            `${alias}.fecha_baja`,
+            `${aliasRol}.rol AS rol_nombre`,
+            `${aliasRol}.codigo AS rol_codigo`,
+            `${aliasMenu}.titulo AS menu_titulo`,
+            `${aliasMenu}.url AS menu_url`
+        ];
+    }
+
+    static getCamposParaQ(): string[] {
+        return ['r.rol', 'r.codigo', 'm.titulo', 'm.url'];
+    }
+
+    static getCamposPermitidosParaOrdenar(): string[] {
+        return [
+            'rol_menu_id',
+            'rol_id',
+            'menu_id',
+            'rol_nombre',
+            'rol_codigo',
+            'menu_titulo',
+            'menu_url'
+        ];
+    }
+
+    static getDependencias(): Array<string | { tabla: string; campoFk: string }> {
+        return [];
+    }
+
+    static getCamposProtegidosConDependencias(): string[] {
+        return [];
+    }
+
+    static getEquivalenciasMapeo(): Record<string, string> {
+        const alias = 't';
+        const aliasRol = 'r';
+        const aliasMenu = 'm';
+        return {
+            'rol_menu_id': `${alias}.rol_menu_id`,
+            'rol_id': `${alias}.rol_id`,
+            'menu_id': `${alias}.menu_id`,
+            'estado_id': `${alias}.estado_id`,
+            'usuario_id_registro': `${alias}.usuario_id_registro`,
+            'usuario_id_actualizacion': `${alias}.usuario_id_actualizacion`,
+            'usuario_id_baja': `${alias}.usuario_id_baja`,
+            'fecha_registro': `${alias}.fecha_registro`,
+            'fecha_actualizacion': `${alias}.fecha_actualizacion`,
+            'fecha_baja': `${alias}.fecha_baja`,
+            'rol_nombre': `${aliasRol}.rol`,
+            'rol_codigo': `${aliasRol}.codigo`,
+            'menu_titulo': `${aliasMenu}.titulo`,
+            'menu_url': `${aliasMenu}.url`,
         };
-
-        const opts = { ...defaults, ...config };
-
-        if (!opts.campos || opts.campos.length === 0) {
-            this.logger.debug(`No hay campos para validar unicidad en ${opts.tabla}`);
-            return;
-        }
-
-        const tablaSanitizada = this.dataSource.driver.escape(opts.tabla);
-        const campoPkSanitizado = this.dataSource.driver.escape(opts.campoPk);
-
-        const whereClauses: string[] = [];
-        const params: any[] = [];
-        let paramIndex = 1;
-
-        // 1. Campos principales de unicidad
-        for (const campo of opts.campos) {
-            const columnaSanitizada = this.dataSource.driver.escape(campo.nombre);
-
-            if (!opts.permitirNull && (campo.valor === null || campo.valor === undefined)) {
-                continue;
-            }
-
-            if (campo.valor === null) {
-                whereClauses.push(`${columnaSanitizada} IS NULL`);
-                continue;
-            }
-
-            if (opts.caseInsensitive && typeof campo.valor === 'string') {
-                whereClauses.push(`LOWER(${columnaSanitizada}) = LOWER($${paramIndex})`);
-                params.push(campo.valor);
-                paramIndex++;
-                continue;
-            }
-
-            whereClauses.push(`${columnaSanitizada} = $${paramIndex}`);
-            params.push(campo.valor);
-            paramIndex++;
-        }
-
-        if (whereClauses.length === 0) {
-            this.logger.debug(`No hay campos válidos para validar unicidad en ${opts.tabla}`);
-            return;
-        }
-
-        // 2. ID a excluir (Updates)
-        if (opts.idExcluir !== undefined && opts.idExcluir !== null) {
-            whereClauses.push(`${campoPkSanitizado} != $${paramIndex}`);
-            params.push(opts.idExcluir);
-            paramIndex++;
-        }
-
-        // 3. Condiciones extra (ej. estado_contrato_id = 4750)
-        if (opts.condicionesExtra && opts.condicionesExtra.length > 0) {
-            for (const cond of opts.condicionesExtra) {
-                const colExtraSanitizada = this.dataSource.driver.escape(cond.nombre);
-                if (cond.valor === null) {
-                    whereClauses.push(`${colExtraSanitizada} IS NULL`);
-                } else {
-                    whereClauses.push(`${colExtraSanitizada} = $${paramIndex}`);
-                    params.push(cond.valor);
-                    paramIndex++;
-                }
-            }
-        }
-
-        // 4. Filtro de estado principal
-        if (opts.incluirEstado && opts.estadosValidos && opts.estadosValidos.length > 0) {
-            const estadoPlaceholders = opts.estadosValidos
-                .map(() => `$${paramIndex++}`)
-                .join(', ');
-
-            whereClauses.push(`estado_id IN (${estadoPlaceholders})`);
-            params.push(...opts.estadosValidos);
-        }
-
-        const query = `
-            SELECT ${campoPkSanitizado} AS id
-            FROM ${tablaSanitizada}
-            WHERE ${whereClauses.join(' AND ')}
-            LIMIT 1
-        `;
-
-        try {
-            const duplicados = (await this.dataSource.query(query, params)) as { id: number }[];
-
-            if (duplicados && duplicados.length > 0) {
-                const duplicado = duplicados[0];
-                const detalleCampos = opts.campos
-                    .map((campo) => `${campo.nombre.replace(/_/g, ' ')} "${campo.valor ?? 'NULL'}"`)
-                    .join(', con ');
-
-                throw new DomainException(
-                    `Ya existe un registro con ${detalleCampos}.`,
-                    {
-                        tabla: opts.tabla,
-                        campos: opts.campos,
-                        idDuplicado: duplicado?.id,
-                        idExcluido: opts.idExcluir,
-                        httpStatus: HttpStatus.CONFLICT,
-                    }
-                );
-            }
-        } catch (error) {
-            if (isDomainException(error)) {
-                throw error;
-            }
-            this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-            throw error;
-        }
     }
 }
 
-// C:\sirena\sirena-backend\src\modules\clientes\clientes.service.ts
+export { PaginatedResult };
+
+// C:\sirena\sirena-backend\src\modules\roles-menus\dto\rol-menu-response.dto.ts
+import { Expose, Transform } from 'class-transformer';
+import { Estado, ESTADO_METADATA } from '../../../common/constants/estados.constant';
+import { formatLocalDate } from '../../../common/utils/date-formatter.util';
+
+const transformEstado = ({ obj }: { obj: RolMenuRawResult }) => {
+    const estadoId = Number(obj.estado_id);
+    const metadata = ESTADO_METADATA[estadoId as Estado];
+    return metadata ? metadata.abreviatura : '';
+};
+
+export interface RolMenuRawResult {
+    rol_menu_id: string | number;
+    rol_id: string | number;
+    rol_nombre?: string;
+    rol_codigo?: string;
+    menu_id: string | number;
+    menu_titulo?: string;
+    menu_url?: string;
+    estado_id: string | number;
+    estado_registro?: string;
+    usuario_operacion?: string;
+    usuario_id_registro: string | number;
+    usuario_id_actualizacion?: string | number | null;
+    usuario_id_baja?: string | number | null;
+    fecha_registro: string | Date;
+    fecha_actualizacion?: string | Date | null;
+    fecha_baja?: string | Date | null;
+    total_count?: string | number;
+    tiene_dependencias?: boolean;
+    campos_protegidos?: string[];
+}
+
+export class RolMenuResponseDto {
+    @Expose() rol_menu_id!: number;
+    @Expose() rol_id!: number;
+
+    @Expose()
+    @Transform(({ obj }) => obj.rol_nombre || null)
+    rol_nombre!: string;
+
+    @Expose()
+    @Transform(({ obj }) => obj.rol_codigo || null)
+    rol_codigo!: string;
+
+    @Expose() menu_id!: number;
+
+    @Expose()
+    @Transform(({ obj }) => obj.menu_titulo || null)
+    menu_titulo!: string;
+
+    @Expose()
+    @Transform(({ obj }) => obj.menu_url || null)
+    menu_url!: string;
+
+    @Expose() estado_id!: number;
+
+    @Expose()
+    @Transform(transformEstado)
+    estado_registro!: string;
+
+    @Expose()
+    usuario_operacion!: string;
+
+    @Expose() usuario_id_registro!: number;
+    @Expose() usuario_id_actualizacion?: number | null;
+    @Expose() usuario_id_baja?: number | null;
+
+    @Expose()
+    @Transform(({ value }) => formatLocalDate(value))
+    fecha_registro!: string | null;
+
+    @Expose()
+    @Transform(({ value }) => formatLocalDate(value))
+    fecha_actualizacion?: string | null;
+
+    @Expose()
+    @Transform(({ value }) => formatLocalDate(value))
+    fecha_baja?: string | null;
+
+    @Expose()
+    tiene_dependencias!: boolean;
+
+    @Expose()
+    campos_protegidos?: string[];
+}
+
+// C:\sirena\sirena-backend\src\modules\roles-menus\roles-menus.service.ts
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -3346,72 +3616,64 @@ import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
-import { CreateClienteDto } from './dto/create-cliente.dto';
-import { FindClientesQueryDto } from './dto/find-clientes-query.dto';
-import { ClienteResponseDto } from './dto/cliente-response.dto';
-import { UpdateClienteDto } from './dto/update-cliente.dto';
-import { Cliente } from './entities/cliente.entity';
+import { CreateRolMenuDto } from './dto/create-rol-menu.dto';
+import { RolMenuResponseDto } from './dto/rol-menu-response.dto';
+import { FindRolesMenusQueryDto } from './dto/find-roles-menus-query.dto';
+import { UpdateRolMenuDto } from './dto/update-rol-menu.dto';
+import { RolMenu } from './entities/rol-menu.entity';
 
 @Injectable()
-export class ClientesService extends BaseService {
+export class RolesMenusService extends BaseService {
     protected config: BaseServiceConfig = {
-        nombreTabla: 'clientes',
-        nombreEntidad: 'Cliente',
-        campoPK: 'cliente_id',
+        nombreTabla: 'roles_menus',
+        nombreEntidad: 'Asignación de Rol a Menú',
+        campoPK: 'rol_menu_id',
         alias: 't',
-        responseDto: ClienteResponseDto,
-        camposBusquedaEnQ: FindClientesQueryDto.getCamposParaQ(),
-        tablasDependientes: FindClientesQueryDto.getDependencias(),
+        responseDto: RolMenuResponseDto,
+        camposBusquedaEnQ: FindRolesMenusQueryDto.getCamposParaQ(),
+        tablasDependientes: [],
         joins: [
             {
-                table: 'bancos',
-                alias: 'b',
-                onCondition: 'b.banco_id = t.banco_base_id',
+                table: 'roles',
+                alias: 'r',
+                onCondition: 'r.rol_id = t.rol_id',
                 selectColumns: [
-                    'b.banco AS banco_base_nombre',
-                    'b.abreviatura AS banco_base_abreviatura'
+                    'r.rol AS rol_nombre',
+                    'r.codigo AS rol_codigo'
+                ],
+                type: 'INNER'
+            },
+            {
+                table: 'menus',
+                alias: 'm',
+                onCondition: 'm.menu_id = t.menu_id',
+                selectColumns: [
+                    'm.titulo AS menu_titulo',
+                    'm.url AS menu_url'
                 ],
                 type: 'INNER'
             }
         ],
         configuracionFiltros: [
             {
-                nombreCampo: 'tipo_cliente_id',
-                nombreColumna: 'tipo_cliente_id',
+                nombreCampo: 'rol_id',
+                nombreColumna: 'rol_id',
                 tipoDatoFiltro: 'number',
                 operador: 'eq',
             },
             {
-                nombreCampo: 'tipo_documento_id',
-                nombreColumna: 'tipo_documento_id',
+                nombreCampo: 'menu_id',
+                nombreColumna: 'menu_id',
                 tipoDatoFiltro: 'number',
                 operador: 'eq',
-            },
-            {
-                nombreCampo: 'banco_base_id',
-                nombreColumna: 'banco_base_id',
-                tipoDatoFiltro: 'number',
-                operador: 'eq',
-            },
-            {
-                nombreCampo: 'habilitado_ventas',
-                nombreColumna: 'habilitado_ventas',
-                tipoDatoFiltro: 'number',
-                operador: 'eq',
-            },
-            {
-                nombreCampo: 'estado_id',
-                nombreColumna: 'estado_id',
-                tipoDatoFiltro: 'number',
-                operador: 'eq',
-            },
+            }
         ],
         configuracionOrden: {
-            campoOrdenPorDefecto: 'cliente_id',
-            camposPermitidosParaOrdenar: FindClientesQueryDto.getCamposPermitidosParaOrdenar(),
-            equivalenciasMapeo: FindClientesQueryDto.getEquivalenciasMapeo(),
+            campoOrdenPorDefecto: 'rol_menu_id',
+            camposPermitidosParaOrdenar: FindRolesMenusQueryDto.getCamposPermitidosParaOrdenar(),
+            equivalenciasMapeo: FindRolesMenusQueryDto.getEquivalenciasMapeo(),
         },
-        getCamposProtegidosConDependencias: () => FindClientesQueryDto.getCamposProtegidosConDependencias(),
+        getCamposProtegidosConDependencias: () => FindRolesMenusQueryDto.getCamposProtegidosConDependencias(),
     };
 
     constructor(
@@ -3431,79 +3693,40 @@ export class ClientesService extends BaseService {
         return this.config.campoPK;
     }
 
-    async create(dto: CreateClienteDto, usuarioId: number): Promise<ClienteResponseDto> {
+    async create(dto: CreateRolMenuDto, usuarioId: number): Promise<RolMenuResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
             const validaciones: Promise<any>[] = [
-                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear')
+                this.tablaValidador.validarRegistrosActivos('roles', 'rol_id', dto.rol_id),
+                this.tablaValidador.validarRegistrosActivos('menus', 'menu_id', dto.menu_id),
+                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
+                this.unicidadValidador.validarUnicidad({
+                    tabla: this.nombreTabla,
+                    campos: [
+                        { nombre: 'rol_id', valor: dto.rol_id },
+                        { nombre: 'menu_id', valor: dto.menu_id }
+                    ],
+                    estadosValidos: [...ESTADOS_VIVOS],
+                    campoPk: this.campoPK,
+                })
             ];
-
-            if (dto.banco_base_id) {
-                validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dto.banco_base_id)
-                );
-            }
-
-            if (dto.documento && dto.documento !== '0') {
-                const camposUnicidad = [
-                    { nombre: 'tipo_documento_id', valor: dto.tipo_documento_id ?? 2200 },
-                    { nombre: 'documento', valor: dto.documento }
-                ];
-
-                if (dto.documento_complemento) {
-                    camposUnicidad.push({ nombre: 'documento_complemento', valor: dto.documento_complemento });
-                }
-
-                validaciones.push(
-                    this.unicidadValidador.validarUnicidad({
-                        tabla: this.nombreTabla,
-                        campos: camposUnicidad,
-                        estadosValidos: [...ESTADOS_VIVOS],
-                        campoPk: this.campoPK
-                    })
-                );
-            }
 
             await Promise.all(validaciones);
 
             const query = `
                 INSERT INTO ${this.nombreTabla} (
-                    tipo_cliente_id,
-                    cliente,
-                    nit,
-                    razon_social,
-                    documento,
-                    documento_complemento,
-                    tipo_documento_id,
-                    direccion,
-                    telefono,
-                    email,
-                    banco_base_id,
-                    numero_cuenta,
-                    habilitado_ventas,
-                    limite_credito,
+                    rol_id,
+                    menu_id,
                     estado_id,
                     usuario_id_registro,
                     fecha_registro
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP)
+                VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
                 RETURNING ${this.campoPK}
             `;
 
             const params = [
-                dto.tipo_cliente_id ?? 1150,
-                dto.cliente,
-                dto.nit || null,
-                dto.razon_social || null,
-                dto.documento,
-                dto.documento_complemento || null,
-                dto.tipo_documento_id ?? 2200,
-                dto.direccion || null,
-                dto.telefono || null,
-                dto.email || null,
-                dto.banco_base_id ?? 1,
-                dto.numero_cuenta || null,
-                dto.habilitado_ventas ?? 1,
-                dto.limite_credito ?? 0.00,
+                dto.rol_id,
+                dto.menu_id,
                 ESTADO_ACTIVO,
                 Number(usuarioId)
             ];
@@ -3513,11 +3736,11 @@ export class ClientesService extends BaseService {
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
                 const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] ?? 0);
+                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
 
                 if (newId === 0) {
                     throw new DomainException(
-                        'Error al registrar el cliente.',
+                        'Error al insertar el registro de asignación de rol a menú.',
                         { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
                     );
                 }
@@ -3533,18 +3756,19 @@ export class ClientesService extends BaseService {
         });
     }
 
-    async update(id: number, dto: UpdateClienteDto, usuarioId: number): Promise<ClienteResponseDto> {
+    async update(id: number, dto: UpdateRolMenuDto, usuarioId: number): Promise<RolMenuResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
-            const clienteActual = await manager.findOne(Cliente, {
-                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO }
+            const registroActual = await manager.findOne(RolMenu, {
+                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                lock: { mode: 'pessimistic_write' }
             });
 
-            if (!clienteActual) {
+            if (!registroActual) {
                 throw new DomainException(
-                    'Cliente no encontrado.',
-                    { httpStatus: HttpStatus.NOT_FOUND }
+                    `Registro de asignación de rol a menú no encontrado.`,
+                    { id, httpStatus: HttpStatus.NOT_FOUND }
                 );
             }
 
@@ -3552,61 +3776,51 @@ export class ClientesService extends BaseService {
                 this.nombreTabla,
                 id,
                 dto,
-                FindClientesQueryDto.getDependencias(),
-                FindClientesQueryDto.getCamposProtegidosConDependencias(),
+                FindRolesMenusQueryDto.getDependencias(),
+                FindRolesMenusQueryDto.getCamposProtegidosConDependencias(),
                 this.campoPK,
                 usuarioId
             );
 
+            const nuevoRolId = dto.rol_id ?? registroActual.rol_id;
+            const nuevoMenuId = dto.menu_id ?? registroActual.menu_id;
+
             const validaciones: Promise<any>[] = [];
 
-            if (dto.banco_base_id !== undefined && dto.banco_base_id !== clienteActual.banco_base_id) {
+            if (dto.rol_id !== undefined && dto.rol_id !== registroActual.rol_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dto.banco_base_id)
+                    this.tablaValidador.validarRegistrosActivos('roles', 'rol_id', dto.rol_id)
                 );
             }
 
-            const tipoDocumentoEvaluado = dto.tipo_documento_id ?? clienteActual.tipo_documento_id;
-            const documentoEvaluado = dto.documento ?? clienteActual.documento;
-            const complementoEvaluado = dto.documento_complemento !== undefined
-                ? dto.documento_complemento
-                : clienteActual.documento_complemento;
+            if (dto.menu_id !== undefined && dto.menu_id !== registroActual.menu_id) {
+                validaciones.push(
+                    this.tablaValidador.validarRegistrosActivos('menus', 'menu_id', dto.menu_id)
+                );
+            }
 
-            const huboCambioDocumentacion =
-                (dto.tipo_documento_id !== undefined && dto.tipo_documento_id !== clienteActual.tipo_documento_id) ||
-                (dto.documento !== undefined && dto.documento !== clienteActual.documento) ||
-                (dto.documento_complemento !== undefined && dto.documento_complemento !== clienteActual.documento_complemento);
-
-            if (huboCambioDocumentacion && documentoEvaluado !== '0') {
-                const camposUnicidad = [
-                    { nombre: 'tipo_documento_id', valor: tipoDocumentoEvaluado },
-                    { nombre: 'documento', valor: documentoEvaluado }
-                ];
-
-                if (complementoEvaluado) {
-                    camposUnicidad.push({ nombre: 'documento_complemento', valor: complementoEvaluado });
-                }
-
+            if (dto.rol_id !== undefined || dto.menu_id !== undefined) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
-                        campos: camposUnicidad,
+                        campos: [
+                            { nombre: 'rol_id', valor: nuevoRolId },
+                            { nombre: 'menu_id', valor: nuevoMenuId }
+                        ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
-                        campoPk: this.campoPK
+                        campoPk: this.campoPK,
                     })
                 );
             }
 
-            if (validaciones.length > 0) {
-                await Promise.all(validaciones);
-            }
+            await Promise.all(validaciones);
 
-            Object.assign(clienteActual, dto);
-            clienteActual.update(usuarioId);
+            Object.assign(registroActual, dto);
+            registroActual.update(usuarioId);
 
             try {
-                await manager.save(clienteActual);
+                await manager.save(registroActual);
                 return this.findOne(id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
@@ -3619,10 +3833,13 @@ export class ClientesService extends BaseService {
     }
 }
 
-**DDL DE LA TABLA PRINCIPAL:**
-CREATE TABLE tablas (
-    tabla_id BIGSERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
+DDL TABLA PRINCIPAL 
+CREATE TABLE sucesos (
+    suceso_id INT PRIMARY KEY,
+    tabla_id BIGINT NOT NULL DEFAULT 1,
+    codigo VARCHAR(15) NOT NULL,
+    suceso VARCHAR(30) NOT NULL,
+    descripcion VARCHAR(200) NOT NULL,
     estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO
     usuario_id_registro BIGINT NOT NULL DEFAULT 1,
     usuario_id_actualizacion BIGINT NULL,
@@ -3630,137 +3847,47 @@ CREATE TABLE tablas (
     fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMPTZ NULL,
     fecha_baja TIMESTAMPTZ NULL,
-    CONSTRAINT chk_tablas_estadoid CHECK (estado_id IN (1000, 1001)),
-    CONSTRAINT chk_tablas_nombre_notempty CHECK (TRIM(nombre) <> ''),
-    CONSTRAINT chk_tablas_nombre_formato CHECK (nombre = LOWER(TRIM(nombre)) AND nombre ~ '^[a-z][a-z0-9_]*$')
+    CONSTRAINT fk_sucesos_tabla FOREIGN KEY (tabla_id) REFERENCES tablas(tabla_id),
+    CONSTRAINT chk_suceso_estadoid CHECK (estado_id IN (1000, 1001)),
+    CONSTRAINT chk_sucesos_codigo_notempty CHECK (TRIM(codigo) <> ''),
+    CONSTRAINT chk_sucesos_codigo_minlength CHECK (LENGTH(TRIM(codigo)) >= 3),
+    CONSTRAINT chk_sucesos_codigo_mayusculas CHECK (codigo = UPPER(codigo)),
+    CONSTRAINT chk_sucesos_codigo_formato CHECK (codigo ~ '^[A-Z0-9_-]+$'),
+    CONSTRAINT chk_sucesos_suceso_not_empty CHECK (TRIM(suceso) <> ''),
+    CONSTRAINT chk_sucesos_suceso_minlength CHECK (LENGTH(TRIM(suceso)) >= 3),
+    CONSTRAINT chk_sucesos_suceso_mayusculas CHECK (suceso = UPPER(suceso)),
+    CONSTRAINT chk_sucesos_descripcion_notempty CHECK (TRIM(descripcion) <> '')
 );
-CREATE UNIQUE INDEX uix_tablas_nombre_unique ON tablas (nombre) WHERE estado_id = 1000;
-CREATE INDEX idx_tablas_estado ON tablas (estado_id) WHERE estado_id = 1000;
+CREATE UNIQUE INDEX uix_sucesos_codigo_unique ON sucesos (codigo) WHERE estado_id = 1000;
+CREATE UNIQUE INDEX uix_sucesos_suceso_unique ON sucesos (suceso) WHERE estado_id = 1000;
 
-COMMENT ON TABLE tablas IS 'Reglas de la tabla - tablas
-R.0: La tabla tablas define los nombres de las tablas que pertenecen a la base de datos del sistema.';
-
-// C:\sirena\sirena-backend\src\modules\clientes\dto\create-cliente.dto.ts
-import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsOptional, IsString, IsIn, Min, MaxLength, MinLength, IsNumber, IsEmail } from 'class-validator';
-import { IsSafeText } from '../../../common/decorators/safe-text.decorator';
-import { TipoCliente, TIPO_CLIENTE_METADATA, TipoDocumento, TIPO_DOCUMENTO_METADATA } from '../../../common/constants/estados.constant';
-import { getEnumValues, createEnumMessage } from '../../../common/utils/validation-helper.util';
-
-export class CreateClienteDto {
-    @IsOptional()
-    @IsInt({ message: 'tipo_cliente_id debe ser un número entero.' })
-    @IsIn(getEnumValues(TipoCliente), {
-        message: createEnumMessage(TIPO_CLIENTE_METADATA, getEnumValues(TipoCliente), 'tipo_cliente_id'),
-    })
-    tipo_cliente_id?: number;
-
-    @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-    @IsNotEmpty({ message: 'cliente es obligatorio.' })
-    @IsString({ message: 'cliente debe ser un texto.' })
-    @MinLength(3, { message: 'cliente debe tener al menos 3 caracteres.' })
-    @MaxLength(100, { message: 'cliente no puede exceder los 100 caracteres.' })
-    @IsSafeText()
-    cliente: string;
-
-    @IsOptional()
-    @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-    @IsString({ message: 'nit debe ser un texto.' })
-    @MinLength(1, { message: 'nit no puede estar vacío si se proporciona.' })
-    @MaxLength(20, { message: 'nit no puede exceder los 20 caracteres.' })
-    @IsSafeText()
-    nit?: string;
-
-    @IsOptional()
-    @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-    @IsString({ message: 'razon_social debe ser un texto.' })
-    @MinLength(1, { message: 'razon_social no puede estar vacía si se proporciona.' })
-    @MaxLength(150, { message: 'razon_social no puede exceder los 150 caracteres.' })
-    @IsSafeText()
-    razon_social?: string;
-
-    @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-    @IsNotEmpty({ message: 'documento es obligatorio.' })
-    @IsString({ message: 'documento debe ser un texto.' })
-    @MinLength(1, { message: 'documento debe tener al menos 1 carácter.' })
-    @MaxLength(30, { message: 'documento no puede exceder los 30 caracteres.' })
-    @IsSafeText()
-    documento: string;
-
-    @IsOptional()
-    @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-    @IsString({ message: 'documento_complemento debe ser un texto.' })
-    @MinLength(1, { message: 'documento_complemento no puede estar vacío si se proporciona.' })
-    @MaxLength(10, { message: 'documento_complemento no puede exceder los 10 caracteres.' })
-    @IsSafeText()
-    documento_complemento?: string;
-
-    @IsOptional()
-    @IsInt({ message: 'tipo_documento_id debe ser un número entero.' })
-    @IsIn(getEnumValues(TipoDocumento), {
-        message: createEnumMessage(TIPO_DOCUMENTO_METADATA, getEnumValues(TipoDocumento), 'tipo_documento_id'),
-    })
-    tipo_documento_id?: number;
-
-    @IsOptional()
-    @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-    @IsString({ message: 'direccion debe ser un texto.' })
-    @MinLength(1, { message: 'direccion no puede estar vacía si se proporciona.' })
-    @MaxLength(255, { message: 'direccion no puede exceder los 255 caracteres.' })
-    @IsSafeText()
-    direccion?: string;
-
-    @IsOptional()
-    @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-    @IsString({ message: 'telefono debe ser un texto.' })
-    @MinLength(1, { message: 'telefono no puede estar vacío si se proporciona.' })
-    @MaxLength(100, { message: 'telefono no puede exceder los 100 caracteres.' })
-    @IsSafeText()
-    telefono?: string;
-
-    @IsOptional()
-    @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-    @IsEmail({}, { message: 'email debe ser una dirección de correo electrónico válida.' })
-    @MaxLength(100, { message: 'email no puede exceder los 100 caracteres.' })
-    email?: string;
-
-    @IsOptional()
-    @IsInt({ message: 'banco_base_id debe ser un número entero.' })
-    @Min(1, { message: 'banco_base_id debe ser mayor a 0.' })
-    banco_base_id?: number;
-
-    @IsOptional()
-    @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-    @IsString({ message: 'numero_cuenta debe ser un texto.' })
-    @MinLength(1, { message: 'numero_cuenta no puede estar vacío si se proporciona.' })
-    @MaxLength(50, { message: 'numero_cuenta no puede exceder los 50 caracteres.' })
-    @IsSafeText()
-    numero_cuenta?: string;
-
-    @IsOptional()
-    @IsInt({ message: 'habilitado_ventas debe ser un número entero.' })
-    @IsIn([0, 1], { message: 'habilitado_ventas debe ser 0 (No) o 1 (Sí).' })
-    habilitado_ventas?: number;
-
-    @IsOptional()
-    @IsNumber({ maxDecimalPlaces: 2 }, { message: 'limite_credito debe ser un número con máximo 2 decimales.' })
-    @Min(0, { message: 'limite_credito no puede ser negativo.' })
-    limite_credito?: number;
-}
-
-**TABLAS DEPENDIENTES:**
-----------------------+-----------+-------------------+-----------
-tabla_dependiente     |columna_fk |tabla_referenciada |columna_pk 
-----------------------+-----------+-------------------+-----------
-roles_permisos_tablas |tabla_id   |tablas             |tabla_id   
-sucesos               |tabla_id   |tablas             |tabla_id   
-----------------------+-----------+-------------------+-----------
-
-**TABLAS PARA RESPONSE (ESTRUCTURA):**
-----------------------+---------------------+------------------+-----------+----------------
-tabla                 |columna              |tipo_dato         |tipo_clave |referencia_fk   
-----------------------+---------------------+------------------+-----------+----------------
-
-----------------------+---------------------+------------------+-----------+----------------
+COMMENT ON TABLE sucesos IS 'Reglas de la tabla - sucesos
+R.0: La tabla sucesos define los nombres de los eventos.';
 
 
+TABLAS DEPENDIENTES 
+-----------------------+-----------+-------------------+-----------
+tabla_dependiente      |columna_fk |tabla_referenciada |columna_pk 
+-----------------------+-----------+-------------------+-----------
+roles_permisos_sucesos |suceso_id  |sucesos            |suceso_id  
+-----------------------+-----------+-------------------+-----------
+Total de filas: 1
+
+Tablas que deben aparecer en response 
+-----------------------+----------------------+------------------+-----------+-------------------------------------------
+tabla                  |columna               |tipo_dato         |tipo_clave |referencia_fk                              
+-----------------------+----------------------+------------------+-----------+-------------------------------------------
+roles                  |rol_id                |bigint            |PK         |NULL                                       
+roles                  |rol                   |character varying |           |NULL                                       
+roles                  |codigo                |character varying |           |NULL                                       
+roles                  |es_admin              |smallint          |           |NULL                                       
+roles_permisos_sucesos |rol_permiso_suceso_id |bigint            |PK         |NULL                                       
+roles_permisos_sucesos |rol_permiso_tabla_id  |bigint            |FK         |roles_permisos_tablas.rol_permiso_tabla_id 
+roles_permisos_sucesos |suceso_id             |integer           |FK         |sucesos.suceso_id                          
+sucesos                |suceso_id             |integer           |PK         |NULL                                       
+sucesos                |tabla_id              |bigint            |FK         |tablas.tabla_id                            
+sucesos                |codigo                |character varying |           |NULL                                       
+sucesos                |suceso                |character varying |           |NULL                                       
+tablas                 |tabla_id              |bigint            |PK         |NULL                                       
+tablas                 |nombre                |character varying |           |NULL                                       
+-----------------------+----------------------+------------------+-----------+-------------------------------------------

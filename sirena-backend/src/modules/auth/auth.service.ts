@@ -57,12 +57,21 @@ export class AuthService {
                 t.dni AS trabajador_dni,
                 c.cargo_id AS cargo_id,
                 c.cargo AS cargo_nombre,
-                c.codigo AS cargo_codigo
+                c.codigo AS cargo_codigo,
+                e.empresa_id AS empresa_id,
+                e.empresa AS empresa_nombre,
+                e.codigo AS empresa_codigo,
+                s.sucursal_id AS sucursal_id,
+                s.sucursal AS sucursal_nombre,
+                s.codigo AS sucursal_codigo,
+                s.codigo_sin AS sucursal_codigo_sin
             FROM usuarios u
             INNER JOIN roles r ON r.rol_id = u.rol_id AND r.estado_id = $2
             INNER JOIN trabajadores t ON t.trabajador_id = u.trabajador_id AND t.estado_id = $2
             INNER JOIN trabajadores_cargos tc ON tc.trabajador_id = t.trabajador_id AND tc.estado_id = $2 AND tc.es_activo = 1
             INNER JOIN cargos c ON c.cargo_id = tc.cargo_id AND c.estado_id = $2
+            INNER JOIN sucursales s ON s.sucursal_id = t.sucursal_id AND s.estado_id = $2
+            INNER JOIN empresas e ON e.empresa_id = s.empresa_id AND e.estado_id = $2
             WHERE u.login = $1
             AND u.estado_id = $2
         `;

@@ -31,9 +31,8 @@ export class CreateBancoDto {
 
     @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
     @IsOptional()
-    @IsString({ message: 'El campo descripcion debe ser de tipo texto.' })
-    @MaxLength(255, { message: 'El campo descripcion no puede exceder los 255 caracteres.' })
+    @IsString({message: 'El campo descripcion debe ser de tipo texto.'})
+    @MaxLength(255, {message: 'El campo descripcion no puede exceder los 255 caracteres.'})
     @IsSafeText()
-    @MinLength(1, { message: 'La descripción no puede estar vacía si se proporciona.' })
     descripcion?: string | null;
 }

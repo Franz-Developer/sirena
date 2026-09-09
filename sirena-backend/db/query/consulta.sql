@@ -13,7 +13,7 @@ JOIN information_schema.constraint_column_usage AS ccu
     AND ccu.table_schema = ccu.table_schema
 WHERE tc.constraint_type = 'FOREIGN KEY'
     AND tc.table_schema = 'public'
-    AND ccu.table_name = 'clientes'
+    AND ccu.table_name = 'cuis'
 ORDER BY kcu.table_name;
 
 
@@ -76,7 +76,7 @@ JOIN information_schema.columns AS c
     AND c.table_schema = ccu.table_schema
 WHERE tc.constraint_type = 'FOREIGN KEY'
     AND tc.table_schema = 'public'
-    AND tc.table_name = 'clientes'
+    AND tc.table_name = 'cuis'
     AND c.column_name NOT IN (
         'estado_id',
         'usuario_id_registro',
@@ -87,6 +87,7 @@ WHERE tc.constraint_type = 'FOREIGN KEY'
         'fecha_baja'
     )
 ORDER BY ccu.table_name, c.ordinal_position;
+
 
 
 SELECT
@@ -139,8 +140,8 @@ SELECT
 FROM information_schema.columns AS c
 WHERE c.table_schema = 'public'
   AND c.table_name IN (
-      'clientes',
-      'bancos'
+      'puntos_venta',
+      'sucursales'
   )
   AND c.column_name NOT IN (
       'estado_id',

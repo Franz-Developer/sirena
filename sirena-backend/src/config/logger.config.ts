@@ -1,3 +1,4 @@
+// C:\sirena\sirena-backend\src\config\logger.config.ts
 import * as fs from 'fs';
 import { resolve } from 'path';
 import { Params } from 'nestjs-pino';

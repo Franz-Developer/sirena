@@ -1,6 +1,5 @@
-// C:\sirena\sirena-backend\src\modules\trabajadores-cargos\dto\update-trabajador-cargo.dto.ts
-/*import { PartialType } from '@nestjs/mapped-types';
-import { CreateTrabajadorCargoDto } from './create-trabajador-cargo.dto';
+// C:\sirena\sirena-backend\src\modules\sucesos\dto\update-suceso.dto.ts
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateSucesoDto } from './create-suceso.dto';
 
-export class UpdateTrabajadorCargoDto extends PartialType(CreateTrabajadorCargoDto) {}
-*/
+export class UpdateSucesoDto extends PartialType(CreateSucesoDto) {}

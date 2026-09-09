@@ -1,5 +1,5 @@
-// C:\sirena\sirena-backend\src\modules\trabajadores-cargos\trabajadores-cargos.controller.ts
-/*import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe, UseGuards } from '@nestjs/common';
+// C:\sirena\sirena-backend\src\modules\sucesos\sucesos.controller.ts
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { Cache, CACHE_LARGO } from '../../common/decorators/cache.decorator';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { InvalidateCache } from '../../common/decorators/invalidate-cache.decorator';
@@ -8,74 +8,66 @@ import { CustomValidationPipe } from '../../common/decorators/validation-message
 import { PaginatedResult } from '../../common/interfaces/pagination.interface';
 import { AuthenticatedUser } from '../../common/interfaces/user.interface';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CreateTrabajadorCargoDto } from './dto/create-trabajador-cargo.dto';
-import { TrabajadorCargoResponseDto } from './dto/trabajador-cargo-response.dto';
-import { FindTrabajadoresCargosQueryDto } from './dto/find-trabajadores-cargos-query.dto';
-import { UpdateTrabajadorCargoDto } from './dto/update-trabajador-cargo.dto';
-import { TrabajadoresCargosService } from './trabajadores-cargos.service';
+import { SucesosService } from './sucesos.service';
+import { CreateSucesoDto } from './dto/create-suceso.dto';
+import { UpdateSucesoDto } from './dto/update-suceso.dto';
+import { SucesoResponseDto } from './dto/suceso-response.dto';
+import { Suceso } from './entities/suceso.entity';
+import { FindSucesosQueryDto } from './dto/find-sucesos-query.dto';
 
 @UseGuards(JwtAuthGuard)
-@Controller('trabajadores-cargos')
-export class TrabajadoresCargosController {
-    constructor(
-        private readonly trabajadoresCargosService: TrabajadoresCargosService,
-    ) {}
+@Controller('sucesos')
+export class SucesosController {
+    constructor(private readonly sucesosService: SucesosService) {}
 
-    // GET /trabajadores-cargos - Listar asignaciones
     @Get()
     @FindAllRateLimit()
-    @Cache('trabajadores-cargos', CACHE_LARGO)
+    @Cache('sucesos', CACHE_LARGO)
     findAll(
-        @Query(CustomValidationPipe({ concise: true }))
-        query: FindTrabajadoresCargosQueryDto,
+        @Query(CustomValidationPipe({ concise: true })) query: FindSucesosQueryDto,
         @GetUser() user: AuthenticatedUser
-    ): Promise<PaginatedResult<TrabajadorCargoResponseDto>> {
-        return this.trabajadoresCargosService.findAll(query, user.usuario_id);
+    ): Promise<PaginatedResult<Suceso>> {
+        return this.sucesosService.findAll(query, user.usuario_id);
     }
 
-    // GET /trabajadores-cargos/:id - Obtener una asignación
     @Get(':id')
     @FindOneRateLimit()
-    @Cache('trabajadores-cargos', CACHE_LARGO)
+    @Cache('sucesos', CACHE_LARGO)
     findOne(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
-    ): Promise<TrabajadorCargoResponseDto> {
-        return this.trabajadoresCargosService.findOne(id, user.usuario_id);
+    ): Promise<Suceso> {
+        return this.sucesosService.findOne(id, user.usuario_id);
     }
 
-    // POST /trabajadores-cargos - Crear asignación
     @Post()
     @CreateRateLimit()
-    @InvalidateCache('trabajadores-cargos')
+    @InvalidateCache('sucesos')
     create(
-        @Body() dto: CreateTrabajadorCargoDto,
+        @Body() dto: CreateSucesoDto,
         @GetUser() user: AuthenticatedUser
-    ): Promise<TrabajadorCargoResponseDto> {
-        return this.trabajadoresCargosService.create(dto, user.usuario_id);
+    ): Promise<SucesoResponseDto> {
+        return this.sucesosService.create(dto, user.usuario_id);
     }
 
-    // PATCH /trabajadores-cargos/:id - Actualizar asignación
     @Patch(':id')
     @UpdateRateLimit()
-    @InvalidateCache('trabajadores-cargos')
+    @InvalidateCache('sucesos')
     update(
         @Param('id', ParseIntPipe) id: number,
-        @Body() dto: UpdateTrabajadorCargoDto,
+        @Body() dto: UpdateSucesoDto,
         @GetUser() user: AuthenticatedUser
-    ): Promise<TrabajadorCargoResponseDto> {
-        return this.trabajadoresCargosService.update(id, dto, user.usuario_id);
+    ): Promise<SucesoResponseDto> {
+        return this.sucesosService.update(id, dto, user.usuario_id);
     }
 
-    // DELETE /trabajadores-cargos/:id - Eliminar asignación (borrado lógico)
     @Delete(':id')
     @DeleteRateLimit()
-    @InvalidateCache('trabajadores-cargos')
+    @InvalidateCache('sucesos')
     remove(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
-    ): Promise<TrabajadorCargoResponseDto> {
-        return this.trabajadoresCargosService.remove<TrabajadorCargoResponseDto>(id, user.usuario_id);
+    ): Promise<SucesoResponseDto> {
+        return this.sucesosService.remove<SucesoResponseDto>(id, user.usuario_id);
     }
 }
-*/

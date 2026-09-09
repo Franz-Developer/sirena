@@ -5,7 +5,6 @@ import { ParametroGlobal } from '../../modules/parametros-globales/entities/para
 import { ImagenValidatorService } from './imagen-validator.service';
 import { TablaValidadorService } from './tabla-validador.service';
 import { UnicidadValidadorService } from './unicidad-validador.service';
-import { IsEventosPermitidosConstraint, IsValidTableConstraint } from './is-eventos-permitidos.validator.service';
 
 @Global()
 @Module({
@@ -16,15 +15,11 @@ import { IsEventosPermitidosConstraint, IsValidTableConstraint } from './is-even
         TablaValidadorService,
         UnicidadValidadorService,
         ImagenValidatorService,
-        IsEventosPermitidosConstraint,
-        IsValidTableConstraint,
     ],
     exports: [
         TablaValidadorService,
         UnicidadValidadorService,
         ImagenValidatorService,
-        IsEventosPermitidosConstraint,
-        IsValidTableConstraint,
     ],
 })
 export class ValidatorsModule {}
