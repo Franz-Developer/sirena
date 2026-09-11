@@ -56,8 +56,8 @@ export class TiposCambiosController {
         return this.tiposCambiosService.create(dto, user.usuario_id);
     }
 
-    // POST /tipos_cambios/convertir/bolivianos-a-dolares - Convertir BOB a USD
-    @Post('convertir/bolivianos-a-dolares')
+    // POST /tipos_cambios/convertir/bolivianos_a_dolares - Convertir BOB a USD
+    @Post('convertir/bolivianos_a_dolares')
     @CreateRateLimit()
     async convertirBolivianosADolares(
         @Body() dto: ConvertirMonedaDto,

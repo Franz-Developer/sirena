@@ -1,132 +1,58 @@
 
-ANALIZALO a fondo 
-Dime si existe un error o algo que no se esta validando en el modulo bancos
-Debes advertirme si algo no se esta controlando o algo es ilogico o algo no es coherente con el DDL de la tabla 
-La validación y normalización de datos DEBE estar en el DTO. El servicio NO debe duplicar esta lógica.
-La validación y normalización de datos DEBE estar en el DTO. El servicio NO debe duplicar esta lógica.
-EN EL DTO no puede haber valores por defecto eso debe esta en el archivo entity
-Si esta bien no solo responde SIN ERROR
-Si encuentras errores 
-has una lista de ERRORES No. XXX PERO AYUPADOS POR archivo 
-Explicacion: nombre de archivo, funcion, corta y simple  
-USAR LENGUAJE tecnico y formal 
-TODOS LOS ERRORES de un archivo deben estar separados por archivo debe ir estrictamente dentro de las comillas invertidas de Markdown o backticks.
-
-LUEGO mostrar el archivo completo y mejorado solo AUMENTAR comentarios que indique que se aumento o elimino usar emoji 👈 
-LUEGO mostrar el archivo completo y mejorado solo AUMENTAR comentarios que indique que se aumento o elimino usar emoji 👈 
-
-
-
-
-ANALIZALO A FONDO y haz una lista de todas las tablas en orden de creacion y quiero una descripcion completa que es lo que hace y que constantes controla no tomar en estado_id
-FORMATO DE SALDA: 
-
-NOMBRE_TABLA: Descripcion 
-
-
-que aumento para que no tome en cuenta las carpetas 
-C:\sirena\sirena-backend\node_modules
-C:\sirena\sirena-backend\dist
-C:\sirena\sirena-frontend\node_modules
-C:\sirena\sirena-frontend\.nuxt
+CREATE TABLE bancos (
+    banco_id BIGSERIAL PRIMARY KEY,
+    banco VARCHAR(60) NOT NULL,
+    codigo_asfi CHAR(2) NOT NULL,
+    abreviatura VARCHAR(20) NOT NULL,
+	descripcion VARCHAR(255) NULL,
+	estado_id SMALLINT NOT NULL DEFAULT 1000,			-- 1000=ACTIVO, 1001=BORRADO, 1002=HISTORICO
+    usuario_id_registro BIGINT NOT NULL DEFAULT 1,
+    usuario_id_actualizacion BIGINT NULL,
+    usuario_id_baja BIGINT NULL,
+    fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMPTZ NULL,
+    fecha_baja TIMESTAMPTZ NULL,
+    CONSTRAINT chk_bancos_banco_minlength CHECK (LENGTH(TRIM(banco)) >= 3),
+    CONSTRAINT chk_bancos_abreviatura_minlength CHECK (LENGTH(TRIM(abreviatura)) >= 2),
+    CONSTRAINT chk_bancos_codigoasfi_numerico CHECK (codigo_asfi ~ '^[0-9]{2}$'),
+	CONSTRAINT chk_bancos_banco_mayusculas CHECK (banco = UPPER(banco)),
+	CONSTRAINT chk_bancos_estadoid CHECK (estado_id IN (1000, 1001, 1002))
+);
+CREATE UNIQUE INDEX uix_bancos_codigoasfi_unique ON bancos (codigo_asfi) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_bancos_abreviatura_unique ON bancos (abreviatura) WHERE estado_id IN (1000, 1002);
+CREATE UNIQUE INDEX uix_bancos_banco_unique ON bancos (banco) WHERE estado_id IN (1000, 1002);
 
 
-:: =======================================================
-:: OPT 4: CONSOLIDAR ARCHIVOS .TS
-:: =======================================================
-:CONSOLIDAR_TS
-cls
-echo ============================================
-echo Consolidando archivos TypeScript (.ts)
-echo ============================================
-echo.
+SELECT setval('bancos_banco_id_seq', COALESCE((SELECT MAX(banco_id) FROM bancos), 0), (SELECT COUNT(*) > 0 FROM bancos));
 
-set /p "USER_PATH=Ingrese la ruta o carpeta a buscar (Dejar en blanco para usar por defecto): "
-set BACKEND_DIR=sirena-backend
-set DEFAULT_OUTPUT=backend_consolidado_ts.txt
+SELECT banco_id, banco, codigo_asfi, abreviatura, estado_id, usuario_id_registro
+FROM bancos
+ORDER BY banco_id ASC;
+SALE 
+---------+---------------------------------+------------+------------+----------+--------------------
+banco_id |banco                            |codigo_asfi |abreviatura |estado_id |usuario_id_registro 
+---------+---------------------------------+------------+------------+----------+--------------------
+1        |NINGUNO                          |99          |NIN         |1000      |1                   
+2        |BANCO NACIONAL DE BOLIVIA S.A.   |01          |BNB         |1000      |2                   
+3        |BANCO MERCANTIL SANTA CRUZ S.A.  |02          |BMSC        |1000      |2                   
+4        |BANCO BISA S.A.                  |03          |BISA        |1002      |2                   
+5        |BANCO DE CREDITO DE BOLIVIA S.A. |04          |BCB         |1002      |2                   
+6        |BANCO ECONOMICO S.A.             |05          |BEC         |1000      |2                   
+7        |BANCO GANADERO S.A.              |06          |BGA         |1000      |2                   
+8        |BANCO SOLIDARIO S.A.             |07          |BSO         |1000      |2                   
+9        |BANCO UNION S.A.                 |08          |BUN         |1000      |2                   
+10       |BANCO FIE S.A.                   |09          |FIE         |1000      |2                   
+11       |BANCO PRODEM S.A.                |10          |PRD         |1000      |2                   
+12       |BANCO PYME ECOFUTURO S.A.        |11          |ECO         |1000      |2                   
+13       |BANCO PYME DE LA COMUNIDAD S.A.  |12          |BCO         |1000      |2                   
+14       |BANCO NIÑOS                      |13          |BBB         |1001      |2                   
+15       |BANCO PRUEBA                     |14          |B1          |1001      |2                   
+16       |BANCO DE PRUEBA                  |15          |MM          |1001      |2                   
+17       |BANCO DE PRUEBA 2                |16          |MM2         |1001      |2                   
+18       |BANCO HOLA                       |17          |MNS         |1001      |2                   
+19       |BANCO LINDO                      |18          |MMM3        |1002      |2                   
+20       |ADJAS D ADHAS                    |34          |4551        |1000      |2                   
+---------+---------------------------------+------------+------------+----------+--------------------
+Total de filas: 20
 
-set /p "USER_OUTPUT=Ingrese el nombre del archivo de salida [Por defecto: %DEFAULT_OUTPUT%]: "
-if "%USER_OUTPUT%"==" " set USER_OUTPUT=
-if "%USER_OUTPUT%"=="" (
-    set OUTPUT_NAME=%DEFAULT_OUTPUT%
-) else (
-    set OUTPUT_NAME=%USER_OUTPUT%
-)
-
-set OUTPUT_DIR=C:\sirena\salida
-if not exist "%OUTPUT_DIR%" (
-    mkdir "%OUTPUT_DIR%"
-    echo [INFO] Carpeta de salida creada: %OUTPUT_DIR%
-)
-
-set OUTPUT_FILE=%OUTPUT_DIR%\%OUTPUT_NAME%
-
-if "%USER_PATH%"=="" (
-    set SOURCE_DIR=%BACKEND_DIR%\src
-) else (
-    if exist "%USER_PATH%" (
-        set SOURCE_DIR=%USER_PATH%
-    ) else if exist "%BACKEND_DIR%\%USER_PATH%" (
-        set SOURCE_DIR=%BACKEND_DIR%\%USER_PATH%
-    ) else if exist "%BACKEND_DIR%\src\%USER_PATH%" (
-        set SOURCE_DIR=%BACKEND_DIR%\src\%USER_PATH%
-    ) else (
-        echo [ERROR] La ruta especificada no existe: %USER_PATH%
-        goto SALIR
-    )
-)
-
-if not exist "%SOURCE_DIR%" (
-    echo [ERROR] No se encuentra la carpeta de busqueda: %SOURCE_DIR%
-    goto SALIR
-)
-
-echo Directorio en uso: %SOURCE_DIR%
-echo Archivo de salida: %OUTPUT_FILE%
-
-if exist "%OUTPUT_FILE%" del "%OUTPUT_FILE%"
-echo ARCHIVO CONSOLIDADO TYPESCRIPT (.TS) > "%OUTPUT_FILE%"
-echo ============================================ >> "%OUTPUT_FILE%"
-echo Generado: %date% %time% >> "%OUTPUT_FILE%"
-echo Directorio analizado: %SOURCE_DIR% >> "%OUTPUT_FILE%"
-echo ============================================ >> "%OUTPUT_FILE%"
-echo. >> "%OUTPUT_FILE%"
-
-set COUNT=0
-echo Buscando archivos .ts ...
-
-for /R "%SOURCE_DIR%" %%f in (*.ts) do (
-    echo "%%f" | findstr /i "node_modules" >nul
-    if errorlevel 1 (
-        echo "%%f" | findstr /i "dist" >nul
-        if errorlevel 1 (
-            set /a COUNT+=1
-            echo Procesando: %%f
-            set "FILE_PATH[!COUNT!]=%%f"
-            echo. >> "%OUTPUT_FILE%"
-            echo ---- %%f ---- >> "%OUTPUT_FILE%"
-            echo. >> "%OUTPUT_FILE%"
-            type "%%f" >> "%OUTPUT_FILE%"
-            echo. >> "%OUTPUT_FILE%"
-        )
-    )
-)
-
-echo. >> "%OUTPUT_FILE%"
-echo ============================================ >> "%OUTPUT_FILE%"
-echo RESUMEN DE ARCHIVOS CONSOLIDADOS: >> "%OUTPUT_FILE%"
-echo ============================================ >> "%OUTPUT_FILE%"
-for /l %%i in (1,1,%COUNT%) do (
-    echo [%%i] !FILE_PATH[%%i]! >> "%OUTPUT_FILE%"
-)
-echo ============================================ >> "%OUTPUT_FILE%"
-echo Total de archivos procesados: !COUNT! >> "%OUTPUT_FILE%"
-echo ============================================ >> "%OUTPUT_FILE%"
-
-echo.
-echo ============================================
-echo PROCESO COMPLETADO
-echo Archivos procesados: !COUNT!
-echo Archivo generado en: %OUTPUT_FILE%
-echo ============================================
-goto SALIR
+Puedes crear 30 bancos de prueba cualquier nombre 

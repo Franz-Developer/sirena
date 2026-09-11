@@ -15,16 +15,16 @@ import { UpdateEmpresaCuentaDto } from './dto/update-empresa-cuenta.dto';
 import { EmpresasCuentasService } from './empresas-cuentas.service';
 
 @UseGuards(JwtAuthGuard)
-@Controller('empresas-cuentas')
+@Controller('empresas_cuentas')
 export class EmpresasCuentasController {
     constructor(
         private readonly empresasCuentasService: EmpresasCuentasService,
     ) {}
 
-    // GET /empresas-cuentas - Listar cuentas bancarias de empresas
+    // GET /empresas_cuentas - Listar cuentas bancarias de empresas
     @Get()
     @FindAllRateLimit()
-    @Cache('empresas-cuentas', CACHE_LARGO)
+    @Cache('empresas_cuentas', CACHE_LARGO)
     findAll(
         @Query(CustomValidationPipe({ concise: true }))
         query: FindEmpresasCuentasQueryDto,
@@ -33,10 +33,10 @@ export class EmpresasCuentasController {
         return this.empresasCuentasService.findAll(query, user.usuario_id);
     }
 
-    // GET /empresas-cuentas/:id - Obtener una cuenta bancaria de empresa
+    // GET /empresas_cuentas/:id - Obtener una cuenta bancaria de empresa
     @Get(':id')
     @FindOneRateLimit()
-    @Cache('empresas-cuentas', CACHE_LARGO)
+    @Cache('empresas_cuentas', CACHE_LARGO)
     findOne(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
@@ -44,10 +44,10 @@ export class EmpresasCuentasController {
         return this.empresasCuentasService.findOne(id, user.usuario_id);
     }
 
-    // POST /empresas-cuentas - Crear cuenta bancaria de empresa
+    // POST /empresas_cuentas - Crear cuenta bancaria de empresa
     @Post()
     @CreateRateLimit()
-    @InvalidateCache('empresas-cuentas')
+    @InvalidateCache('empresas_cuentas')
     create(
         @Body() dto: CreateEmpresaCuentaDto,
         @GetUser() user: AuthenticatedUser
@@ -55,10 +55,10 @@ export class EmpresasCuentasController {
         return this.empresasCuentasService.create(dto, user.usuario_id);
     }
 
-    // PATCH /empresas-cuentas/:id - Actualizar cuenta bancaria de empresa
+    // PATCH /empresas_cuentas/:id - Actualizar cuenta bancaria de empresa
     @Patch(':id')
     @UpdateRateLimit()
-    @InvalidateCache('empresas-cuentas')
+    @InvalidateCache('empresas_cuentas')
     update(
         @Param('id', ParseIntPipe) id: number,
         @Body() dto: UpdateEmpresaCuentaDto,
@@ -67,10 +67,10 @@ export class EmpresasCuentasController {
         return this.empresasCuentasService.update(id, dto, user.usuario_id);
     }
 
-    // DELETE /empresas-cuentas/:id - Eliminar cuenta bancaria de empresa (borrado lógico)
+    // DELETE /empresas_cuentas/:id - Eliminar cuenta bancaria de empresa (borrado lógico)
     @Delete(':id')
     @DeleteRateLimit()
-    @InvalidateCache('empresas-cuentas')
+    @InvalidateCache('empresas_cuentas')
     remove(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
@@ -78,10 +78,10 @@ export class EmpresasCuentasController {
         return this.empresasCuentasService.remove<EmpresaCuentaResponseDto>(id, user.usuario_id);
     }
 
-    // PATCH /empresas-cuentas/:id/archivar - Archivar cuenta bancaria de empresa
+    // PATCH /empresas_cuentas/:id/archivar - Archivar cuenta bancaria de empresa
     @Patch(':id/archivar')
     @ArchiveRateLimit()
-    @InvalidateCache('empresas-cuentas')
+    @InvalidateCache('empresas_cuentas')
     archivar(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
@@ -89,10 +89,10 @@ export class EmpresasCuentasController {
         return this.empresasCuentasService.archivar<EmpresaCuentaResponseDto>(id, user.usuario_id);
     }
 
-    // PATCH /empresas-cuentas/:id/desarchivar - Desarchivar cuenta bancaria de empresa
+    // PATCH /empresas_cuentas/:id/desarchivar - Desarchivar cuenta bancaria de empresa
     @Patch(':id/desarchivar')
     @ArchiveRateLimit()
-    @InvalidateCache('empresas-cuentas')
+    @InvalidateCache('empresas_cuentas')
     desarchivar(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser

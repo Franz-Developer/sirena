@@ -3,7 +3,7 @@
 # DEFINICIÓN DE VARIABLES
 # ----------------------------------------------------------------------
 @baseUrl = http://localhost:3010/api
-@baseUrl_empresas_cuentas = {{baseUrl}}/empresas-cuentas
+@baseUrl_empresas_cuentas = {{baseUrl}}/ empresas_cuentas
 @baseUrl_empresas = {{baseUrl}}/empresas
 @baseUrl_bancos = {{baseUrl}}/bancos
 @baseUrl_constantes = {{baseUrl}}/constantes

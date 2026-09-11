@@ -15,16 +15,16 @@ import { UpdateEmpresaNitDto } from './dto/update-empresa-nit.dto';
 import { EmpresasNitsService } from './empresas-nits.service';
 
 @UseGuards(JwtAuthGuard)
-@Controller('empresas-nits')
+@Controller('empresas_nits')
 export class EmpresasNitsController {
     constructor(
         private readonly empresasNitsService: EmpresasNitsService,
     ) {}
 
-    // GET /empresas-nits - Listar NITs de empresas
+    // GET /empresas_nits - Listar NITs de empresas
     @Get()
     @FindAllRateLimit()
-    @Cache('empresas-nits', CACHE_LARGO)
+    @Cache('empresas_nits', CACHE_LARGO)
     findAll(
         @Query(CustomValidationPipe({ concise: true }))
         query: FindEmpresasNitsQueryDto,
@@ -33,10 +33,10 @@ export class EmpresasNitsController {
         return this.empresasNitsService.findAll(query, user.usuario_id);
     }
 
-    // GET /empresas-nits/:id - Obtener un NIT de empresa
+    // GET /empresas_nits/:id - Obtener un NIT de empresa
     @Get(':id')
     @FindOneRateLimit()
-    @Cache('empresas-nits', CACHE_LARGO)
+    @Cache('empresas_nits', CACHE_LARGO)
     findOne(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
@@ -44,10 +44,10 @@ export class EmpresasNitsController {
         return this.empresasNitsService.findOne(id, user.usuario_id);
     }
 
-    // POST /empresas-nits - Crear NIT de empresa
+    // POST /empresas_nits - Crear NIT de empresa
     @Post()
     @CreateRateLimit()
-    @InvalidateCache('empresas-nits')
+    @InvalidateCache('empresas_nits')
     create(
         @Body() dto: CreateEmpresaNitDto,
         @GetUser() user: AuthenticatedUser
@@ -55,10 +55,10 @@ export class EmpresasNitsController {
         return this.empresasNitsService.create(dto, user.usuario_id);
     }
 
-    // PATCH /empresas-nits/:id - Actualizar NIT de empresa
+    // PATCH /empresas_nits/:id - Actualizar NIT de empresa
     @Patch(':id')
     @UpdateRateLimit()
-    @InvalidateCache('empresas-nits')
+    @InvalidateCache('empresas_nits')
     update(
         @Param('id', ParseIntPipe) id: number,
         @Body() dto: UpdateEmpresaNitDto,
@@ -67,10 +67,10 @@ export class EmpresasNitsController {
         return this.empresasNitsService.update(id, dto, user.usuario_id);
     }
 
-    // DELETE /empresas-nits/:id - Eliminar NIT de empresa (borrado lógico)
+    // DELETE /empresas_nits/:id - Eliminar NIT de empresa (borrado lógico)
     @Delete(':id')
     @DeleteRateLimit()
-    @InvalidateCache('empresas-nits')
+    @InvalidateCache('empresas_nits')
     remove(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
@@ -78,10 +78,10 @@ export class EmpresasNitsController {
         return this.empresasNitsService.remove<EmpresaNitResponseDto>(id, user.usuario_id);
     }
 
-    // PATCH /empresas-nits/:id/archivar - Archivar NIT de empresa
+    // PATCH /empresas_nits/:id/archivar - Archivar NIT de empresa
     @Patch(':id/archivar')
     @ArchiveRateLimit()
-    @InvalidateCache('empresas-nits')
+    @InvalidateCache('empresas_nits')
     archivar(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
@@ -89,10 +89,10 @@ export class EmpresasNitsController {
         return this.empresasNitsService.archivar<EmpresaNitResponseDto>(id, user.usuario_id);
     }
 
-    // PATCH /empresas-nits/:id/desarchivar - Desarchivar NIT de empresa
+    // PATCH /empresas_nits/:id/desarchivar - Desarchivar NIT de empresa
     @Patch(':id/desarchivar')
     @ArchiveRateLimit()
-    @InvalidateCache('empresas-nits')
+    @InvalidateCache('empresas_nits')
     desarchivar(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser

@@ -416,7 +416,7 @@ Authorization: Bearer {{authToken}}
 # ==============================================================================
 
 ### CONVERTIR BOLIVIANOS A DÓLARES (BOB → USD)
-POST {{baseUrl_tipos_cambios}}/convertir/bolivianos-a-dolares
+POST {{baseUrl_tipos_cambios}}/convertir/bolivianos_a_dolares
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 

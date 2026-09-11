@@ -3,7 +3,7 @@
 # DEFINICIÓN DE VARIABLES
 # ----------------------------------------------------------------------
 @baseUrl = http://localhost:3010/api
-@baseUrl_empresas_nits = {{baseUrl}}/empresas-nits
+@baseUrl_empresas_nits = {{baseUrl}}/empresas_nits
 @baseUrl_empresas = {{baseUrl}}/empresas
 @baseUrl_constantes = {{baseUrl}}/constantes
 @rest-client.previewOption = body
@@ -53,7 +53,20 @@ GET {{baseUrl_constantes}}?tipo=modalidad_facturacion_id
 Authorization: Bearer {{authToken}}
 
 ### LISTAR POR ESTADO ACTIVOS (1000)
-GET {{baseUrl_empresas}}
+GET {{baseUrl_empresas}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_empresas}}?limit=100&sortField=empresa&sortOrder=1&estado_id=1000
+Authorization: Bearer {{authToken}}
+
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_empresas_nits}}?limit=10&offset=0&sortField=empresa_nit_id&sortOrder=-1&exactMatch=0&empresa_id=2
+Authorization: Bearer {{authToken}}
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_empresas_nits}}?limit=10&offset=0&sortField=empresa_nit_id&sortOrder=-1&exactMatch=0&empresa_id=2
 Authorization: Bearer {{authToken}}
 
 # ==============================================================================
