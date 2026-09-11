@@ -15,16 +15,16 @@ import { UpdateParametroGlobalDto } from './dto/update-parametro-global.dto';
 import { ParametrosGlobalesService } from './parametros-globales.service';
 
 @UseGuards(JwtAuthGuard)
-@Controller('parametros-globales')
+@Controller('parametros_globales')
 export class ParametrosGlobalesController {
     constructor(
         private readonly parametrosGlobalesService: ParametrosGlobalesService,
     ) {}
 
-    // GET /parametros-globales - Listar parámetros
+    // GET /parametros_globales - Listar parámetros
     @Get()
     @FindAllRateLimit()
-    @Cache('parametros-globales', CACHE_LARGO)
+    @Cache('parametros_globales', CACHE_LARGO)
     findAll(
         @Query(CustomValidationPipe({ concise: true }))
         query: FindParametrosGlobalesQueryDto,
@@ -33,10 +33,10 @@ export class ParametrosGlobalesController {
         return this.parametrosGlobalesService.findAll(query, user.usuario_id);
     }
 
-    // GET /parametros-globales/:id - Obtener un parámetro
+    // GET /parametros_globales/:id - Obtener un parámetro
     @Get(':id')
     @FindOneRateLimit()
-    @Cache('parametros-globales', CACHE_LARGO)
+    @Cache('parametros_globales', CACHE_LARGO)
     findOne(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
@@ -44,10 +44,10 @@ export class ParametrosGlobalesController {
         return this.parametrosGlobalesService.findOne(id, user.usuario_id);
     }
 
-    // POST /parametros-globales - Crear parámetro
+    // POST /parametros_globales - Crear parámetro
     @Post()
     @CreateRateLimit()
-    @InvalidateCache('parametros-globales')
+    @InvalidateCache('parametros_globales')
     create(
         @Body() dto: CreateParametroGlobalDto,
         @GetUser() user: AuthenticatedUser
@@ -55,10 +55,10 @@ export class ParametrosGlobalesController {
         return this.parametrosGlobalesService.create(dto, user.usuario_id);
     }
 
-    // PATCH /parametros-globales/:id - Actualizar parámetro
+    // PATCH /parametros_globales/:id - Actualizar parámetro
     @Patch(':id')
     @UpdateRateLimit()
-    @InvalidateCache('parametros-globales')
+    @InvalidateCache('parametros_globales')
     update(
         @Param('id', ParseIntPipe) id: number,
         @Body() dto: UpdateParametroGlobalDto,
@@ -67,10 +67,10 @@ export class ParametrosGlobalesController {
         return this.parametrosGlobalesService.update(id, dto, user.usuario_id);
     }
 
-    // DELETE /parametros-globales/:id - Eliminar parámetro (borrado lógico)
+    // DELETE /parametros_globales/:id - Eliminar parámetro (borrado lógico)
     @Delete(':id')
     @DeleteRateLimit()
-    @InvalidateCache('parametros-globales')
+    @InvalidateCache('parametros_globales')
     remove(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
@@ -78,10 +78,10 @@ export class ParametrosGlobalesController {
         return this.parametrosGlobalesService.remove<ParametroGlobalResponseDto>(id, user.usuario_id);
     }
 
-    // PATCH /parametros-globales/:id/archivar - Archivar parámetro
+    // PATCH /parametros_globales/:id/archivar - Archivar parámetro
     @Patch(':id/archivar')
     @ArchiveRateLimit()
-    @InvalidateCache('parametros-globales')
+    @InvalidateCache('parametros_globales')
     archivar(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
@@ -89,10 +89,10 @@ export class ParametrosGlobalesController {
         return this.parametrosGlobalesService.archivar<ParametroGlobalResponseDto>(id, user.usuario_id);
     }
 
-    // PATCH /parametros-globales/:id/desarchivar - Desarchivar parámetro
+    // PATCH /parametros_globales/:id/desarchivar - Desarchivar parámetro
     @Patch(':id/desarchivar')
     @ArchiveRateLimit()
-    @InvalidateCache('parametros-globales')
+    @InvalidateCache('parametros_globales')
     desarchivar(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser

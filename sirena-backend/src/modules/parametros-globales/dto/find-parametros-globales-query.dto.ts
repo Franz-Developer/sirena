@@ -1,6 +1,6 @@
 // C:\sirena\sirena-backend\src\modules\parametros-globales\dto\find-parametros-globales-query.dto.ts
 import { Type } from 'class-transformer';
-import { IsOptional, IsInt, IsIn, IsString } from 'class-validator';
+import { IsOptional, IsInt, IsIn, IsString, MaxLength } from 'class-validator';
 import { ESTADO_METADATA, ESTADOS_CONSULTA, TipoDato, TIPO_DATO_METADATA } from '../../../common/constants/estados.constant';
 import { BasePaginationQueryDto } from '../../../common/dto/base-pagination-query.dto';
 import { PaginatedResult } from '../../../common/interfaces/pagination.interface';
@@ -43,6 +43,11 @@ export class FindParametrosGlobalesQueryDto extends BasePaginationQueryDto {
     @IsInt({ message: 'editable debe ser un número entero.' })
     @IsIn([0, 1], { message: 'editable debe ser 0 o 1.' })
     editable?: number;
+
+    @IsOptional()
+    @IsString({ message: 'clave debe ser un texto.' })
+    @MaxLength(100, { message: 'clave no puede exceder los 100 caracteres.' })
+    clave?: string;
 
     static getCampos(): string[] {
         const alias = 't';

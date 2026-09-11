@@ -40,6 +40,12 @@ export class ParametrosGlobalesService extends BaseService {
                 tipoDatoFiltro: 'number',
                 operador: 'eq',
             },
+            {
+                nombreCampo: 'clave',
+                nombreColumna: 'clave',
+                tipoDatoFiltro: 'string',
+                operador: 'ieq',
+            },
         ],
         configuracionOrden: {
             campoOrdenPorDefecto: 'parametro_id',

@@ -3,7 +3,7 @@
 # DEFINICIÓN DE VARIABLES
 # ----------------------------------------------------------------------
 @baseUrl = http://localhost:3010/api
-@baseUrl_tipos_cambios = {{baseUrl}}/tipos-cambios
+@baseUrl_tipos_cambios = {{baseUrl}}/tipos_cambios
 @baseUrl_constantes = {{baseUrl}}/constantes
 @rest-client.previewOption = body
 
@@ -57,6 +57,11 @@ Authorization: Bearer {{authToken}}
 
 ### LISTAR POR ESTADO ACTIVOS (1000)
 GET {{baseUrl_tipos_cambios}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+
+### LISTAR
+GET {{baseUrl_tipos_cambios}}?limit=10&offset=0&sortField=tipo_cambio_id&sortOrder=-1&exactMatch=0
 Authorization: Bearer {{authToken}}
 
 ### HISTÓRICOS (1002)

@@ -34,7 +34,7 @@ export interface BaseServiceConfig {
         nombreCampo: string;      // Nombre del campo en el DTO
         nombreColumna: string;     // Nombre de la columna en la tabla
         tipoDatoFiltro: 'number' | 'string' | 'date' | 'boolean' | 'array';
-        operador?: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'in';
+        operador?: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'in' | 'ieq';
         valoresPermitidos?: any[];
         requerido?: boolean;
     }>;
@@ -276,6 +276,12 @@ export abstract class BaseService {
                             params.push(...value);
                             pIdx += value.length;
                         }
+                        break;
+
+                    case 'ieq':
+                        whereClause += ` AND LOWER(${column}) = LOWER($${pIdx})`;
+                        params.push(value);
+                        pIdx++;
                         break;
 
                     default:

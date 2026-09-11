@@ -16,16 +16,16 @@ import { UpdateTipoCambioDto } from './dto/update-tipo-cambio.dto';
 import { TiposCambiosService } from './tipos-cambios.service';
 
 @UseGuards(JwtAuthGuard)
-@Controller('tipos-cambios')
+@Controller('tipos_cambios')
 export class TiposCambiosController {
     constructor(
         private readonly tiposCambiosService: TiposCambiosService,
     ) {}
 
-    // GET /tipos-cambios - Listar tipos de cambios
+    // GET /tipos_cambios - Listar tipos de cambios
     @Get()
     @FindAllRateLimit()
-    @Cache('tipos-cambios', CACHE_LARGO)
+    @Cache('tipos_cambios', CACHE_LARGO)
     findAll(
         @Query(CustomValidationPipe({ concise: true }))
         query: FindTiposCambiosQueryDto,
@@ -34,10 +34,10 @@ export class TiposCambiosController {
         return this.tiposCambiosService.findAll(query, user.usuario_id);
     }
 
-    // GET /tipos-cambios/:id - Obtener un tipo de cambio por ID
+    // GET /tipos_cambios/:id - Obtener un tipo de cambio por ID
     @Get(':id')
     @FindOneRateLimit()
-    @Cache('tipos-cambios', CACHE_LARGO)
+    @Cache('tipos_cambios', CACHE_LARGO)
     findOne(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
@@ -45,10 +45,10 @@ export class TiposCambiosController {
         return this.tiposCambiosService.findOne(id, user.usuario_id);
     }
 
-    // POST /tipos-cambios - Crear tipo de cambio
+    // POST /tipos_cambios - Crear tipo de cambio
     @Post()
     @CreateRateLimit()
-    @InvalidateCache('tipos-cambios')
+    @InvalidateCache('tipos_cambios')
     create(
         @Body() dto: CreateTipoCambioDto,
         @GetUser() user: AuthenticatedUser
@@ -56,7 +56,7 @@ export class TiposCambiosController {
         return this.tiposCambiosService.create(dto, user.usuario_id);
     }
 
-    // POST /tipos-cambios/convertir/bolivianos-a-dolares - Convertir BOB a USD
+    // POST /tipos_cambios/convertir/bolivianos-a-dolares - Convertir BOB a USD
     @Post('convertir/bolivianos-a-dolares')
     @CreateRateLimit()
     async convertirBolivianosADolares(
@@ -76,10 +76,10 @@ export class TiposCambiosController {
         );
     }
 
-    // PATCH /tipos-cambios/:id - Actualizar tipo de cambio
+    // PATCH /tipos_cambios/:id - Actualizar tipo de cambio
     @Patch(':id')
     @UpdateRateLimit()
-    @InvalidateCache('tipos-cambios')
+    @InvalidateCache('tipos_cambios')
     update(
         @Param('id', ParseIntPipe) id: number,
         @Body() dto: UpdateTipoCambioDto,
@@ -88,10 +88,10 @@ export class TiposCambiosController {
         return this.tiposCambiosService.update(id, dto, user.usuario_id);
     }
 
-    // DELETE /tipos-cambios/:id - Eliminar tipo de cambio (borrado lógico)
+    // DELETE /tipos_cambios/:id - Eliminar tipo de cambio (borrado lógico)
     @Delete(':id')
     @DeleteRateLimit()
-    @InvalidateCache('tipos-cambios')
+    @InvalidateCache('tipos_cambios')
     remove(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
@@ -99,10 +99,10 @@ export class TiposCambiosController {
         return this.tiposCambiosService.remove<TipoCambioResponseDto>(id, user.usuario_id);
     }
 
-    // PATCH /tipos-cambios/:id/archivar - Archivar tipo de cambio (pasar a histórico)
+    // PATCH /tipos_cambios/:id/archivar - Archivar tipo de cambio (pasar a histórico)
     @Patch(':id/archivar')
     @ArchiveRateLimit()
-    @InvalidateCache('tipos-cambios')
+    @InvalidateCache('tipos_cambios')
     archivar(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser
@@ -110,10 +110,10 @@ export class TiposCambiosController {
         return this.tiposCambiosService.archivar<TipoCambioResponseDto>(id, user.usuario_id);
     }
 
-    // PATCH /tipos-cambios/:id/desarchivar - Desarchivar tipo de cambio (volver a activo)
+    // PATCH /tipos_cambios/:id/desarchivar - Desarchivar tipo de cambio (volver a activo)
     @Patch(':id/desarchivar')
     @ArchiveRateLimit()
-    @InvalidateCache('tipos-cambios')
+    @InvalidateCache('tipos_cambios')
     desarchivar(
         @Param('id', ParseIntPipe) id: number,
         @GetUser() user: AuthenticatedUser

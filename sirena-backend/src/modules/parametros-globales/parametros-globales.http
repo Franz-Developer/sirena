@@ -3,7 +3,7 @@
 # DEFINICIÓN DE VARIABLES
 # ----------------------------------------------------------------------
 @baseUrl = http://localhost:3010/api
-@baseUrl_parametros = {{baseUrl}}/parametros-globales
+@baseUrl_parametros = {{baseUrl}}/parametros_globales
 @baseUrl_constantes = {{baseUrl}}/constantes
 @rest-client.previewOption = body
 
@@ -50,6 +50,14 @@ Authorization: Bearer {{authToken}}
 # ==============================================================================
 # LISTAR PARÁMETROS GLOBALES (GET)
 # ==============================================================================
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_parametros}}?estado_id=1000&clave=logo_config
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_parametros}}?clave=logo_config&estado_id=1000
+Authorization: Bearer {{authToken}}
 
 ### LISTAR TODOS (Activos + Históricos por defecto)
 GET {{baseUrl_parametros}}
