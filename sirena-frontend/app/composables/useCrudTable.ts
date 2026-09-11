@@ -2,6 +2,9 @@
 import { useCrudService, type FindParams } from '~/services/crud.service';
 import { ESTADO_ACTIVO } from '~/constants/estados.constant';
 
+// ============================================================
+// TIPOS
+// ============================================================
 export interface UseCrudTableOptions<T> {
     /** Nombre de la tabla en el backend (ej. 'bancos', 'sucursales') */
     tabla: string;
@@ -40,6 +43,152 @@ export interface UseCrudTableOptions<T> {
     camposProtegidosPorDependencia?: string[];
 }
 
+// ============================================================
+// CANDIDATOS DE PK GENERADOS DINÁMICAMENTE
+// ============================================================
+/**
+ * Genera todos los candidatos posibles de nombre de PK para una tabla,
+ * cubriendo los patrones reales de la base de datos SIRENA.
+ *
+ * Patrones cubiertos:
+ *  1. `id` genérico
+ *  2. `<tabla>_id`                    → 'bancos_id'  (raro, pero por si acaso)
+ *  3. `<tabla_sin_s>_id`              → 'banco_id'
+ *  4. `<cada_palabra_singular>_id`    → 'tipo_cambio_id' (desde 'tipos_cambios')
+ *  5. `<última_palabra_singular>_id`  → 'venta_id' (fallback)
+ *  6. Casos especiales documentados en SIRENA
+ */
+const generarCandidatosPK = (tabla: string): string[] => {
+    const candidatos = new Set<string>();
+
+    // 1. Genérico
+    candidatos.add('id');
+
+    // 2. Tabla tal cual + _id
+    candidatos.add(`${tabla}_id`);
+
+    // 3. Tabla sin la 's' final
+    const sinS = tabla.replace(/s$/, '');
+    candidatos.add(`${sinS}_id`);
+
+    // 4. Singularizar CADA palabra por separado
+    const singularPorPalabra = tabla
+        .split('_')
+        .map((palabra) => palabra.replace(/s$/, ''))
+        .join('_');
+    candidatos.add(`${singularPorPalabra}_id`);
+
+    // 5. Última palabra singularizada
+    const palabras = tabla.split('_');
+    const ultimaPalabra = palabras[palabras.length - 1] ?? '';
+    const ultimaSingular = ultimaPalabra.replace(/s$/, '');
+    if (ultimaSingular) {
+        candidatos.add(`${ultimaSingular}_id`);
+    }
+
+    // 6. Casos especiales documentados en SIRENA
+    const casosEspeciales: Record<string, string> = {
+        // ─── Plurales irregulares ───
+        'tipos_cambios': 'tipo_cambio_id',
+        'lotes_productos': 'lote_id',
+        'puntos_venta': 'punto_venta_id',
+        'rangos_edad': 'rango_edad_id',
+
+        // ─── Productos (relaciones polimórficas) ───
+        'productos_controlados': 'producto_controlado_id',
+        'productos_principios': 'producto_principio_id',
+        'productos_rangos_edad': 'producto_rango_edad_id',
+        'productos_ubicaciones': 'producto_ubicacion_id',
+        'productos_vias': 'producto_via_id',
+        'promociones_productos': 'promocion_producto_id',
+
+        // ─── Proveedores ───
+        'proveedores_contactos': 'proveedor_contacto_id',
+        'proveedores_rating_historico': 'rating_historico_id',
+
+        // ─── Planes de pago ───
+        'planes_pagos': 'plan_pago_id',
+        'tipos_planes_pago': 'tipo_plan_pago_id',
+
+        // ─── Roles y permisos ───
+        'roles_permisos_tablas': 'rol_permiso_tabla_id',
+        'roles_permisos_sucesos': 'rol_permiso_suceso_id',
+        'roles_menus': 'rol_menu_id',
+
+        // ─── Empresas ───
+        'empresas_nits': 'empresa_nit_id',
+        'empresas_cuentas': 'empresa_cuenta_id',
+
+        // ─── Almacenes ───
+        'almacenes_puntos_venta': 'almacen_punto_venta_id',
+
+        // ─── Inventarios ───
+        'inventarios_fisicos': 'inventario_fisico_id',
+        'inventarios_fisicos_detalle': 'inventario_fisico_detalle_id',
+
+        // ─── Kardex ───
+        'kardex_productos': 'kardex_producto_id',
+
+        // ─── E-commerce ───
+        'detalles_pedidos_online': 'detalle_pedido_online_id',
+        'detalles_carritos': 'detalle_carrito_id',
+        'carritos_compra': 'carrito_id',
+        'pedidos_online': 'pedido_online_id',
+
+        // ─── Ubicaciones ───
+        'ubicaciones_movimientos': 'ubicacion_movimiento_id',
+        'ubicaciones_historial': 'ubicacion_historial_id',
+
+        // ─── Analítica / IA ───
+        'analitica_productos': 'analitica_id',
+        'patrones_consumo': 'patron_id',
+        'metricas_rendimiento': 'metrica_id',
+        'logs_ejecucion': 'log_id',
+        'variables_exogenas': 'variable_exogena_id',
+        'umbrales_configuracion': 'umbral_id',
+
+        // ─── RRHH ───
+        'trabajadores_cargos': 'trabajador_cargo_id',
+        'planillas_detalle': 'planilla_detalle_id',
+
+        // ─── Compras ───
+        'ordenes_compra': 'orden_compra_id',
+        'comprobantes_pagos': 'comprobante_pago_id',
+
+        // ─── Caja ───
+        'arqueos_detalle': 'arqueo_detalle_id',
+
+        // ─── Alertas / Tareas / Parámetros ───
+        'alertas_notificaciones': 'alerta_notificacion_id',
+        'tareas_programadas': 'tarea_id',
+        'parametros_globales': 'parametro_id',
+        'control_facturas': 'control_factura_id',
+
+        // ─── Productos (catálogos) ───
+        'registros_sanitarios': 'registro_sanitario_id',
+        'principios_activos': 'principio_activo_id',
+
+        // ─── Precios ───
+        'listas_precios': 'lista_precio_id',
+        'precios_productos': 'precio_producto_id',
+        'costos_promedio': 'costo_promedio_id',
+        'politicas_precios': 'politica_precio_id',
+
+        // ─── Conversiones ───
+        'conversiones_unidad': 'conversion_id',
+    };
+
+    const pkEspecial = casosEspeciales[tabla];
+    if (pkEspecial) {
+        candidatos.add(pkEspecial);
+    }
+
+    return Array.from(candidatos);
+};
+
+// ============================================================
+// COMPOSABLE PRINCIPAL
+// ============================================================
 export const useCrudTable = <T extends { [k: string]: any }>(opts: UseCrudTableOptions<T>) => {
     const { notify } = useNotify();
     const { $rules } = useNuxtApp() as any;
@@ -48,15 +197,36 @@ export const useCrudTable = <T extends { [k: string]: any }>(opts: UseCrudTableO
     const permisos = crud.permisos(opts.tablaPermisos);
 
     // ---------- Primary key resolver ----------
+    /**
+     * Resuelve la PK de un item de forma robusta.
+     *
+     * Orden de búsqueda:
+     *  1. Si el usuario definió `getPrimaryKey`, se usa.
+     *  2. Se generan candidatos dinámicos + casos especiales documentados.
+     *  3. Se retorna el primer candidato con valor no nulo/vacío.
+     *  4. Si nada coincide, se lanza error con lista de candidatos.
+     */
     const resolvePK = (item: T): number | string => {
+        // 1. Override del usuario
         if (opts.getPrimaryKey) return opts.getPrimaryKey(item);
-        // Busca patrones comunes: 'id', 'banco_id', 'empresas_id', etc.
-        const singular = opts.tabla.replace(/s$/, '');
-        const candidates = ['id', `${singular}_id`, `${opts.tabla}_id`];
-        for (const key of candidates) {
-            if (item[key] !== undefined && item[key] !== null) return item[key];
+
+        // 2. Candidatos generados
+        const candidatos = generarCandidatosPK(opts.tabla);
+
+        // 3. Buscar el primer candidato que exista en el item
+        for (const key of candidatos) {
+            const valor = item[key];
+            if (valor !== undefined && valor !== null && valor !== '') {
+                return valor;
+            }
         }
-        throw new Error(`No se pudo resolver la PK de ${opts.tabla}. Define getPrimaryKey().`);
+
+        // 4. Error explícito con candidatos probados
+        throw new Error(
+            `[useCrudTable] No se pudo resolver la PK de "${opts.tabla}". ` +
+            `Candidatos probados: ${candidatos.join(', ')}. ` +
+            `Define getPrimaryKey() en las opciones del composable.`
+        );
     };
 
     // ---------- Estado del listado ----------
@@ -95,9 +265,7 @@ export const useCrudTable = <T extends { [k: string]: any }>(opts: UseCrudTableO
 
     // ---------- Campos protegidos por dependencias ----------
     const camposProtegidos = computed<string[]>(() => {
-        // Si el registro NO tiene dependencias, no se protege ningún campo.
         if (!formObj.value?.tiene_dependencias) return [];
-        // Si tiene dependencias, se protegen los campos configurados o los que vengan del backend.
         return opts.camposProtegidosPorDependencia ?? formObj.value?.campos_protegidos ?? [];
     });
 
@@ -159,17 +327,15 @@ export const useCrudTable = <T extends { [k: string]: any }>(opts: UseCrudTableO
     };
 
     const edit = async (data: T) => {
-        // 1. Relleno inmediato con lo que viene del listado (evita que se vea vacío).
         formObj.value = { ...data };
         submitted.value = false;
         touched.value = {};
         dialog.value = true;
 
-        // 2. Traigo el detalle completo (con tiene_dependencias y campos_protegidos).
         try {
             const pk = resolvePK(data);
             const detalle = await crud.obtener(pk);
-            console.log('[edit] detalle desde /bancos/:id:', detalle);
+            console.log(`[edit] detalle desde /${opts.tabla}/:id:`, detalle);
             formObj.value = { ...detalle };
         } catch (err) {
             console.warn(`No se pudo cargar el detalle de ${opts.tabla}:`, err);
@@ -185,7 +351,6 @@ export const useCrudTable = <T extends { [k: string]: any }>(opts: UseCrudTableO
     const save = async () => {
         submitted.value = true;
 
-        // Validación personalizada (si existe)
         if (opts.validate && !opts.validate(formObj.value, $rules, notify)) return;
 
         try {

@@ -31,37 +31,29 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
     import { useAuthStore } from '@/stores/auth';
     import { computed, ref, onMounted, watch, onBeforeUnmount } from 'vue';
     import { useRoute } from 'vue-router';
+    import type { MenuItem } from '~/types/menu';
 
     const authStore = useAuthStore();
     const route = useRoute();
-    const expandedKeys = ref({});
+    const expandedKeys = ref<Record<string, boolean>>({});
 
-    const formatMenu = (items) => {
-        if (!items || !items.length) return undefined;
-
-        return items.map(item => ({
-            label: item.titulo || item.label,
-            icon: item.icono || item.icon,
-            to: item.url || item.to,
-            key: item.titulo || item.label,
-            items: formatMenu(item.items)
-        }));
-    };
-
-    const primeMenu = computed(() => {
-        return formatMenu(authStore.menu) || [];
-    });
+    /**
+     * El store ya normaliza el menú a la forma canónica:
+     *   { label, icon, to, key, items }
+     * Por eso aquí NO hace falta transformar nada.
+     */
+    const primeMenu = computed<MenuItem[]>(() => authStore.menu);
 
     const updateActiveMenu = () => {
-        const findAndExpand = (items, targetPath) => {
+        const findAndExpand = (items: MenuItem[], targetPath: string): boolean => {
             for (const item of items) {
-                if (item.items) {
+                if (item.items && item.items.length) {
                     if (findAndExpand(item.items, targetPath)) {
-                        expandedKeys.value[item.key] = true;
+                        if (item.key) expandedKeys.value[item.key] = true;
                         return true;
                     }
                 }
@@ -83,6 +75,7 @@
 
     const handleResize = () => {
         if (window.innerWidth >= 768) {
+            // Espacio reservado por si se requiere lógica adicional en desktop
         }
     };
 

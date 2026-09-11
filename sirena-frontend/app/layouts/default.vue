@@ -183,14 +183,19 @@
 <script setup lang="ts">
     import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
     import { useRoute } from 'vue-router';
+    // ⬇️ Importación explícita (no dependemos del auto-import)
+    import { useNotify } from '~/composables/useNotify';
 
     const { notify } = useNotify();
     const route = useRoute();
     const authStore = useAuthStore();
+    // ⬇️ Obtenemos $api del plugin centralizado
+    const { $api } = useNuxtApp() as any;
+    const config = useRuntimeConfig();
+
     const userMenu = ref();
     const isSidebarOpen = ref<boolean>(true);
     const isMobile = ref<boolean>(false);
-    const config = useRuntimeConfig();
     const showPasswordModal = ref<boolean>(false);
     const currentPassword = ref<string>('');
     const newPassword = ref<string>('');
@@ -262,22 +267,24 @@
 
         try {
             const userId = authStore.user.usuario_id;
-            await $fetch(`${config.public.apiBase}/usuarios/${userId}/password`, {
+
+            // ⬇️ Usamos $api: el plugin ya añade el token y maneja el 401.
+            await $api(`/usuarios/${userId}/password`, {
                 method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${authStore.token}`,
-                },
                 body: {
                     contrasenaActual: currentPassword.value,
                     nuevaContrasena: newPassword.value,
-                    confirmarContrasena: confirmPassword.value
-                }
+                    confirmarContrasena: confirmPassword.value,
+                },
             });
+
             notify('success', 'Éxito', 'Contraseña actualizada correctamente');
             closePasswordModal();
         } catch (e: any) {
             const mensajeServidor = e?.data?.message || 'Error inesperado';
-            passwordError.value = Array.isArray(mensajeServidor) ? mensajeServidor.join(', ') : mensajeServidor;
+            passwordError.value = Array.isArray(mensajeServidor)
+                ? mensajeServidor.join(', ')
+                : mensajeServidor;
             notify('error', 'Error de Actualización', passwordError.value);
         } finally {
             isUpdatingPassword.value = false;

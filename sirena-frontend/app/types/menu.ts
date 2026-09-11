@@ -2,14 +2,41 @@
 
 /**
  * Item de menú tal como lo devuelve el backend.
- * El backend devuelve menús puros: label, icon, to, items.
- * Los permisos viajan aparte, en un mapa por tabla.
+ * Acepta alias por compatibilidad: titulo, icono, url.
+ * El backend puede enviar `null` en `to`/`url`, pero aquí se acepta.
+ */
+export interface MenuItemBackend {
+    label?: string;
+    icon?: string;
+    to?: string | null;
+    items?: MenuItemBackend[];
+    titulo?: string;
+    icono?: string;
+    url?: string | null;
+}
+
+/**
+ * Item de menú normalizado para la UI (compatible con PrimeVue PanelMenu).
+ *
+ * IMPORTANTE: `to` y `url` son `string | undefined` (SIN null)
+ * porque PrimeVue no acepta `null`. El store se encarga de convertir
+ * cualquier `null` del backend a `undefined`.
  */
 export interface MenuItem {
     label: string;
     icon?: string;
-    to?: string | null;
+    to?: string;
+    url?: string;
+    key?: string;
     items?: MenuItem[];
+
+    // Extras compatibles con PrimeVue (opcionales)
+    command?: (event: any) => void;
+    disabled?: boolean;
+    visible?: boolean;
+    target?: string;
+    class?: string;
+    style?: string;
 }
 
 /**

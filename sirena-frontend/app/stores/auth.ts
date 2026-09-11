@@ -2,7 +2,12 @@
 import { defineStore } from 'pinia';
 import Cookies from 'js-cookie';
 import { safeJSONParse } from '../utils/safe-json';
-import type { MenuItem, PermisosMap, PermisosTabla } from '../types/menu';
+import type {
+    MenuItem,
+    MenuItemBackend,
+    PermisosMap,
+    PermisosTabla,
+} from '../types/menu';
 
 interface UserData {
     usuario_id: number;
@@ -36,6 +41,37 @@ interface AuthData {
     permisos: PermisosMap;
 }
 
+/**
+ * Normaliza el menú del backend (MenuItemBackend) a la forma canónica
+ * que espera el PanelMenu de PrimeVue (MenuItem).
+ *
+ * Reglas críticas:
+ *  - `null` se convierte en `undefined` para `to` y `url`
+ *    (PrimeVue no acepta `null`).
+ *  - Se generan `key` automáticas basadas en `label` para el PanelMenu.
+ *  - Acepta alias del backend: titulo → label, icono → icon, url → to.
+ */
+const normalizeMenu = (items: MenuItemBackend[] = []): MenuItem[] => {
+    return items.map((item) => {
+        const label = item.label ?? item.titulo ?? '';
+        const to = item.to ?? item.url ?? undefined;
+
+        const normalized: MenuItem = {
+            label,
+            icon: item.icon ?? item.icono ?? undefined,
+            // ⬇️ Coerción explícita: null/'' → undefined
+            to: to ? to : undefined,
+            key: label,
+        };
+
+        if (item.items && item.items.length) {
+            normalized.items = normalizeMenu(item.items);
+        }
+
+        return normalized;
+    });
+};
+
 export const useAuthStore = defineStore('auth', {
     state: () => {
         const isClient = process.client;
@@ -45,7 +81,8 @@ export const useAuthStore = defineStore('auth', {
 
         return {
             user: authData?.user || null,
-            menu: authData?.menu || ([] as MenuItem[]),
+            // Normalizamos también lo que viene del localStorage por seguridad
+            menu: normalizeMenu((authData?.menu as MenuItemBackend[]) || []),
             token: authData?.token || (isClient ? Cookies.get('auth_token') : null) || null,
             permisos: authData?.permisos || ({} as PermisosMap),
         };
@@ -80,7 +117,7 @@ export const useAuthStore = defineStore('auth', {
         startSession(
             userData: UserData,
             token: string,
-            menuData: MenuItem[],
+            menuData: MenuItemBackend[],
             permisosData: PermisosMap,
         ) {
             this.user = {
@@ -94,7 +131,9 @@ export const useAuthStore = defineStore('auth', {
             };
 
             this.token = token;
-            this.menu = [...menuData];
+            // ⬇️ Normalizamos aquí para que TODO el frontend reciba siempre
+            //    la misma forma canónica, independientemente del backend.
+            this.menu = normalizeMenu(menuData);
             this.permisos = { ...permisosData };
 
             Cookies.set('auth_token', token, {

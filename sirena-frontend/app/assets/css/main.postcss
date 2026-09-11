@@ -276,3 +276,41 @@ body {
         opacity: 0;
     }
 }
+
+/* 10. CABECERA DE TABLA FIJA (STICKY HEADER) */
+/* Fuerza que la cabecera se quede pegada arriba al hacer scroll vertical */
+.p-datatable-scrollable .p-datatable-thead > tr > th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 2 !important;
+    background-color: var(--primary-dark) !important;
+    color: white !important;
+}
+
+/* Evita que el fondo se transparente al hacer scroll */
+.p-datatable-scrollable .p-datatable-thead {
+    background-color: var(--primary-dark) !important;
+}
+
+/* El contenedor de la tabla con scroll interno */
+.p-datatable-scrollable > .p-datatable-wrapper {
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+}
+
+/* Opcional: barra de scroll más delgada y bonita */
+.p-datatable-scrollable > .p-datatable-wrapper::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+.p-datatable-scrollable > .p-datatable-wrapper::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+.p-datatable-scrollable > .p-datatable-wrapper::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 4px;
+}
+.p-datatable-scrollable > .p-datatable-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+

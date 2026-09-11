@@ -11,7 +11,7 @@
             @action="openNew"
         />
 
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" style="height: 75vh;">
             <BaseTable
                 :value="items"
                 :loading="loading"
@@ -314,8 +314,6 @@
 </template>
 
 <script setup lang="ts">
-    import { useImageValidator } from '~/composables/useImageValidator';
-
     useHead({ title: 'Empresas | SIRENA' });
 
     const { validate: validateImage, getConfigDisplay } = useImageValidator()

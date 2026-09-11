@@ -6,23 +6,30 @@
             <slot name="filters" />
         </div>
 
-        <!-- Zona derecha: buscador + exactMatch -->
-        <div class="flex items-center gap-2">
+        <!-- Zona derecha: buscador + exactMatch (Responsivo en móviles y pantallas grandes) -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
             <slot name="actions" />
 
             <!-- Buscador (BaseSearch) -->
-            <div v-if="showSearch" class="w-full md:w-96">
+            <div v-if="showSearch" class="flex-1 w-full md:w-96">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Buscar
+                </label>
                 <BaseSearch
                     :model-value="searchValue"
                     :placeholder="searchPlaceholder"
                     :debounce="debounce"
+                    class="w-full"
                     @update:model-value="$emit('update:searchValue', $event)"
                     @search="$emit('search')"
                 />
             </div>
 
             <!-- Selector exactMatch -->
-            <div v-if="showExactMatch && showSearch" class="w-40 shrink-0">
+            <div v-if="showExactMatch && showSearch" class="w-full sm:w-40 shrink-0">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Coincidencia
+                </label>
                 <BaseSelect
                     :model-value="exactMatch"
                     :options="opcionesExactMatch"
@@ -30,6 +37,7 @@
                     option-value="value"
                     placeholder="Tipo"
                     size="sm"
+                    class="w-full"
                     @update:model-value="$emit('update:exactMatch', $event)"
                     @change="$emit('search')"
                 />
