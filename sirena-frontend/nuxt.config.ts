@@ -11,6 +11,9 @@ export default defineNuxtConfig({
         '@/assets/css/main.postcss'
     ],
     devtools: { enabled: false },
+    components: [
+        { path: '~/components', pathPrefix: false },
+    ],
     routeRules: {
         '/**': { ssr: false }
     },

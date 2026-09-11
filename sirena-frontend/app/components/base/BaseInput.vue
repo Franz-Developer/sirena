@@ -3,8 +3,9 @@
         <label v-if="label" class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{{ label }}</label>
         <div class="relative">
             <i v-if="icon" :class="icon" class="absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none text-slate-400 text-xs"></i>
-            <InputText 
+            <InputText
                 v-bind="$attrs"
+                :model-value="modelValue"
                 :class="[
                     'w-full bg-white border border-[var(--border-color)] rounded-[var(--radius-std)] px-3 py-2 transition-all',
                     'focus:outline-none focus:border-[var(--primary-color)] focus:ring-2 focus:ring-blue-100',
@@ -13,7 +14,7 @@
                 ]"
                 :placeholder="placeholder"
                 :disabled="disabled"
-                @input="onInput"
+                @update:model-value="onInput"
             />
         </div>
         <small v-if="error" class="text-red-500 font-medium text-[10px]">{{ error }}</small>
@@ -33,7 +34,7 @@
 
     const emit = defineEmits(['update:modelValue']);
 
-    const onInput = (event) => {
-        emit('update:modelValue', event.target.value);
+    const onInput = (value) => {
+        emit('update:modelValue', value);
     };
 </script>

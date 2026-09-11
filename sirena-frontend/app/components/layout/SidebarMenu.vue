@@ -1,4 +1,4 @@
-<!-- C:\sirena\sirena-frontend\app\components\SidebarMenu.vue -->
+<!-- C:\sirena\sirena-frontend\app\components\layout\SidebarMenu.vue -->
 <template>
     <div class="modern-sidebar">
         <div class="menu-container custom-scrollbar pr-2">

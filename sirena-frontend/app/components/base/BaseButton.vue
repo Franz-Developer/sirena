@@ -1,12 +1,15 @@
+<!-- C:\sirena\sirena-frontend\app\components\base\BaseButton.vue -->
 <template>
-    <Button 
+    <button
         v-bind="$attrs"
+        type="button"
         :class="buttonClass"
-        :loading="loading"
         :disabled="loading || disabled"
     >
-        <slot />
-    </Button>
+        <i v-if="loading" class="pi pi-spin pi-spinner"></i>
+        <i v-else-if="icon" :class="icon"></i>
+        <slot>{{ label }}</slot>
+    </button>
 </template>
 
 <script setup>
@@ -16,16 +19,17 @@
         variant: {
             type: String,
             default: 'primary',
-            validator: (value) => ['primary', 'secondary', 'danger', 'cancel', 'success', 'warning', 'ghost', 'ghost-orange', 'ghost-green', 'ghost-red', 'secondary-light', 'menu-amber', 'menu-danger'].includes(value)
+            validator: (value) => [
+                'primary', 'secondary', 'danger', 'cancel', 'dialog-cancel',
+                'success', 'warning', 'ghost', 'ghost-orange', 'ghost-green',
+                'ghost-red', 'ghost-purple', 'ghost-amber', 'ghost-sky',
+                'secondary-light', 'menu-amber', 'menu-danger'
+            ].includes(value)
         },
-        loading: {
-            type: Boolean,
-            default: false
-        },
-        disabled: {
-            type: Boolean,
-            default: false
-        },
+        loading: { type: Boolean, default: false },
+        disabled: { type: Boolean, default: false },
+        label: { type: String, default: '' },
+        icon: { type: String, default: '' },
         size: {
             type: String,
             default: 'default',
@@ -34,29 +38,34 @@
     });
 
     const buttonClass = computed(() => {
-        const base = 'font-bold border-none transition-all active:scale-[0.97]';
+        const base = 'inline-flex items-center justify-center gap-2 font-bold border-0 cursor-pointer transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed';
+
         const sizeClasses = {
-             sm: 'text-[10px] px-2 py-1 rounded-lg min-h-[28px]',
+            sm: 'text-[10px] px-2 py-1 rounded-lg min-h-[28px]',
             default: 'text-xs px-4 py-2 rounded-[var(--radius-std)]',
             lg: 'text-sm px-6 py-3 rounded-[var(--radius-std)]'
         };
 
         const variantClasses = {
-            primary: 'bg-[var(--primary-dark)] text-white hover:bg-[var(--primary-dark-hover)] shadow-sm hover:shadow-md',
-            secondary: 'bg-[var(--secondary-color)] text-white hover:bg-[var(--secondary-hover)] shadow-sm hover:shadow-md',
-            danger: 'bg-[var(--danger-color)] text-white hover:bg-[var(--danger-hover)] shadow-sm hover:shadow-md',
-            cancel: 'bg-[var(--bg-disabled)] text-slate-700 border border-[var(--border-color)] hover:bg-slate-200',
-            success: 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:shadow-md',
-            warning: 'bg-amber-600 text-white hover:bg-amber-700 shadow-sm hover:shadow-md',
-            ghost: 'bg-transparent hover:bg-slate-100 text-slate-600',
-            'ghost-orange': 'bg-transparent hover:bg-orange-50 text-orange-500',
-            'ghost-green': 'bg-transparent hover:bg-emerald-50 text-emerald-600',
-            'ghost-red': 'bg-transparent hover:bg-red-50 text-red-500',
-            'secondary-light': 'bg-slate-500 text-white hover:bg-slate-800 border-transparent',
-            'ghost-sky': 'bg-transparent text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-900/20',
-            'ghost-red': 'bg-transparent text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20',
-            'menu-amber': 'bg-transparent text-slate-600 dark:text-slate-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600 transition-colors',
-            'menu-danger': 'bg-transparent text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors',
+            primary: 'bg-[var(--primary-dark)] text-white hover:bg-[var(--primary-dark-hover)]',
+            secondary: 'bg-[var(--secondary-color)] text-white hover:bg-[var(--secondary-hover)]',
+            danger: 'bg-[var(--danger-color)] text-white hover:bg-[var(--danger-hover)]',
+            cancel: 'bg-[var(--bg-disabled)] text-slate-700 border border-[var(--border-color)] hover:bg-slate-300', 'dialog-cancel': 'bg-slate-600 text-white hover:bg-slate-800',
+            success: 'bg-emerald-600 text-white hover:bg-emerald-800',
+            warning: 'bg-amber-600 text-white hover:bg-amber-700',
+
+            // Ghost: sin fondo → hover con fondo de color notorio.
+            ghost: 'bg-transparent text-slate-600 hover:bg-slate-200 hover:text-slate-900',
+            'ghost-orange': 'bg-transparent text-orange-500 hover:bg-orange-200 hover:text-orange-700',
+            'ghost-green': 'bg-transparent text-emerald-600 hover:bg-emerald-200 hover:text-emerald-800',
+            'ghost-red': 'bg-transparent text-red-500 hover:bg-red-200 hover:text-red-700',
+            'ghost-purple': 'bg-transparent text-purple-600 hover:bg-purple-200 hover:text-purple-800',
+            'ghost-amber': 'bg-transparent text-amber-600 hover:bg-amber-200 hover:text-amber-800',
+            'ghost-sky': 'bg-transparent text-sky-600 hover:bg-sky-200 hover:text-sky-800',
+
+            'secondary-light': 'bg-slate-500 text-white border-transparent hover:bg-slate-800',
+            'menu-amber': 'bg-transparent text-slate-600 hover:bg-amber-200 hover:text-amber-700',
+            'menu-danger': 'bg-transparent text-red-500 hover:bg-red-200 hover:text-red-700',
         };
 
         return [
