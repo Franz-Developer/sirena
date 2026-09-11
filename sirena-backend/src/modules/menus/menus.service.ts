@@ -5,8 +5,6 @@ import { DataSource } from 'typeorm';
 import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -15,6 +13,7 @@ import { CreateMenuDto } from './dto/create-menu.dto';
 import { FindMenusQueryDto } from './dto/find-menus-query.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
 import { Menu } from './entities/menu.entity';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class MenusService extends BaseService {
@@ -55,77 +54,53 @@ export class MenusService extends BaseService {
 
     async create(dto: CreateMenuDto, usuarioId: number): Promise<MenuResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            const dtoNormalizado = {
-                ...dto,
-                titulo: dto.titulo.trim().toUpperCase(),
-                url: dto.url ? dto.url.trim() : null,
-                icono: dto.icono ? dto.icono.trim() : null,
-            };
+            if (dto.menu_padre_id) {
+                await this.tablaValidador.validarRegistrosActivos('menus', 'menu_id', dto.menu_padre_id);
+            }
 
             await Promise.all([
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
-                    campos: [{ nombre: 'titulo', valor: dtoNormalizado.titulo }],
+                    campos: [{ nombre: 'titulo', valor: dto.titulo }],
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS]
                 }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (menu_padre_id, titulo, icono, url, orden, estado_id, usuario_id_registro, fecha_registro)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-            const params = [
-                dtoNormalizado.menu_padre_id ?? null,
-                dtoNormalizado.titulo,
-                dtoNormalizado.icono,
-                dtoNormalizado.url,
-                dtoNormalizado.orden ?? 0,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const menu = manager.create(Menu, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        `Error al insertar el menú "${dtoNormalizado.titulo}".`,
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(menu);
+                return this.findOne<MenuResponseDto>(saved.menu_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el menú', 'crear');
             }
         });
     }
 
     async update(id: number, dto: UpdateMenuDto, usuarioId: number): Promise<MenuResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            let dtoNormalizado = { ...dto };
-
-            if (dtoNormalizado.titulo) {
-                dtoNormalizado.titulo = dtoNormalizado.titulo.trim().toUpperCase();
-            }
-            if (dtoNormalizado.url) {
-                dtoNormalizado.url = dtoNormalizado.url.trim();
-            }
-            if (dtoNormalizado.icono) {
-                dtoNormalizado.icono = dtoNormalizado.icono.trim();
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
             }
 
-            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const menuActual = await manager.findOne(Menu, {
                 where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
@@ -135,27 +110,31 @@ export class MenusService extends BaseService {
             if (!menuActual) {
                 throw new DomainException(
                     `Menú no encontrado.`,
-                    { httpStatus: HttpStatus.NOT_FOUND }
+                    { id, httpStatus: HttpStatus.NOT_FOUND }
                 );
             }
 
-            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
-                dtoNormalizado,
+                dto,
                 FindMenusQueryDto.getDependencias(),
                 FindMenusQueryDto.getCamposProtegidosConDependencias(),
                 this.campoPK,
                 usuarioId
             );
 
+            if (dtoProcesado.menu_padre_id) {
+                await this.tablaValidador.validarRegistrosActivos('menus', 'menu_id', dtoProcesado.menu_padre_id);
+            }
+
             const validaciones: Promise<any>[] = [];
 
-            if (dtoNormalizado.titulo && dtoNormalizado.titulo !== menuActual.titulo) {
+            if (dtoProcesado.titulo !== undefined && dtoProcesado.titulo !== menuActual.titulo) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
-                        campos: [{ nombre: 'titulo', valor: dtoNormalizado.titulo }],
+                        campos: [{ nombre: 'titulo', valor: dtoProcesado.titulo }],
                         idExcluir: id,
                         campoPk: this.campoPK,
                         estadosValidos: [...ESTADOS_VIVOS]
@@ -167,7 +146,7 @@ export class MenusService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            Object.assign(menuActual, dtoNormalizado);
+            Object.assign(menuActual, dtoProcesado);
             menuActual.update(usuarioId);
 
             try {
@@ -177,8 +156,10 @@ export class MenusService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el menú', 'actualizar');
             }
         });
     }

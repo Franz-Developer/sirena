@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 import { ESTADOS_VIVOS, ESTADO_ACTIVO } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -14,6 +13,7 @@ import { EmpresaResponseDto } from './dto/empresa-response.dto';
 import { FindEmpresasQueryDto } from './dto/find-empresas-query.dto';
 import { UpdateEmpresaDto } from './dto/update-empresa.dto';
 import { Empresa } from './entities/empresa.entity';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class EmpresasService extends BaseService {
@@ -69,8 +69,10 @@ export class EmpresasService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'la empresa', 'crear');
             }
         });
     }
@@ -116,8 +118,10 @@ export class EmpresasService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'la empresa', 'actualizar');
             }
         });
     }

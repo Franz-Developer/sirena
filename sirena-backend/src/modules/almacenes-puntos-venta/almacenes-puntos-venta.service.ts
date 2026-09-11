@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 import { ESTADO_ACTIVO, ESTADOS_VIVOS, TIPO_ALMACEN_METADATA, TipoPuntoVenta, TIPOS_ALMACEN_LOGISTICA_INTERNA } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -14,6 +13,7 @@ import { AlmacenPuntoVentaResponseDto } from './dto/almacen-punto-venta-response
 import { FindAlmacenesPuntosVentaQueryDto } from './dto/find-almacenes-puntos-venta-query.dto';
 import { UpdateAlmacenPuntoVentaDto } from './dto/update-almacen-punto-venta.dto';
 import { AlmacenPuntoVenta } from './entities/almacen-punto-venta.entity';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class AlmacenesPuntosVentaService extends BaseService {
@@ -204,12 +204,14 @@ export class AlmacenesPuntosVentaService extends BaseService {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
                 const saved = await manager.save(registro);
                 return this.findOne<AlmacenPuntoVentaResponseDto>(saved.almacen_punto_venta_id, usuarioId, manager);
-                } catch (error: unknown) {
+            } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'la asignación de almacén', 'crear');
             }
         });
     }
@@ -238,7 +240,7 @@ export class AlmacenesPuntosVentaService extends BaseService {
                 );
             }
 
-const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
                 dto,
@@ -310,8 +312,10 @@ const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'la asignación de almacén', 'actualizar');
             }
         });
     }

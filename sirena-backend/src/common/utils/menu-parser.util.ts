@@ -1,40 +1,44 @@
 // C:\sirena\sirena-backend\src\common\utils\menu-parser.util.ts
 
-/**
- * Transforma un arreglo plano de registros de menú relacionales en una estructura jerárquica de árbol.
- *
- * Itera sobre las filas proporcionadas, mapeando cada elemento con sus respectivas propiedades,
- * permisos y submenús (`items`), relacionando los nodos hijos con sus padres mediante `menu_padre_id`.
- *
- * @param rows - Arreglo plano de objetos con la información de los menús obtenidos de la base de datos.
- * @returns Un arreglo con los nodos raíz (`menuTree`) que contienen la estructura anidada de menús e hijos.
- */
-export function estructurarMenu(rows: any[]) {
-    const map: any = {};
-    const menuTree: any[] = [];
+export interface MenuItemEstructurado {
+    label: string;
+    icon: string | null;
+    to: string | null;
+    items: MenuItemEstructurado[];
+}
 
+/**
+ * Transforma un arreglo plano de registros de menú relacionales
+ * en una estructura jerárquica de árbol.
+ */
+export function estructurarMenu(rows: any[]): MenuItemEstructurado[] {
+    const map = new Map<number, MenuItemEstructurado>();
+    const menuTree: MenuItemEstructurado[] = [];
+
+    // 1. Crear el mapa de nodos
     rows.forEach(row => {
-        map[row.menu_id] = {
+        map.set(row.menu_id, {
             label: row.titulo,
-            icon: row.icono,
+            icon: row.icono || null,
             to: row.url || null,
             items: [],
-            permissions: {
-                crear: row.crear === 1,
-                editar: row.editar === 1,
-                eliminar: row.eliminar === 1
-            }
-        };
+        });
     });
 
+    // 2. Construir el árbol jerárquico
     rows.forEach(row => {
+        const nodo = map.get(row.menu_id);
+        if (!nodo) return;
+
         if (row.menu_padre_id !== null) {
-            if (map[row.menu_padre_id]) {
-                map[row.menu_padre_id].items.push(map[row.menu_id]);
+            const padre = map.get(row.menu_padre_id);
+            if (padre) {
+                padre.items.push(nodo);
             }
         } else {
-                menuTree.push(map[row.menu_id]);
+            menuTree.push(nodo);
         }
     });
+
     return menuTree;
 }

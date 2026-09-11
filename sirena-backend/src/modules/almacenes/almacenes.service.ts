@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 import { ESTADO_ACTIVO, ESTADOS_VIVOS, TipoOperacionAlmacen, TIPO_OPERACION_ALMACEN_METADATA, TIPOS_ALMACEN_VENTA_DIRECTA, TIPOS_ALMACEN_LOGISTICA_INTERNA, TIPO_ALMACEN_METADATA, TipoAlmacen } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -14,6 +13,7 @@ import { AlmacenResponseDto } from './dto/almacen-response.dto';
 import { FindAlmacenesQueryDto } from './dto/find-almacenes-query.dto';
 import { UpdateAlmacenDto } from './dto/update-almacen.dto';
 import { Almacen } from './entities/almacen.entity';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class AlmacenesService extends BaseService {
@@ -161,7 +161,6 @@ export class AlmacenesService extends BaseService {
 
             const almacen = manager.create(Almacen, {
                 ...dto,
-                estado_id: ESTADO_ACTIVO,
                 usuario_id_registro: Number(usuarioId),
             });
 
@@ -176,14 +175,7 @@ export class AlmacenesService extends BaseService {
 
                 const errorMessage = getErrorMessage(error);
                 this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
-
-                throw new DomainException(
-                    `Ocurrió un error inesperado al crear el almacén.`,
-                    {
-                        details: errorMessage,
-                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
-                    }
-                );
+                throw crearError(error, 'el almacén', 'crear');
             }
         });
     }
@@ -288,14 +280,9 @@ export class AlmacenesService extends BaseService {
                     throw error;
                 }
 
-                throw new DomainException(
-                    `Ocurrió un error inesperado al actualizar: ${getErrorMessage(error)}`,
-                    {
-                        details: getErrorMessage(error),
-                        stack: getErrorStack(error),
-                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
-                    }
-                );
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el almacén', 'actualizar');
             }
         });
     }

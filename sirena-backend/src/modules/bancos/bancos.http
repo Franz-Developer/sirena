@@ -119,6 +119,12 @@ Authorization: Bearer {{authToken}}
 GET {{baseUrl_bancos}}?offset=10&limit=10
 Authorization: Bearer {{authToken}}
 
+
+###
+GET {{baseUrl_bancos}}?limit=20&offset=0&sortField=banco_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+
 # ==============================================================================
 # ORDENAMIENTO
 # ==============================================================================
@@ -167,7 +173,7 @@ GET {{baseUrl_bancos}}/3
 Authorization: Bearer {{authToken}}
 
 ### g. OBTENER BANCO POR ID
-GET {{baseUrl_bancos}}/5
+GET {{baseUrl_bancos}}/18
 Authorization: Bearer {{authToken}}
 
 # ==============================================================================

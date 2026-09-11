@@ -1,0 +1,176 @@
+# C:\sirena\sirena-backend\src\modules\roles-permisos-sucesos\roles-permisos-sucesos.http
+# ----------------------------------------------------------------------
+# DEFINICIÓN DE VARIABLES
+# ----------------------------------------------------------------------
+@baseUrl = http://localhost:3010/api
+@baseUrl_roles_permisos_sucesos = {{baseUrl}}/roles-permisos-sucesos
+@baseUrl_roles_permisos_tablas = {{baseUrl}}/roles-permisos-tablas
+@baseUrl_sucesos = {{baseUrl}}/sucesos
+@rest-client.previewOption = body
+
+### 1. OBTENER TOKEN DE AUTENTICACIÓN.
+# @name login
+POST {{baseUrl}}/auth/validar
+Content-Type: application/json
+
+{
+    "username": "ADMIN",
+    "password": "12345678"
+}
+
+### 2. GUARDAR TOKEN EN VARIABLE.
+@authToken = {{login.response.body.token}}
+
+# ==============================================================================
+# EXTRAS
+# ==============================================================================
+
+### LISTAR PERMISOS DE TABLAS
+GET {{baseUrl_roles_permisos_tablas}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR SUCESOS
+GET {{baseUrl_sucesos}}
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# LISTAR PERMISOS DE SUCESOS (GET)
+# ==============================================================================
+
+### LISTAR TODOS (Activos + Históricos por defecto)
+GET {{baseUrl_roles_permisos_sucesos}}
+Authorization: Bearer {{authToken}}
+
+### LISTAR POR ESTADO ACTIVOS (1000)
+GET {{baseUrl_roles_permisos_sucesos}}?estado_id=1000
+Authorization: Bearer {{authToken}}
+
+### HISTÓRICOS (1002)
+GET {{baseUrl_roles_permisos_sucesos}}?estado_id=1002
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# FILTRADO POR ROL_PERMISO_TABLA_ID Y SUCESO_ID
+# ==============================================================================
+
+### FILTRAR POR ROL_PERMISO_TABLA_ID
+GET {{baseUrl_roles_permisos_sucesos}}?rol_permiso_tabla_id=1
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR SUCESO_ID
+GET {{baseUrl_roles_permisos_sucesos}}?suceso_id=1
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR ROL_PERMISO_TABLA_ID Y SUCESO_ID
+GET {{baseUrl_roles_permisos_sucesos}}?rol_permiso_tabla_id=1&suceso_id=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# BÚSQUEDA POR TEXTO (q)
+# ==============================================================================
+
+### BÚSQUEDA FLEXIBLE POR NOMBRE DE ROL O SUCESO
+GET {{baseUrl_roles_permisos_sucesos}}?q=ADMIN
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA POR NOMBRE DE SUCESO
+GET {{baseUrl_roles_permisos_sucesos}}?q=COMPRA
+Authorization: Bearer {{authToken}}
+
+### BÚSQUEDA POR COINCIDENCIA EXACTA
+GET {{baseUrl_roles_permisos_sucesos}}?q=ADMINISTRADOR&exactMatch=1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# PAGINACIÓN
+# ==============================================================================
+
+### PÁGINA 1: Registros 0 al 15
+GET {{baseUrl_roles_permisos_sucesos}}?offset=0&limit=16
+Authorization: Bearer {{authToken}}
+
+### PAGINACIÓN CON FILTRO DE ESTADO
+GET {{baseUrl_roles_permisos_sucesos}}?estado_id=1000&offset=0&limit=5
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ORDENAMIENTO
+# ==============================================================================
+
+### ORDENAR POR ROL (Ascendente)
+GET {{baseUrl_roles_permisos_sucesos}}?sortField=rol_nombre&sortOrder=1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR SUCESO (Descendente)
+GET {{baseUrl_roles_permisos_sucesos}}?sortField=suceso_nombre&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+### ORDENAR POR ID (Descendente)
+GET {{baseUrl_roles_permisos_sucesos}}?sortField=rol_permiso_suceso_id&sortOrder=-1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# OBTENER POR ID
+# ==============================================================================
+
+### OBTENER PERMISO POR ID
+GET {{baseUrl_roles_permisos_sucesos}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# CRUD PERMISOS DE SUCESOS
+# ==============================================================================
+
+### CREAR NUEVO PERMISO DE SUCESO
+POST {{baseUrl_roles_permisos_sucesos}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "rol_permiso_tabla_id": 1,
+    "suceso_id": 1
+}
+
+### CREAR OTRO PERMISO DE SUCESO
+POST {{baseUrl_roles_permisos_sucesos}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "rol_permiso_tabla_id": 2,
+    "suceso_id": 2
+}
+
+### ACTUALIZAR PERMISO DE SUCESO
+PATCH {{baseUrl_roles_permisos_sucesos}}/1
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "suceso_id": 2
+}
+
+### ACTUALIZAR ROL_PERMISO_TABLA_ID
+PATCH {{baseUrl_roles_permisos_sucesos}}/1
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "rol_permiso_tabla_id": 2
+}
+
+### ELIMINAR PERMISO (ACTIVO → BORRADO)
+DELETE {{baseUrl_roles_permisos_sucesos}}/1
+Authorization: Bearer {{authToken}}
+
+# ==============================================================================
+# ARCHIVAR / DESARCHIVAR (Cambio de estado)
+# ==============================================================================
+
+### ARCHIVAR PERMISO (ACTIVO → HISTÓRICO)
+PATCH {{baseUrl_roles_permisos_sucesos}}/1/archivar
+Authorization: Bearer {{authToken}}
+
+### DESARCHIVAR PERMISO (HISTÓRICO → ACTIVO)
+PATCH {{baseUrl_roles_permisos_sucesos}}/1/desarchivar
+Authorization: Bearer {{authToken}}

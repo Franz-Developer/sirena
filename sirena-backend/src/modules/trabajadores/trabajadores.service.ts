@@ -17,7 +17,7 @@ import { TrabajadorResponseDto } from './dto/trabajador-response.dto';
 import { FindTrabajadoresQueryDto } from './dto/find-trabajadores-query.dto';
 import { UpdateTrabajadorDto } from './dto/update-trabajador.dto';
 import { Trabajador } from './entities/trabajador.entity';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class TrabajadoresService extends BaseService {
@@ -167,15 +167,14 @@ export class TrabajadoresService extends BaseService {
                 );
 
                 return this.findOne<TrabajadorResponseDto>(saved.trabajador_id, usuarioId, manager);
-            } catch (error) {
+            } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error al crear trabajador: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw new DomainException(
-                    'Error inesperado al crear el trabajador.',
-                    { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                );
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el trabajador', 'crear');
             }
         });
     }
@@ -287,15 +286,14 @@ export class TrabajadoresService extends BaseService {
                 }
 
                 return this.findOne(id, usuarioId, manager);
-            } catch (error) {
+            } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error al actualizar trabajador: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw new DomainException(
-                    'Error inesperado al actualizar el trabajador.',
-                    { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                );
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el trabajador', 'actualizar');
             }
         });
     }

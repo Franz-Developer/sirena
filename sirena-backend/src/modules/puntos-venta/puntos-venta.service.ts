@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -14,6 +13,7 @@ import { PuntoVentaResponseDto } from './dto/punto-venta-response.dto';
 import { FindPuntosVentaQueryDto } from './dto/find-puntos-venta-query.dto';
 import { UpdatePuntoVentaDto } from './dto/update-punto-venta.dto';
 import { PuntoVenta } from './entities/punto-venta.entity';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class PuntosVentaService extends BaseService {
@@ -121,12 +121,14 @@ export class PuntosVentaService extends BaseService {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
                 const saved = await manager.save(puntoVenta);
                 return this.findOne<PuntoVentaResponseDto>(saved.punto_venta_id, usuarioId, manager);
-            } catch (error) {
+            } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el punto de venta', 'crear');
             }
         });
     }
@@ -216,8 +218,10 @@ export class PuntosVentaService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el punto de venta', 'actualizar');
             }
         });
     }

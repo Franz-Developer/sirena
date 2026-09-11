@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -14,6 +13,7 @@ import { CreateBancoDto } from './dto/create-banco.dto';
 import { FindBancosQueryDto } from './dto/find-bancos-query.dto';
 import { UpdateBancoDto } from './dto/update-banco.dto';
 import { Banco } from './entities/banco.entity';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class BancosService extends BaseService {
@@ -91,8 +91,10 @@ export class BancosService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el banco', 'crear');
             }
         });
     }
@@ -181,12 +183,13 @@ export class BancosService extends BaseService {
                 await manager.save(bancoActual);
                 return this.findOne(id, usuarioId, manager);
             } catch (error: unknown) {
-                if (isDomainException(error)) throw error;
-                this.logger.error(
-                    `Error actualizando banco ${id}: ${getErrorMessage(error)}`,
-                    getErrorStack(error)
-                );
-                throw error;
+                if (isDomainException(error)) {
+                    throw error;
+                }
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el banco', 'actualizar');
             }
         });
     }

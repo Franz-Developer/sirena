@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -14,6 +13,7 @@ import { TrabajadorCargoResponseDto } from './dto/trabajador-cargo-response.dto'
 import { FindTrabajadoresCargosQueryDto } from './dto/find-trabajadores-cargos-query.dto';
 import { UpdateTrabajadorCargoDto } from './dto/update-trabajador-cargo.dto';
 import { TrabajadorCargo } from './entities/trabajador-cargo.entity';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class TrabajadoresCargosService extends BaseService {
@@ -125,8 +125,10 @@ export class TrabajadoresCargosService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'la asignación de cargo', 'crear');
             }
         });
     }
@@ -211,11 +213,10 @@ export class TrabajadoresCargosService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error al actualizar asignación: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw new DomainException(
-                    'Error inesperado al actualizar la asignación de trabajador y cargo.',
-                    { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                );
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'la asignación de cargo', 'actualizar');
             }
         });
     }

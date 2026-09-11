@@ -4,10 +4,10 @@ import { IsInt, IsNotEmpty, IsOptional, IsString, Min, MaxLength, IsDateString }
 import { IsSafeText } from '../../../common/decorators/safe-text.decorator';
 
 export class CreateInventarioFisicoDto {
-    @IsInt({ message: 'sucursal_id debe ser un número entero.' })
-    @IsNotEmpty({ message: 'sucursal_id es obligatorio.' })
-    @Min(1, { message: 'sucursal_id debe ser mayor a 0.' })
-    sucursal_id: number;
+    @IsInt({ message: 'almacen_id debe ser un número entero.' })
+    @IsNotEmpty({ message: 'almacen_id es obligatorio.' })
+    @Min(1, { message: 'almacen_id debe ser mayor a 0.' })
+    almacen_id: number;
 
     @IsInt({ message: 'ubicacion_id debe ser un número entero.' })
     @IsNotEmpty({ message: 'ubicacion_id es obligatorio.' })

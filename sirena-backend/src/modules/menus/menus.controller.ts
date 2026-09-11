@@ -3,7 +3,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe,
 import { Cache, CACHE_LARGO } from '../../common/decorators/cache.decorator';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { InvalidateCache } from '../../common/decorators/invalidate-cache.decorator';
-import { CreateRateLimit, UpdateRateLimit, DeleteRateLimit, ArchiveRateLimit, FindAllRateLimit, FindOneRateLimit } from '../../common/decorators/rate-limit.decorator';
+import { CreateRateLimit, UpdateRateLimit, DeleteRateLimit, FindAllRateLimit, FindOneRateLimit } from '../../common/decorators/rate-limit.decorator';
 import { CustomValidationPipe } from '../../common/decorators/validation-message.decorator';
 import { PaginatedResult } from '../../common/interfaces/pagination.interface';
 import { AuthenticatedUser } from '../../common/interfaces/user.interface';
@@ -76,27 +76,5 @@ export class MenusController {
         @GetUser() user: AuthenticatedUser
     ): Promise<MenuResponseDto> {
         return this.menusService.remove<MenuResponseDto>(id, user.usuario_id);
-    }
-
-    // PATCH /menus/:id/archivar - Archivar menu
-    @Patch(':id/archivar')
-    @ArchiveRateLimit()
-    @InvalidateCache('menus')
-    archivar(
-        @Param('id', ParseIntPipe) id: number,
-        @GetUser() user: AuthenticatedUser
-    ): Promise<MenuResponseDto> {
-        return this.menusService.archivar<MenuResponseDto>(id, user.usuario_id);
-    }
-
-    // PATCH /menus/:id/desarchivar - Desarchivar menu
-    @Patch(':id/desarchivar')
-    @ArchiveRateLimit()
-    @InvalidateCache('menus')
-    desarchivar(
-        @Param('id', ParseIntPipe) id: number,
-        @GetUser() user: AuthenticatedUser
-    ): Promise<MenuResponseDto> {
-        return this.menusService.desarchivar<MenuResponseDto>(id, user.usuario_id);
     }
 }

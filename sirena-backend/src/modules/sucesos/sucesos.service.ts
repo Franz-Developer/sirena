@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 import { ESTADOS_VIVOS, ESTADO_ACTIVO } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -14,7 +13,7 @@ import { SucesoResponseDto } from './dto/suceso-response.dto';
 import { FindSucesosQueryDto } from './dto/find-sucesos-query.dto';
 import { UpdateSucesoDto } from './dto/update-suceso.dto';
 import { Suceso } from './entities/suceso.entity';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class SucesosService extends BaseService {
@@ -98,11 +97,8 @@ export class SucesosService extends BaseService {
     async create(dto: CreateSucesoDto, usuarioId: number): Promise<SucesoResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
             await Promise.all([
-                this.tablaValidador.validarPermisoTabla(usuarioId, 'sucesos', 'crear'),
-                dto.tabla_id ? this.tablaValidador.validarRegistrosActivos('tablas', 'tabla_id', dto.tabla_id) : Promise.resolve()
-            ]);
-
-            await Promise.all([
+                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
+                this.tablaValidador.validarRegistrosActivos('tablas', 'tabla_id', dto.tabla_id),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
                     campos: [{ nombre: 'codigo', valor: dto.codigo }],
@@ -115,48 +111,40 @@ export class SucesosService extends BaseService {
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS],
                 }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ]);
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (tabla_id, codigo, suceso, descripcion, estado_id, usuario_id_registro, fecha_registro)
-                VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-            const params = [
-                dto.tabla_id,
-                dto.codigo,
-                dto.suceso,
-                dto.descripcion,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const suceso = manager.create(Suceso, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        `Error al insertar el suceso "${dto.codigo}".`,
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne<SucesoResponseDto>(newId, usuarioId, manager);
+                const saved = await manager.save(suceso);
+                return this.findOne<SucesoResponseDto>(saved.suceso_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el suceso', 'crear');
             }
         });
     }
 
     async update(id: number, dto: UpdateSucesoDto, usuarioId: number): Promise<SucesoResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
+
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const sucesoActual = await manager.findOne(Suceso, {
@@ -165,10 +153,13 @@ export class SucesosService extends BaseService {
             });
 
             if (!sucesoActual) {
-                throw new DomainException('Suceso no encontrado.', { httpStatus: HttpStatus.NOT_FOUND });
+                throw new DomainException(
+                    `Suceso no encontrado.`,
+                    { id, httpStatus: HttpStatus.NOT_FOUND }
+                );
             }
 
-            const dtoParaActualizar = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
                 dto,
@@ -178,39 +169,56 @@ export class SucesosService extends BaseService {
                 usuarioId
             );
 
-            if (dtoParaActualizar.codigo !== undefined) {
-                await this.unicidadValidador.validarUnicidad({
-                    tabla: this.nombreTabla,
-                    campos: [{ nombre: 'codigo', valor: dtoParaActualizar.codigo }],
-                    idExcluir: id,
-                    campoPk: this.campoPK,
-                    estadosValidos: [...ESTADOS_VIVOS],
-                });
+            const validaciones: Promise<any>[] = [];
+
+            if (dtoProcesado.codigo !== undefined && dtoProcesado.codigo !== sucesoActual.codigo) {
+                validaciones.push(
+                    this.unicidadValidador.validarUnicidad({
+                        tabla: this.nombreTabla,
+                        campos: [{ nombre: 'codigo', valor: dtoProcesado.codigo }],
+                        idExcluir: id,
+                        campoPk: this.campoPK,
+                        estadosValidos: [...ESTADOS_VIVOS],
+                    })
+                );
             }
 
-            if (dtoParaActualizar.suceso !== undefined) {
-                await this.unicidadValidador.validarUnicidad({
-                    tabla: this.nombreTabla,
-                    campos: [{ nombre: 'suceso', valor: dtoParaActualizar.suceso }],
-                    idExcluir: id,
-                    campoPk: this.campoPK,
-                    estadosValidos: [...ESTADOS_VIVOS],
-                });
+            if (dtoProcesado.suceso !== undefined && dtoProcesado.suceso !== sucesoActual.suceso) {
+                validaciones.push(
+                    this.unicidadValidador.validarUnicidad({
+                        tabla: this.nombreTabla,
+                        campos: [{ nombre: 'suceso', valor: dtoProcesado.suceso }],
+                        idExcluir: id,
+                        campoPk: this.campoPK,
+                        estadosValidos: [...ESTADOS_VIVOS],
+                    })
+                );
             }
 
-            manager.merge(Suceso, sucesoActual, dtoParaActualizar);
+            if (dtoProcesado.tabla_id !== undefined && dtoProcesado.tabla_id !== sucesoActual.tabla_id) {
+                validaciones.push(
+                    this.tablaValidador.validarRegistrosActivos('tablas', 'tabla_id', dtoProcesado.tabla_id)
+                );
+            }
+
+            if (validaciones.length > 0) {
+                await Promise.all(validaciones);
+            }
+
+            Object.assign(sucesoActual, dtoProcesado);
             sucesoActual.update(usuarioId);
 
             try {
                 await manager.save(sucesoActual);
-
                 return this.findOne(id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el suceso', 'actualizar');
             }
         });
     }

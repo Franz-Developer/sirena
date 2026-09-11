@@ -1,4 +1,3 @@
-// C:\sirena\sirena-backend\src\modules\clientes\entities\cliente.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, Index, Check } from 'typeorm';
 import { BaseAuditEntity } from '../../../common/base/base-audit.entity';
 
@@ -7,11 +6,11 @@ import { BaseAuditEntity } from '../../../common/base/base-audit.entity';
 @Check('chk_clientes_tipodocumentoid', 'tipo_documento_id IN (2200, 2201, 2202, 2203, 2204)')
 @Check('chk_clientes_estadoid', 'estado_id IN (1000, 1001, 1002)')
 @Check('chk_clientes_cliente_notempty', "TRIM(cliente) <> ''")
-@Check('chk_clientes_cliente_minlength', 'LENGTH(TRIM(cliente)) >= 3')
+@Check('chk_clientes_cliente_minlength', "LENGTH(TRIM(cliente)) >= 3")
 @Check('chk_clientes_nit_notempty', "nit IS NULL OR TRIM(nit) <> ''")
 @Check('chk_clientes_razonsocial_notempty', "razon_social IS NULL OR TRIM(razon_social) <> ''")
 @Check('chk_clientes_documento_notempty', "TRIM(documento) <> ''")
-@Check('chk_clientes_documento_minlength', 'LENGTH(TRIM(documento)) >= 1')
+@Check('chk_clientes_documento_minlength', "LENGTH(TRIM(documento)) >= 1")
 @Check('chk_clientes_documentocomplemento_notempty', "documento_complemento IS NULL OR TRIM(documento_complemento) <> ''")
 @Check('chk_clientes_direccion_notempty', "direccion IS NULL OR TRIM(direccion) <> ''")
 @Check('chk_clientes_telefono_notempty', "telefono IS NULL OR TRIM(telefono) <> ''")
@@ -20,17 +19,9 @@ import { BaseAuditEntity } from '../../../common/base/base-audit.entity';
 @Check('chk_clientes_habilitadoventas', 'habilitado_ventas IN (0, 1)')
 @Check('chk_clientes_limitecredito', 'limite_credito >= 0.00')
 @Check('chk_clientes_coherencia', '(limite_credito = 0.00) OR (limite_credito > 0.00 AND habilitado_ventas = 1)')
-@Index('uix_clientes_tipodocumentoid_documento_unique', ['tipo_documento_id', 'documento'], {
-    unique: true,
-    where: "estado_id IN (1000, 1002) AND documento <> '0' AND documento_complemento IS NULL",
-})
-@Index('uix_clientes_varios_unique', ['tipo_documento_id', 'documento_complemento', 'documento'], {
-    unique: true,
-    where: "estado_id IN (1000, 1002) AND documento <> '0' AND documento_complemento IS NOT NULL",
-})
-@Index('idx_clientes_documento_cliente_busqueda', ['documento', 'cliente'], {
-    where: 'estado_id IN (1000, 1002)',
-})
+@Index('uix_clientes_tipodocumentoid_documento_unique', ['tipo_documento_id', 'documento'], { unique: true, where: "estado_id IN (1000, 1002) AND documento <> '0' AND documento_complemento IS NULL" })
+@Index('uix_clientes_varios_unique', ['tipo_documento_id', 'documento_complemento', 'documento'], { unique: true, where: "estado_id IN (1000, 1002) AND documento <> '0' AND documento_complemento IS NOT NULL" })
+@Index('idx_clientes_documento_cliente_busqueda', ['documento', 'cliente'], { where: "estado_id IN (1000, 1002)" })
 @Index('idx_clientes_bancoid', ['banco_base_id'])
 export class Cliente extends BaseAuditEntity {
     @PrimaryGeneratedColumn({ name: 'cliente_id', type: 'bigint' })

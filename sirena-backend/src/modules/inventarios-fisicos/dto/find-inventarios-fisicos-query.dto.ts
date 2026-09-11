@@ -1,4 +1,5 @@
 // C:\sirena\sirena-backend\src\modules\inventarios-fisicos\dto\find-inventarios-fisicos-query.dto.ts
+
 import { Type } from 'class-transformer';
 import { IsOptional, IsInt, IsIn, IsString, Min } from 'class-validator';
 import { ESTADOS_CONSULTA, ESTADO_METADATA } from '../../../common/constants/estados.constant';
@@ -71,7 +72,7 @@ export class FindInventariosFisicosQueryDto extends BasePaginationQueryDto {
         const aliasCargoSup = 'csc';
         return [
             `${alias}.inventario_fisico_id`,
-            `${alias}.sucursal_id`,
+            `${alias}.almacen_id`,
             `${alias}.ubicacion_id`,
             `${alias}.fecha_conteo`,
             `${alias}.fecha_inicio`,
@@ -103,9 +104,11 @@ export class FindInventariosFisicosQueryDto extends BasePaginationQueryDto {
 
             `CONCAT_WS(' ', ${aliasTrabajadorReg}.nombres, ${aliasTrabajadorReg}.paterno, ${aliasTrabajadorReg}.materno) AS trabajador_responsable_nombre`,
             `${aliasCargoReg}.cargo AS trabajador_responsable_cargo`,
+            `${aliasCargoReg}.codigo_cargo AS trabajador_responsable_cargo_codigo`,
 
             `CONCAT_WS(' ', ${aliasTrabajadorSup}.nombres, ${aliasTrabajadorSup}.paterno, ${aliasTrabajadorSup}.materno) AS trabajador_supervisor_nombre`,
-            `${aliasCargoSup}.cargo AS trabajador_supervisor_cargo`
+            `${aliasCargoSup}.cargo AS trabajador_supervisor_cargo`,
+            `${aliasCargoSup}.codigo_cargo AS trabajador_supervisor_cargo_codigo`
         ];
     }
 
@@ -121,19 +124,20 @@ export class FindInventariosFisicosQueryDto extends BasePaginationQueryDto {
             'tr.paterno',
             'tr.materno',
             'crc.cargo',
+            'crc.codigo_cargo',
             'ts.nombres',
             'ts.paterno',
             'ts.materno',
-            'csc.cargo'
+            'csc.cargo',
+            'csc.codigo_cargo'
         ];
     }
 
     static getCamposPermitidosParaOrdenar(): string[] {
         return [
             'inventario_fisico_id',
-            'sucursal_id',
-            'ubicacion_id',
             'almacen_id',
+            'ubicacion_id',
             'fecha_conteo',
             'fecha_inicio',
             'fecha_fin',
@@ -149,8 +153,10 @@ export class FindInventariosFisicosQueryDto extends BasePaginationQueryDto {
             'tipo_operacion_almacen_id',
             'trabajador_responsable_nombre',
             'trabajador_responsable_cargo',
+            'trabajador_responsable_cargo_codigo',
             'trabajador_supervisor_nombre',
             'trabajador_supervisor_cargo',
+            'trabajador_supervisor_cargo_codigo',
             'fecha_registro'
         ];
     }
@@ -162,7 +168,7 @@ export class FindInventariosFisicosQueryDto extends BasePaginationQueryDto {
     }
 
     static getCamposProtegidosConDependencias(): string[] {
-        return ['sucursal_id', 'ubicacion_id'];
+        return ['ubicacion_id', 'almacen_id', 'fecha_conteo', 'fecha_inicio', 'fecha_fin', 'trabajador_responsable_id', 'trabajador_supervisor_id'];                            // ✅ CORREGIDO (solo ubicacion_id)
     }
 
     static getEquivalenciasMapeo(): Record<string, string> {
@@ -176,9 +182,8 @@ export class FindInventariosFisicosQueryDto extends BasePaginationQueryDto {
         const aliasCargoSup = 'csc';
         return {
             'inventario_fisico_id': `${alias}.inventario_fisico_id`,
-            'sucursal_id': `${alias}.sucursal_id`,
+            'almacen_id': `${alias}.almacen_id`,
             'ubicacion_id': `${alias}.ubicacion_id`,
-            'almacen_id': `${aliasUbicacion}.almacen_id`,
             'fecha_conteo': `${alias}.fecha_conteo`,
             'fecha_inicio': `${alias}.fecha_inicio`,
             'fecha_fin': `${alias}.fecha_fin`,
@@ -205,8 +210,10 @@ export class FindInventariosFisicosQueryDto extends BasePaginationQueryDto {
             'tipo_operacion_almacen_id': `${aliasAlmacen}.tipo_operacion_almacen_id`,
             'trabajador_responsable_nombre': `CONCAT_WS(' ', ${aliasTrabajadorReg}.nombres, ${aliasTrabajadorReg}.paterno, ${aliasTrabajadorReg}.materno)`,
             'trabajador_responsable_cargo': `${aliasCargoReg}.cargo`,
+            'trabajador_responsable_cargo_codigo': `${aliasCargoReg}.codigo_cargo`,
             'trabajador_supervisor_nombre': `CONCAT_WS(' ', ${aliasTrabajadorSup}.nombres, ${aliasTrabajadorSup}.paterno, ${aliasTrabajadorSup}.materno)`,
-            'trabajador_supervisor_cargo': `${aliasCargoSup}.cargo`
+            'trabajador_supervisor_cargo': `${aliasCargoSup}.cargo`,
+            'trabajador_supervisor_cargo_codigo': `${aliasCargoSup}.codigo_cargo`
         };
     }
 }

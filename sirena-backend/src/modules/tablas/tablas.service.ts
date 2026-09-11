@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -14,6 +13,7 @@ import { FindTablasQueryDto } from './dto/find-tablas-query.dto';
 import { TablaResponseDto } from './dto/tabla-response.dto';
 import { UpdateTablaDto } from './dto/update-tabla.dto';
 import { Tabla } from './entities/tabla.entity';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class TablasService extends BaseService {
@@ -52,7 +52,7 @@ export class TablasService extends BaseService {
         return this.config.campoPK;
     }
 
-        async create(dto: CreateTablaDto, usuarioId: number): Promise<TablaResponseDto> {
+    async create(dto: CreateTablaDto, usuarioId: number): Promise<TablaResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
             await Promise.all([
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
@@ -82,14 +82,7 @@ export class TablasService extends BaseService {
 
                 const errorMessage = getErrorMessage(error);
                 this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
-
-                throw new DomainException(
-                    `Ocurrió un error inesperado al crear la tabla.`,
-                    {
-                        details: errorMessage,
-                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
-                    }
-                );
+                throw crearError(error, 'la tabla', 'crear');
             }
         });
     }
@@ -157,14 +150,9 @@ export class TablasService extends BaseService {
                     throw error;
                 }
 
-                throw new DomainException(
-                    `Ocurrió un error inesperado al actualizar: ${getErrorMessage(error)}`,
-                    {
-                        details: getErrorMessage(error),
-                        stack: getErrorStack(error),
-                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
-                    }
-                );
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'la tabla', 'actualizar');
             }
         });
     }

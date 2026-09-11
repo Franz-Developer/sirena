@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -14,6 +13,7 @@ import { CuiResponseDto } from './dto/cui-response.dto';
 import { FindCuisQueryDto } from './dto/find-cuis-query.dto';
 import { UpdateCuiDto } from './dto/update-cui.dto';
 import { Cui } from './entities/cui.entity';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class CuisService extends BaseService {
@@ -157,12 +157,14 @@ export class CuisService extends BaseService {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
                 const saved = await manager.save(cuis);
                 return this.findOne<CuiResponseDto>(saved.cuis_id, usuarioId, manager);
-            } catch (error) {
+            } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el CUIS', 'crear');
             }
         });
     }
@@ -292,11 +294,10 @@ export class CuisService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error al actualizar CUIS: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw new DomainException(
-                    'Error inesperado al actualizar el registro CUIS.',
-                    { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                );
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el CUIS', 'actualizar');
             }
         });
     }

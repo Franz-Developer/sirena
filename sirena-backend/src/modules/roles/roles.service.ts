@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -14,6 +13,7 @@ import { CreateRolDto } from './dto/create-rol.dto';
 import { FindRolesQueryDto } from './dto/find-roles-query.dto';
 import { UpdateRolDto } from './dto/update-rol.dto';
 import { Rol } from './entities/rol.entity';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class RolesService extends BaseService {
@@ -85,11 +85,10 @@ export class RolesService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error al crear rol: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw new DomainException(
-                    'Error inesperado al crear el rol.',
-                    { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                );
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el rol', 'crear');
             }
         });
     }
@@ -168,11 +167,10 @@ export class RolesService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error al actualizar rol: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw new DomainException(
-                    'Error inesperado al actualizar el rol.',
-                    { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                );
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el rol', 'actualizar');
             }
         });
     }

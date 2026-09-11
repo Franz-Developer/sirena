@@ -13,8 +13,8 @@ import { TablaValidadorService } from '../../common/validators/tabla-validador.s
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { runInTransaction } from '../../common/utils/transaction.helper';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 import { logSqlQuery } from '../../common/utils/sql-logger.util';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class TiposCambiosService extends BaseService {
@@ -154,14 +154,7 @@ export class TiposCambiosService extends BaseService {
 
                 const errorMessage = getErrorMessage(error);
                 this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
-
-                throw new DomainException(
-                    `Ocurrió un error inesperado al crear el tipo de cambio.`,
-                    {
-                        details: errorMessage,
-                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
-                    }
-                );
+                throw crearError(error, 'el tipo de cambio', 'crear');
             }
         });
     }
@@ -237,14 +230,9 @@ export class TiposCambiosService extends BaseService {
                     throw error;
                 }
 
-                throw new DomainException(
-                    `Ocurrió un error inesperado al actualizar: ${getErrorMessage(error)}`,
-                    {
-                        details: getErrorMessage(error),
-                        stack: getErrorStack(error),
-                        httpStatus: HttpStatus.INTERNAL_SERVER_ERROR
-                    }
-                );
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el tipo de cambio', 'actualizar');
             }
         });
     }

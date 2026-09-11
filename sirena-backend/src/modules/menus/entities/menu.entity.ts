@@ -3,13 +3,13 @@ import { Entity, Column, PrimaryGeneratedColumn, Index, Check, ManyToOne, OneToM
 import { BaseAuditEntity } from '../../../common/base/base-audit.entity';
 
 @Entity({ name: 'menus' })
-@Check('chk_menus_estadoid', 'estado_id IN (1000, 1001, 1002)')
+@Check('chk_menus_estadoid', 'estado_id IN (1000, 1001)')
 @Check('chk_menus_titulo_notempty', "TRIM(titulo) <> ''")
 @Check('chk_menus_titulo_minlength', 'LENGTH(TRIM(titulo)) >= 3')
 @Check('chk_menus_icono_notempty', 'icono IS NULL OR TRIM(icono) <> \'\'')
 @Check('chk_menus_url_notempty', 'url IS NULL OR TRIM(url) <> \'\'')
 @Check('chk_menus_orden', 'orden >= 0')
-@Index('uix_menus_varios_unique', ['menu_padre_id', 'titulo', 'orden'], { unique: true, where: 'estado_id IN (1000, 1002)' })
+@Index('uix_menus_varios_unique', ['menu_padre_id', 'titulo', 'orden'], { unique: true, where: 'estado_id = 1000' })
 @Index('idx_menus_orden', ['orden'], { where: 'estado_id = 1000' })
 export class Menu extends BaseAuditEntity {
     @PrimaryGeneratedColumn({ name: 'menu_id', type: 'bigint' })

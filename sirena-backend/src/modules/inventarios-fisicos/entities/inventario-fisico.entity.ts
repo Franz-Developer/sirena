@@ -1,4 +1,5 @@
 // C:\sirena\sirena-backend\src\modules\inventarios-fisicos\entities\inventario-fisico.entity.ts
+
 import { Entity, Column, PrimaryGeneratedColumn, Index, Check } from 'typeorm';
 import { BaseAuditEntity } from '../../../common/base/base-audit.entity';
 
@@ -6,15 +7,16 @@ import { BaseAuditEntity } from '../../../common/base/base-audit.entity';
 @Check('chk_inventariosfisicos_estadoid', 'estado_id IN (1000, 1001)')
 @Check('chk_inventariosfisicos_observaciones_notempty', "observaciones IS NULL OR TRIM(observaciones) <> ''")
 @Check('chk_inventariosfisicos_fechas', 'fecha_fin IS NULL OR fecha_fin >= fecha_inicio')
-@Index('idx_inventariosfisicos_activo_unique', ['sucursal_id', 'ubicacion_id', 'fecha_conteo'], { unique: true, where: 'estado_id = 1000' })
+@Check('chk_inventariosfisicos_fechaconteo_inicio', 'fecha_inicio >= fecha_conteo')
+@Index('idx_inventariosfisicos_activo_unique', ['almacen_id', 'ubicacion_id', 'fecha_conteo', 'trabajador_responsable_id', 'trabajador_supervisor_id'], { unique: true, where: 'estado_id = 1000' })
 @Index('idx_inventariosfisicos_trabajadorrespid', ['trabajador_responsable_id'])
 @Index('idx_inventariosfisicos_trabajadorsupid', ['trabajador_supervisor_id'])
 export class InventarioFisico extends BaseAuditEntity {
     @PrimaryGeneratedColumn({ name: 'inventario_fisico_id', type: 'bigint' })
     inventario_fisico_id!: number;
 
-    @Column({ name: 'sucursal_id', type: 'bigint', nullable: false, default: 1 })
-    sucursal_id!: number;
+    @Column({ name: 'almacen_id', type: 'bigint', nullable: false, default: 1 })
+    almacen_id!: number;
 
     @Column({ name: 'ubicacion_id', type: 'bigint', nullable: false, default: 1 })
     ubicacion_id!: number;

@@ -121,7 +121,7 @@ Authorization: Bearer {{authToken}}
 # ==============================================================================
 
 ### OBTENER INVENTARIO FÍSICO POR ID
-GET {{baseUrl_inventarios}}/1
+GET {{baseUrl_inventarios}}/5
 Authorization: Bearer {{authToken}}
 
 # ==============================================================================

@@ -2,19 +2,18 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
+import { ESTADOS_VIVOS } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
 import { CreateClienteDto } from './dto/create-cliente.dto';
-import { FindClientesQueryDto } from './dto/find-clientes-query.dto';
 import { ClienteResponseDto } from './dto/cliente-response.dto';
+import { FindClientesQueryDto } from './dto/find-clientes-query.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
 import { Cliente } from './entities/cliente.entity';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class ClientesService extends BaseService {
@@ -22,7 +21,7 @@ export class ClientesService extends BaseService {
         nombreTabla: 'clientes',
         nombreEntidad: 'Cliente',
         campoPK: 'cliente_id',
-        alias: 't',
+        alias: 'c',
         responseDto: ClienteResponseDto,
         camposBusquedaEnQ: FindClientesQueryDto.getCamposParaQ(),
         tablasDependientes: FindClientesQueryDto.getDependencias(),
@@ -30,12 +29,12 @@ export class ClientesService extends BaseService {
             {
                 table: 'bancos',
                 alias: 'b',
-                onCondition: 'b.banco_id = t.banco_base_id',
+                onCondition: 'b.banco_id = c.banco_base_id',
                 selectColumns: [
                     'b.banco AS banco_base_nombre',
                     'b.abreviatura AS banco_base_abreviatura'
                 ],
-                type: 'INNER'
+                type: 'LEFT'
             }
         ],
         configuracionFiltros: [
@@ -60,12 +59,6 @@ export class ClientesService extends BaseService {
             {
                 nombreCampo: 'habilitado_ventas',
                 nombreColumna: 'habilitado_ventas',
-                tipoDatoFiltro: 'number',
-                operador: 'eq',
-            },
-            {
-                nombreCampo: 'estado_id',
-                nombreColumna: 'estado_id',
                 tipoDatoFiltro: 'number',
                 operador: 'eq',
             },
@@ -97,27 +90,28 @@ export class ClientesService extends BaseService {
 
     async create(dto: CreateClienteDto, usuarioId: number): Promise<ClienteResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            const validaciones: Promise<any>[] = [
-                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear')
+            const validacionesPromise: Promise<any>[] = [
+                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
             ];
 
             if (dto.banco_base_id) {
-                validaciones.push(
+                validacionesPromise.push(
                     this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dto.banco_base_id)
                 );
             }
 
-            if (dto.documento && dto.documento !== '0') {
-                const camposUnicidad = [
-                    { nombre: 'tipo_documento_id', valor: dto.tipo_documento_id ?? 2200 },
-                    { nombre: 'documento', valor: dto.documento }
-                ];
+            const camposUnicidad: Array<{ nombre: string; valor: any }> = [
+                { nombre: 'tipo_documento_id', valor: dto.tipo_documento_id },
+                { nombre: 'documento', valor: dto.documento }
+            ];
 
-                if (dto.documento_complemento) {
-                    camposUnicidad.push({ nombre: 'documento_complemento', valor: dto.documento_complemento });
-                }
+            if (dto.documento_complemento !== undefined && dto.documento_complemento !== null && dto.documento_complemento !== '') {
+                camposUnicidad.push({ nombre: 'documento_complemento', valor: dto.documento_complemento });
+            }
 
-                validaciones.push(
+            if (dto.documento !== '0') {
+                validacionesPromise.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: camposUnicidad,
@@ -127,93 +121,54 @@ export class ClientesService extends BaseService {
                 );
             }
 
-            await Promise.all(validaciones);
+            await Promise.all(validacionesPromise);
 
-            const query = `
-                INSERT INTO ${this.nombreTabla} (
-                    tipo_cliente_id,
-                    cliente,
-                    nit,
-                    razon_social,
-                    documento,
-                    documento_complemento,
-                    tipo_documento_id,
-                    direccion,
-                    telefono,
-                    email,
-                    banco_base_id,
-                    numero_cuenta,
-                    habilitado_ventas,
-                    limite_credito,
-                    estado_id,
-                    usuario_id_registro,
-                    fecha_registro
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-
-            const params = [
-                dto.tipo_cliente_id,
-                dto.cliente,
-                dto.nit || null,
-                dto.razon_social || null,
-                dto.documento,
-                dto.documento_complemento || null,
-                dto.tipo_documento_id,
-                dto.direccion || null,
-                dto.telefono || null,
-                dto.email || null,
-                dto.banco_base_id,
-                dto.numero_cuenta || null,
-                dto.habilitado_ventas,
-                dto.limite_credito,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const cliente = manager.create(Cliente, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] ?? 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        'Error al registrar el cliente.',
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
+                const saved = await manager.save(cliente);
+                return this.findOne<ClienteResponseDto>(saved.cliente_id, usuarioId, manager);
             } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el cliente', 'crear');
             }
         });
     }
 
     async update(id: number, dto: UpdateClienteDto, usuarioId: number): Promise<ClienteResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
+            }
+
             await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const clienteActual = await manager.findOne(Cliente, {
-                where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
+                where: { [this.campoPK]: id },
                 lock: { mode: 'pessimistic_write' }
             });
 
             if (!clienteActual) {
                 throw new DomainException(
-                    'Cliente no encontrado.',
-                    { httpStatus: HttpStatus.NOT_FOUND }
+                    `Cliente no encontrado.`,
+                    { id, httpStatus: HttpStatus.NOT_FOUND }
                 );
             }
 
-            dto = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
                 dto,
@@ -225,31 +180,29 @@ export class ClientesService extends BaseService {
 
             const validaciones: Promise<any>[] = [];
 
-            if (dto.banco_base_id !== undefined && dto.banco_base_id !== clienteActual.banco_base_id) {
+            if (dtoProcesado.banco_base_id !== undefined && dtoProcesado.banco_base_id !== clienteActual.banco_base_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dto.banco_base_id)
+                    this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dtoProcesado.banco_base_id)
                 );
             }
 
-            const tipoDocumentoEvaluado = dto.tipo_documento_id ?? clienteActual.tipo_documento_id;
-            const documentoEvaluado = dto.documento ?? clienteActual.documento;
-            const complementoEvaluado = dto.documento_complemento !== undefined
-                ? dto.documento_complemento
-                : clienteActual.documento_complemento;
+            const nuevoTipoDoc = dtoProcesado.tipo_documento_id ?? clienteActual.tipo_documento_id;
+            const nuevoDocumento = dtoProcesado.documento ?? clienteActual.documento;
+            const nuevoComplemento = dtoProcesado.documento_complemento !== undefined ? dtoProcesado.documento_complemento : clienteActual.documento_complemento;
 
-            const huboCambioDocumentacion =
-                (dto.tipo_documento_id !== undefined && dto.tipo_documento_id !== clienteActual.tipo_documento_id) ||
-                (dto.documento !== undefined && dto.documento !== clienteActual.documento) ||
-                (dto.documento_complemento !== undefined && dto.documento_complemento !== clienteActual.documento_complemento);
+            const cambioDocumento =
+                (dtoProcesado.tipo_documento_id !== undefined && dtoProcesado.tipo_documento_id !== clienteActual.tipo_documento_id) ||
+                (dtoProcesado.documento !== undefined && dtoProcesado.documento !== clienteActual.documento) ||
+                (dtoProcesado.documento_complemento !== undefined && dtoProcesado.documento_complemento !== clienteActual.documento_complemento);
 
-            if (huboCambioDocumentacion && documentoEvaluado !== '0') {
-                const camposUnicidad = [
-                    { nombre: 'tipo_documento_id', valor: tipoDocumentoEvaluado },
-                    { nombre: 'documento', valor: documentoEvaluado }
+            if (cambioDocumento && nuevoDocumento !== '0') {
+                const camposUnicidad: Array<{ nombre: string; valor: any }> = [
+                    { nombre: 'tipo_documento_id', valor: nuevoTipoDoc },
+                    { nombre: 'documento', valor: nuevoDocumento }
                 ];
 
-                if (complementoEvaluado) {
-                    camposUnicidad.push({ nombre: 'documento_complemento', valor: complementoEvaluado });
+                if (nuevoComplemento !== undefined && nuevoComplemento !== null && nuevoComplemento !== '') {
+                    camposUnicidad.push({ nombre: 'documento_complemento', valor: nuevoComplemento });
                 }
 
                 validaciones.push(
@@ -258,7 +211,7 @@ export class ClientesService extends BaseService {
                         campos: camposUnicidad,
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
-                        campoPk: this.campoPK
+                        campoPk: this.campoPK,
                     })
                 );
             }
@@ -267,7 +220,7 @@ export class ClientesService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            Object.assign(clienteActual, dto);
+            Object.assign(clienteActual, dtoProcesado);
             clienteActual.update(usuarioId);
 
             try {
@@ -277,8 +230,10 @@ export class ClientesService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el cliente', 'actualizar');
             }
         });
     }

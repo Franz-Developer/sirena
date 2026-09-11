@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -15,6 +14,7 @@ import { FindUbicacionesQueryDto } from './dto/find-ubicaciones-query.dto';
 import { UpdateUbicacionDto } from './dto/update-ubicacion.dto';
 import { Ubicacion } from './entities/ubicacion.entity';
 import { TipoUbicacion, CODIGO_TIPO_UBICACION } from '../../common/constants/ubicaciones.constants';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class UbicacionesService extends BaseService {
@@ -168,15 +168,14 @@ export class UbicacionesService extends BaseService {
                     const saved = await manager.save(ubicacion);
                     const result = await this.findOne<UbicacionResponseDto>(saved.ubicacion_id, usuarioId, manager);
                     results.push(result);
-                } catch (error) {
+                } catch (error: unknown) {
                     if (isDomainException(error)) {
                         throw error;
                     }
-                    this.logger.error(`Error al crear ubicación nivel ${nivel}: ${getErrorMessage(error)}`, getErrorStack(error));
-                    throw new DomainException(
-                        `Error al crear ubicación nivel ${nivel}.`,
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
+
+                    const errorMessage = getErrorMessage(error);
+                    this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                    throw crearError(error, 'la ubicación', 'crear');
                 }
             }
 
@@ -260,11 +259,10 @@ export class UbicacionesService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error al actualizar ubicación: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw new DomainException(
-                    'Error inesperado al actualizar la ubicación.',
-                    { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                );
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'la ubicación', 'actualizar');
             }
         });
     }

@@ -1,20 +1,20 @@
-FALTA. ARREGLAR EL modulo trabajador. POR QUE SE CAMBIO los campos de ubicaciones se cambio 
 FALTA. Eliminar cada 24 horas a las 3 am las fotos de logos de empresas, usuarios avatar y trabajador foto 
 FALTA. Crear UN TRIGGER QUE NO permita modificar ni eliminar todos los registros pk_id=1
 FALTA. Crear UN TRIGGER QUE NO permita modificar ni eliminar el usuario_id=2
 FALTA. Crear UN trigger que no permita eliminar nada que tenga que ver con usuario_id=2
-FALTA. ARREGLAR EL MODULO CLientes.
-FALTA. Modulo Tablas.
-FALTA. Arreglar el modulo roles.
-FALTA. Arreglar el modulo roles_tablas.
-FALTA. Arreglar el modulo tablas
-FALTA. ELIMINAR EL MODULO actual tablas.
-FALTA. Arreglar C:\sirena\sirena-backend\src\common\validators\is-eventos-permitidos.validator.service.ts
-FALTA. Arreglar el modulo sucesos
-FALTA. Hacer el modulo roles_permisos_tablas
-FALTA. Hacer el modulo roles_permisos_sucesos 
-FALTA. Arreglar el modulo menus.
-FALTA. Arreglar el modulo roles_menus.
+--FALTA. ARREGLAR EL modulo trabajador. POR QUE SE CAMBIO los campos de ubicaciones se cambio 
+--FALTA. ARREGLAR EL MODULO CLientes.
+--FALTA. Arreglar el modulo roles_menus.
+--FALTA. Arreglar el modulo menus.
+--FALTA. Hacer el modulo roles_permisos_sucesos 
+--FALTA. Arreglar el modulo roles_tablas.
+--FALTA. Arreglar C:\sirena\sirena-backend\src\common\validators\is-eventos-permitidos.validator.service.ts
+--FALTA. Hacer el modulo roles_permisos_tablas
+--FALTA. Arreglar el modulo tablas
+--FALTA. ELIMINAR EL MODULO actual tablas.
+--FALTA. Modulo Tablas.
+--FALTA. Arreglar el modulo roles.
+--FALTA. Arreglar el modulo sucesos
 --FALTA. Ubicaciones
 --FALTA. revisar el modulo sucursal se eliminio de usuarios sucursal_id 
 --FALTA. MEJORAR usuarios eliminar FK sucursal_id

@@ -1,12 +1,11 @@
 // C:\sirena\sirena-backend\src\modules\inventarios-fisicos\inventarios-fisicos.service.ts
+
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
-import { logSqlQuery } from '../../common/utils/sql-logger.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -15,6 +14,7 @@ import { InventarioFisicoResponseDto } from './dto/inventario-fisico-response.dt
 import { FindInventariosFisicosQueryDto } from './dto/find-inventarios-fisicos-query.dto';
 import { UpdateInventarioFisicoDto } from './dto/update-inventario-fisico.dto';
 import { InventarioFisico } from './entities/inventario-fisico.entity';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class InventariosFisicosService extends BaseService {
@@ -72,6 +72,23 @@ export class InventariosFisicosService extends BaseService {
                 type: 'INNER'
             },
             {
+                table: 'trabajadores_cargos',
+                alias: 'tcr',
+                onCondition: 'tcr.trabajador_id = tr.trabajador_id AND tcr.es_activo = 1',
+                selectColumns: [],
+                type: 'INNER'
+            },
+            {
+                table: 'cargos',
+                alias: 'crc',
+                onCondition: 'crc.cargo_id = tcr.cargo_id',
+                selectColumns: [
+                    'crc.cargo AS trabajador_responsable_cargo',
+                    'crc.codigo AS trabajador_responsable_cargo_codigo'
+                ],
+                type: 'INNER'
+            },
+            {
                 table: 'trabajadores',
                 alias: 'ts',
                 onCondition: 'ts.trabajador_id = t.trabajador_supervisor_id',
@@ -79,12 +96,29 @@ export class InventariosFisicosService extends BaseService {
                     `TRIM(CONCAT_WS(' ', ts.nombres, ts.paterno, ts.materno)) AS trabajador_supervisor_nombre`
                 ],
                 type: 'INNER'
+            },
+            {
+                table: 'trabajadores_cargos',
+                alias: 'tcs',
+                onCondition: 'tcs.trabajador_id = ts.trabajador_id AND tcs.es_activo = 1',
+                selectColumns: [],
+                type: 'INNER'
+            },
+            {
+                table: 'cargos',
+                alias: 'csc',
+                onCondition: 'csc.cargo_id = tcs.cargo_id',
+                selectColumns: [
+                    'csc.cargo AS trabajador_supervisor_cargo',
+                    'csc.codigo AS trabajador_supervisor_cargo_codigo'
+                ],
+                type: 'INNER'
             }
         ],
         configuracionFiltros: [
             {
-                nombreCampo: 'sucursal_id',
-                nombreColumna: 'sucursal_id',
+                nombreCampo: 'almacen_id',
+                nombreColumna: 'almacen_id',
                 tipoDatoFiltro: 'number',
                 operador: 'eq',
             },
@@ -132,24 +166,51 @@ export class InventariosFisicosService extends BaseService {
         return this.config.campoPK;
     }
 
-    private async validarPertenenciaUbicacionSucursal(
-        manager: any,
-        sucursalId: number,
+    private async obtenerAlmacenDeUbicacion(
+        manager: EntityManager,
         ubicacionId: number
+    ): Promise<{ almacen_id: number; sucursal_id: number }> {
+        const query = `
+            SELECT u.almacen_id, a.sucursal_id
+            FROM ubicaciones u
+            INNER JOIN almacenes a ON a.almacen_id = u.almacen_id
+            WHERE u.ubicacion_id = $1
+              AND u.estado_id = $2
+              AND a.estado_id = $2
+            LIMIT 1
+        `;
+        const resultado = await manager.query(query, [ubicacionId, ESTADO_ACTIVO]);
+
+        if (!resultado || resultado.length === 0) {
+            throw new DomainException(
+                `La ubicación con ID ${ubicacionId} no existe, no está activa o no tiene un almacén activo asociado.`,
+                { httpStatus: HttpStatus.BAD_REQUEST }
+            );
+        }
+
+        return {
+            almacen_id: Number(resultado[0].almacen_id),
+            sucursal_id: Number(resultado[0].sucursal_id),
+        };
+    }
+
+    private async validarAlmacenPerteneceASucursal(
+        manager: EntityManager,
+        sucursalId: number,
+        almacenId: number
     ): Promise<void> {
         const query = `
-            SELECT 1 FROM ubicaciones
-            WHERE ubicacion_id = $1
+            SELECT 1 FROM almacenes
+            WHERE almacen_id = $1
               AND sucursal_id = $2
               AND estado_id = $3
             LIMIT 1
         `;
-        const params = [ubicacionId, sucursalId, ESTADO_ACTIVO];
-        const resultado = await manager.query(query, params);
+        const resultado = await manager.query(query, [almacenId, sucursalId, ESTADO_ACTIVO]);
 
         if (!resultado || resultado.length === 0) {
             throw new DomainException(
-                `La ubicación con ID ${ubicacionId} no pertenece a la sucursal con ID ${sucursalId} o no se encuentra activa.`,
+                `El almacén con ID ${almacenId} no pertenece a la sucursal con ID ${sucursalId} o no se encuentra activo.`,
                 { httpStatus: HttpStatus.BAD_REQUEST }
             );
         }
@@ -157,92 +218,63 @@ export class InventariosFisicosService extends BaseService {
 
     async create(dto: CreateInventarioFisicoDto, usuarioId: number): Promise<InventarioFisicoResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            const validaciones: Promise<any>[] = [
-                this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dto.sucursal_id),
+            const { sucursal_id } = await this.obtenerAlmacenDeUbicacion(manager, dto.ubicacion_id);
+
+            await this.validarAlmacenPerteneceASucursal(manager, sucursal_id, dto.almacen_id);
+
+            await Promise.all([
+                this.tablaValidador.validarRegistrosActivos('almacenes', 'almacen_id', dto.almacen_id),
                 this.tablaValidador.validarRegistrosActivos('ubicaciones', 'ubicacion_id', dto.ubicacion_id),
                 this.tablaValidador.validarRegistrosActivos('trabajadores', 'trabajador_id', dto.trabajador_responsable_id),
                 this.tablaValidador.validarRegistrosActivos('trabajadores', 'trabajador_id', dto.trabajador_supervisor_id),
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
-                this.validarPertenenciaUbicacionSucursal(manager, dto.sucursal_id, dto.ubicacion_id),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
                     campos: [
-                        { nombre: 'sucursal_id', valor: dto.sucursal_id },
+                        { nombre: 'almacen_id', valor: dto.almacen_id },
                         { nombre: 'ubicacion_id', valor: dto.ubicacion_id },
-                        { nombre: 'fecha_conteo', valor: dto.fecha_conteo }
+                        { nombre: 'fecha_conteo', valor: dto.fecha_conteo },
+                        { nombre: 'trabajador_responsable_id', valor: dto.trabajador_responsable_id },
+                        { nombre: 'trabajador_supervisor_id', valor: dto.trabajador_supervisor_id }
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK,
-                })
-            ];
+                }),
+            ]);
 
-            await Promise.all(validaciones);
-
-            const query = `
-                INSERT INTO ${this.nombreTabla} (
-                    sucursal_id,
-                    ubicacion_id,
-                    fecha_conteo,
-                    fecha_inicio,
-                    fecha_fin,
-                    trabajador_responsable_id,
-                    trabajador_supervisor_id,
-                    observaciones,
-                    estado_id,
-                    usuario_id_registro,
-                    fecha_registro
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
-                RETURNING ${this.campoPK}
-            `;
-
-            const params = [
-                dto.sucursal_id,
-                dto.ubicacion_id,
-                dto.fecha_conteo,
-                dto.fecha_inicio,
-                dto.fecha_fin || null,
-                dto.trabajador_responsable_id,
-                dto.trabajador_supervisor_id,
-                dto.observaciones?.trim() || null,
-                ESTADO_ACTIVO,
-                Number(usuarioId)
-            ];
-
-            logSqlQuery(query, params, `create - ${this.nombreTabla}`);
+            const inventario = manager.create(InventarioFisico, {
+                ...dto,
+                usuario_id_registro: Number(usuarioId),
+            });
 
             try {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
-                const insertResult = await manager.query(query, params);
-                const newId = Number(insertResult[0]?.[this.campoPK] || 0);
-
-                if (newId === 0) {
-                    throw new DomainException(
-                        'Error al insertar el registro de inventario físico.',
-                        { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                    );
-                }
-
-                return this.findOne(newId, usuarioId, manager);
-            } catch (error) {
+                const saved = await manager.save(inventario);
+                return this.findOne<InventarioFisicoResponseDto>(saved.inventario_fisico_id, usuarioId, manager);
+            } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el inventario físico', 'crear');
             }
         });
     }
 
     async update(id: number, dto: UpdateInventarioFisicoDto, usuarioId: number): Promise<InventarioFisicoResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            let dtoNormalizado = { ...dto };
-
-            if (dtoNormalizado.observaciones !== undefined && dtoNormalizado.observaciones !== null) {
-                dtoNormalizado.observaciones = dtoNormalizado.observaciones.trim();
+            const hasFields = Object.values(dto).some(val => val !== undefined);
+            if (!hasFields) {
+                throw new DomainException(
+                    'No se enviaron campos para actualizar.',
+                    { httpStatus: HttpStatus.BAD_REQUEST }
+                );
             }
 
-            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dtoNormalizado, this.campoPK, usuarioId);
+            await this.tablaValidador.validarPreUpdate(this.nombreTabla, id, dto, this.campoPK, usuarioId);
 
             const inventarioActual = await manager.findOne(InventarioFisico, {
                 where: { [this.campoPK]: id, estado_id: ESTADO_ACTIVO },
@@ -251,61 +283,72 @@ export class InventariosFisicosService extends BaseService {
 
             if (!inventarioActual) {
                 throw new DomainException(
-                    `Registro de inventario físico no encontrado.`,
+                    `Inventario físico no encontrado.`,
                     { id, httpStatus: HttpStatus.NOT_FOUND }
                 );
             }
 
-            dtoNormalizado = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
-                dtoNormalizado,
+                dto,
                 FindInventariosFisicosQueryDto.getDependencias(),
                 FindInventariosFisicosQueryDto.getCamposProtegidosConDependencias(),
                 this.campoPK,
                 usuarioId
             );
 
-            const nuevoSucursalId = dtoNormalizado.sucursal_id ?? inventarioActual.sucursal_id;
-            const nuevoUbicacionId = dtoNormalizado.ubicacion_id ?? inventarioActual.ubicacion_id;
-            const nuevaFechaConteo = dtoNormalizado.fecha_conteo !== undefined ? dtoNormalizado.fecha_conteo : inventarioActual.fecha_conteo;
+            const nuevoAlmacenId = dtoProcesado.almacen_id ?? inventarioActual.almacen_id;
+            const nuevoUbicacionId = dtoProcesado.ubicacion_id ?? inventarioActual.ubicacion_id;
+            const nuevoTrabajadorResponsableId = dtoProcesado.trabajador_responsable_id ?? inventarioActual.trabajador_responsable_id;
+            const nuevoTrabajadorSupervisorId = dtoProcesado.trabajador_supervisor_id ?? inventarioActual.trabajador_supervisor_id;
+            const nuevaFechaConteo = dtoProcesado.fecha_conteo ?? inventarioActual.fecha_conteo;
 
-            const validaciones: Promise<any>[] = [
-                this.validarPertenenciaUbicacionSucursal(manager, nuevoSucursalId, nuevoUbicacionId)
-            ];
+            const { sucursal_id } = await this.obtenerAlmacenDeUbicacion(manager, nuevoUbicacionId);
+            await this.validarAlmacenPerteneceASucursal(manager, sucursal_id, nuevoAlmacenId);
 
-            if (dtoNormalizado.sucursal_id !== undefined && dtoNormalizado.sucursal_id !== inventarioActual.sucursal_id) {
+            const validaciones: Promise<any>[] = [];
+
+            if (dtoProcesado.almacen_id !== undefined && dtoProcesado.almacen_id !== inventarioActual.almacen_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dtoNormalizado.sucursal_id)
+                    this.tablaValidador.validarRegistrosActivos('almacenes', 'almacen_id', dtoProcesado.almacen_id)
                 );
             }
 
-            if (dtoNormalizado.ubicacion_id !== undefined && dtoNormalizado.ubicacion_id !== inventarioActual.ubicacion_id) {
+            if (dtoProcesado.ubicacion_id !== undefined && dtoProcesado.ubicacion_id !== inventarioActual.ubicacion_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('ubicaciones', 'ubicacion_id', dtoNormalizado.ubicacion_id)
+                    this.tablaValidador.validarRegistrosActivos('ubicaciones', 'ubicacion_id', dtoProcesado.ubicacion_id)
                 );
             }
 
-            if (dtoNormalizado.trabajador_responsable_id !== undefined && dtoNormalizado.trabajador_responsable_id !== inventarioActual.trabajador_responsable_id) {
+            if (dtoProcesado.trabajador_responsable_id !== undefined && dtoProcesado.trabajador_responsable_id !== inventarioActual.trabajador_responsable_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('trabajadores', 'trabajador_id', dtoNormalizado.trabajador_responsable_id)
+                    this.tablaValidador.validarRegistrosActivos('trabajadores', 'trabajador_id', dtoProcesado.trabajador_responsable_id)
                 );
             }
 
-            if (dtoNormalizado.trabajador_supervisor_id !== undefined && dtoNormalizado.trabajador_supervisor_id !== inventarioActual.trabajador_supervisor_id) {
+            if (dtoProcesado.trabajador_supervisor_id !== undefined && dtoProcesado.trabajador_supervisor_id !== inventarioActual.trabajador_supervisor_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('trabajadores', 'trabajador_id', dtoNormalizado.trabajador_supervisor_id)
+                    this.tablaValidador.validarRegistrosActivos('trabajadores', 'trabajador_id', dtoProcesado.trabajador_supervisor_id)
                 );
             }
 
-            if (dtoNormalizado.sucursal_id !== undefined || dtoNormalizado.ubicacion_id !== undefined || dtoNormalizado.fecha_conteo !== undefined) {
+            if (
+                dtoProcesado.almacen_id !== undefined ||
+                dtoProcesado.ubicacion_id !== undefined ||
+                dtoProcesado.fecha_conteo !== undefined ||
+                dtoProcesado.trabajador_responsable_id !== undefined ||
+                dtoProcesado.trabajador_supervisor_id !== undefined
+            ) {
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
-                            { nombre: 'sucursal_id', valor: nuevoSucursalId },
+                            { nombre: 'almacen_id', valor: nuevoAlmacenId },
                             { nombre: 'ubicacion_id', valor: nuevoUbicacionId },
-                            { nombre: 'fecha_conteo', valor: nuevaFechaConteo }
+                            { nombre: 'fecha_conteo', valor: nuevaFechaConteo },
+                            { nombre: 'trabajador_responsable_id', valor: nuevoTrabajadorResponsableId },
+                            { nombre: 'trabajador_supervisor_id', valor: nuevoTrabajadorSupervisorId }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
@@ -318,7 +361,7 @@ export class InventariosFisicosService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            Object.assign(inventarioActual, dtoNormalizado);
+            Object.assign(inventarioActual, dtoProcesado);
             inventarioActual.update(usuarioId);
 
             try {
@@ -328,8 +371,10 @@ export class InventariosFisicosService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el inventario físico', 'actualizar');
             }
         });
     }

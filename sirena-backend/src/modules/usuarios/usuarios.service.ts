@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 import { ESTADOS_VIVOS, ESTADO_ACTIVO } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -16,6 +15,7 @@ import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { Usuario } from './entities/usuario.entity';
 import { verifyPassword, hashPassword } from '../../common/utils/crypto.util';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class UsuariosService extends BaseService {
@@ -192,8 +192,10 @@ export class UsuariosService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el usuario', 'crear');
             }
         });
     }
@@ -253,8 +255,10 @@ export class UsuariosService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el usuario', 'actualizar');
             }
         });
     }
@@ -300,11 +304,20 @@ export class UsuariosService extends BaseService {
                 );
             }
 
-            usuario.contrasena = await hashPassword(dto.nuevaContrasena);
-            usuario.update(usuarioId);
+            try {
+                usuario.contrasena = await hashPassword(dto.nuevaContrasena);
+                usuario.update(usuarioId);
+                await manager.save(usuario);
+                this.logger.log(`Contraseña cambiada para usuario ID: ${id}`);
+            } catch (error: unknown) {
+                if (isDomainException(error)) {
+                    throw error;
+                }
 
-            await manager.save(usuario);
-            this.logger.log(`Contraseña cambiada para usuario ID: ${id}`);
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado al cambiar contraseña: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'la contraseña del usuario', 'actualizar');
+            }
         });
     }
 }

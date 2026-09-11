@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
-import { getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 import { runInTransaction } from '../../common/utils/transaction.helper';
 import { TablaValidadorService } from '../../common/validators/tabla-validador.service';
 import { UnicidadValidadorService } from '../../common/validators/unicidad-validador.service';
@@ -14,6 +13,7 @@ import { CufdResponseDto } from './dto/cufd-response.dto';
 import { FindCufdsQueryDto } from './dto/find-cufds-query.dto';
 import { UpdateCufdDto } from './dto/update-cufd.dto';
 import { Cufd } from './entities/cufd.entity';
+import { crearError, getErrorMessage, getErrorStack, isDomainException } from '../../common/utils/error.util';
 
 @Injectable()
 export class CufdsService extends BaseService {
@@ -157,12 +157,14 @@ export class CufdsService extends BaseService {
                 await this.sincronizarSecuencia(manager, this.nombreTabla, this.campoPK);
                 const saved = await manager.save(cufd);
                 return this.findOne<CufdResponseDto>(saved.cufd_id, usuarioId, manager);
-            } catch (error) {
+            } catch (error: unknown) {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw error;
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en create: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el CUFD', 'crear');
             }
         });
     }
@@ -290,11 +292,10 @@ export class CufdsService extends BaseService {
                 if (isDomainException(error)) {
                     throw error;
                 }
-                this.logger.error(`Error al actualizar CUFD: ${getErrorMessage(error)}`, getErrorStack(error));
-                throw new DomainException(
-                    'Error inesperado al actualizar el registro CUFD.',
-                    { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR }
-                );
+
+                const errorMessage = getErrorMessage(error);
+                this.logger.error(`Error inesperado en update: ${errorMessage}`, getErrorStack(error));
+                throw crearError(error, 'el CUFD', 'actualizar');
             }
         });
     }

@@ -14,12 +14,11 @@ import { typeOrmConfig } from './config/database.config';
 import { loggerConfig } from './config/logger.config';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConstantesModule } from './modules/constantes/constantes.module';
-import { TablasModule } from './modules/tablas/tablas.module';
 import { BancosModule } from './modules/bancos/bancos.module';
 import { TiposCambiosModule } from './modules/tipos-cambios/tipos-cambios.module';
 import { EmpresasModule } from './modules/empresas/empresas.module';
-import { EmpresasCuentasModule } from './modules/empresas-cuentas/empresas-cuentas.module';
 import { EmpresasNitsModule } from './modules/empresas-nits/empresas-nits.module';
+import { EmpresasCuentasModule } from './modules/empresas-cuentas/empresas-cuentas.module';
 import { SucursalesModule } from './modules/sucursales/sucursales.module';
 import { PuntosVentaModule } from './modules/puntos-venta/puntos-venta.module';
 import { CuisModule } from './modules/cuis/cuis.module';
@@ -33,12 +32,14 @@ import { TrabajadoresModule } from './modules/trabajadores/trabajadores.module';
 import { TrabajadoresCargosModule } from './modules/trabajadores-cargos/trabajadores-cargos.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
-
+import { TablasModule } from './modules/tablas/tablas.module';
+import { SucesosModule } from './modules/sucesos/sucesos.module';
+import { RolesPermisosTablasModule } from './modules/roles-permisos-tablas/roles-permisos-tablas.module';
+import { RolesPermisosSucesosModule } from './modules/roles-permisos-sucesos/roles-permisos-sucesos.module';
 import { MenusModule } from './modules/menus/menus.module';
-
+import { RolesMenusModule } from './modules/roles-menus/roles-menus.module';
 import { InventariosFisicosModule } from './modules/inventarios-fisicos/inventarios-fisicos.module';
 import { ClientesModule } from './modules/clientes/clientes.module';
-import { SucesosModule } from './modules/sucesos/sucesos.module';
 
 
 import { ParametrosGlobalesModule } from './modules/parametros-globales/parametros-globales.module';
@@ -68,7 +69,6 @@ import { ParametrosGlobalesModule } from './modules/parametros-globales/parametr
         AuthModule,
         CommonModule,
         ConstantesModule,
-        TablasModule,
         BancosModule,
         TiposCambiosModule,
         EmpresasModule,
@@ -82,18 +82,22 @@ import { ParametrosGlobalesModule } from './modules/parametros-globales/parametr
         AlmacenesModule,
         UbicacionesModule,
         AlmacenesPuntosVentaModule,
-        ParametrosGlobalesModule,
         CargosModule,
         TrabajadoresModule,
         TrabajadoresCargosModule,
         RolesModule,
         UsuariosModule,
-
+        TablasModule,
+        SucesosModule,
+        RolesPermisosTablasModule,
+        RolesPermisosSucesosModule,
         MenusModule,
-
+        RolesMenusModule,
         InventariosFisicosModule,
         ClientesModule,
-        SucesosModule,
+
+
+        ParametrosGlobalesModule,
     ],
     controllers: [],
     providers: [
