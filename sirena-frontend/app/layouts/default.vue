@@ -3,7 +3,11 @@
     <div class="flex flex-col h-screen bg-white dark:bg-[#0b1220] font-sans">
         <header class="h-16 bg-[var(--primary-dark)] flex items-center justify-between px-4 shadow-md z-30 border-b-4 border-[#ff9800]">
             <div class="flex items-center gap-3">
-                <button @click="toggleSidebar" class="relative text-white hover:bg-white/10 p-2 rounded-md transition-all group" :class="{ 'rotate-90': !isSidebarOpen }">
+                <button
+                    @click="toggleSidebar"
+                    class="relative text-white hover:bg-white/10 p-2 rounded-md transition-all group"
+                    :class="{ 'rotate-90': !isSidebarOpen }"
+                >
                     <i class="pi pi-bars text-xl"></i>
                     <span class="absolute bottom-1.5 right-1.5 w-2 h-2 bg-slate-400 rounded-full"></span>
                 </button>
@@ -97,12 +101,28 @@
         </header>
 
         <div class="flex flex-1 overflow-hidden">
-            <div class="fixed inset-0 bg-black/50 z-40 md:hidden" v-if="isSidebarOpen && windowWidth < 768" @click="isSidebarOpen = false"></div>
-            <aside :class="['bg-slate-100 border-r transition-all duration-300 fixed md:relative z-50 h-full', isSidebarOpen ? 'w-64 left-0' : '-left-64 md:left-0 md:w-0 md:opacity-0 md:invisible']">
+            <!-- Overlay: solo en móvil y solo cuando el sidebar está abierto -->
+            <div
+                v-if="isMobile && isSidebarOpen"
+                class="fixed inset-0 bg-black/60 z-40 md:hidden"
+                @click="isSidebarOpen = false"
+            ></div>
+
+            <!-- Sidebar -->
+            <aside
+                :class="[
+                    'bg-slate-100 border-r transition-all duration-300 h-full z-50',
+                    'fixed md:relative md:translate-x-0 top-0 left-0',
+                    isSidebarOpen
+                        ? 'translate-x-0 w-72'
+                        : '-translate-x-full md:translate-x-0 md:w-0 md:opacity-0 md:invisible'
+                ]"
+            >
                 <SidebarMenu />
             </aside>
+
             <main class="flex-1 overflow-y-auto bg-slate-50 flex flex-col">
-                <div class="p-4 flex-1"><div class="card min-h-full"><slot /></div></div>
+                <div class="p-2 md:p-4 flex-1"><div class="card min-h-full"><slot /></div></div>
                 <footer class="px-6 py-4 border-t bg-white flex justify-between items-center">
                     <div class="flex items-center gap-2">
                         <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
@@ -160,7 +180,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
     import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
     import { useRoute } from 'vue-router';
 
@@ -168,15 +188,15 @@
     const route = useRoute();
     const authStore = useAuthStore();
     const userMenu = ref();
-    const isSidebarOpen = ref(true);
+    const isSidebarOpen = ref<boolean>(true);
+    const isMobile = ref<boolean>(false);
     const config = useRuntimeConfig();
-    const showPasswordModal = ref(false);
-    const currentPassword = ref('');
-    const newPassword = ref('');
-    const confirmPassword = ref('');
-    const passwordError = ref('');
-    const isUpdatingPassword = ref(false);
-    const { $toast } = useNuxtApp();
+    const showPasswordModal = ref<boolean>(false);
+    const currentPassword = ref<string>('');
+    const newPassword = ref<string>('');
+    const confirmPassword = ref<string>('');
+    const passwordError = ref<string | null>(null);
+    const isUpdatingPassword = ref<boolean>(false);
 
     const avatarUrl = computed(() => {
         const avatar = authStore.user?.avatar;
@@ -190,7 +210,10 @@
         try {
             const parts = token.split('.');
             if (parts.length !== 3) return null;
+
             const base64Url = parts[1];
+            if (!base64Url) return null;
+
             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
             return JSON.parse(window.atob(base64));
         } catch (e) {
@@ -198,7 +221,7 @@
         }
     });
 
-    const formatUnixTime = (unixTimestamp) => {
+    const formatUnixTime = (unixTimestamp?: number): string => {
         if (!unixTimestamp) return '--:--';
         const date = new Date(unixTimestamp * 1000);
         return new Intl.DateTimeFormat('es-ES', {
@@ -209,10 +232,16 @@
 
     const loginTime = computed(() => formatUnixTime(tokenData.value?.iat));
     const expirationTime = computed(() => formatUnixTime(tokenData.value?.exp));
-    const toggleUserMenu = (event) => userMenu.value?.toggle(event);
-    const toggleSidebar = () => isSidebarOpen.value = !isSidebarOpen.value;
 
-    watch(showPasswordModal, (opened) => {
+    const toggleUserMenu = (event: Event): void => {
+        userMenu.value?.toggle(event);
+    };
+
+    const toggleSidebar = (): void => {
+        isSidebarOpen.value = !isSidebarOpen.value;
+    };
+
+    watch(showPasswordModal, (opened: boolean) => {
         if (opened) {
             currentPassword.value = '';
             newPassword.value = '';
@@ -221,9 +250,10 @@
         }
     });
 
-    const handlePasswordUpdate = async () => {
+    const handlePasswordUpdate = async (): Promise<void> => {
         isUpdatingPassword.value = true;
         passwordError.value = null;
+
         if (!authStore.user?.usuario_id) {
             notify('warn', 'Acceso Denegado', 'No se encontró usuario activo para actualizar la contraseña');
             isUpdatingPassword.value = false;
@@ -232,7 +262,7 @@
 
         try {
             const userId = authStore.user.usuario_id;
-            const response = await $fetch(`${config.public.apiBase}/usuarios/${userId}/password`, {
+            await $fetch(`${config.public.apiBase}/usuarios/${userId}/password`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${authStore.token}`,
@@ -245,8 +275,8 @@
             });
             notify('success', 'Éxito', 'Contraseña actualizada correctamente');
             closePasswordModal();
-        } catch (e) {
-            const mensajeServidor = e.data?.message || 'Error inesperado';
+        } catch (e: any) {
+            const mensajeServidor = e?.data?.message || 'Error inesperado';
             passwordError.value = Array.isArray(mensajeServidor) ? mensajeServidor.join(', ') : mensajeServidor;
             notify('error', 'Error de Actualización', passwordError.value);
         } finally {
@@ -254,26 +284,38 @@
         }
     };
 
-    const closeSidebarOnMobile = () => {
-        if (window.innerWidth < 768) {
-            isSidebarOpen.value = false;
-        }
+    // ─────────────────────────────────────────────
+    // Detectar móvil vía matchMedia (más robusto que resize)
+    // ─────────────────────────────────────────────
+    let mediaQuery: MediaQueryList | null = null;
+
+    const handleMediaChange = (e: MediaQueryListEvent | MediaQueryList): void => {
+        isMobile.value = e.matches;
+        // Desktop → sidebar abierto por defecto
+        // Móvil → sidebar cerrado por defecto
+        isSidebarOpen.value = !e.matches;
     };
 
-    watch(() => route.path, () => {
-        closeSidebarOnMobile();
-    });
-
     onMounted(() => {
-        closeSidebarOnMobile();
-        window.addEventListener('resize', closeSidebarOnMobile);
+        mediaQuery = window.matchMedia('(max-width: 767px)');
+        handleMediaChange(mediaQuery);
+        mediaQuery.addEventListener('change', handleMediaChange);
     });
 
     onBeforeUnmount(() => {
-        window.removeEventListener('resize', closeSidebarOnMobile);
+        mediaQuery?.removeEventListener('change', handleMediaChange);
     });
 
-    const closePasswordModal = () => {
+    // ─────────────────────────────────────────────
+    // Cerrar sidebar al navegar (solo en móvil)
+    // ─────────────────────────────────────────────
+    watch(() => route.path, () => {
+        if (isMobile.value) {
+            isSidebarOpen.value = false;
+        }
+    });
+
+    const closePasswordModal = (): void => {
         showPasswordModal.value = false;
         currentPassword.value = '';
         newPassword.value = '';

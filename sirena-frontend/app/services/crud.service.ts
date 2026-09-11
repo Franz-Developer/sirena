@@ -35,8 +35,9 @@ export const useCrudService = <T extends { [k: string]: any } = any>(tabla: stri
     const desarchivar = (id: number | string): Promise<T> => $api(`/${tabla}/${id}/desarchivar`, { method: 'PATCH' });
 
     /** Permisos del rol actual sobre esta tabla */
-    const permisos = (): PermisosTabla => {
-        const p = authStore.permisos[tabla];
+    const permisos = (nombrePermisos?: string): PermisosTabla => {
+        const clave = nombrePermisos ?? tabla;
+        const p = authStore.permisos[clave];
         return {
             leer:        p?.leer        ?? false,
             crear:       p?.crear       ?? false,

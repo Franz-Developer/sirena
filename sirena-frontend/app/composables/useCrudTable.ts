@@ -6,6 +6,9 @@ export interface UseCrudTableOptions<T> {
     /** Nombre de la tabla en el backend (ej. 'bancos', 'sucursales') */
     tabla: string;
 
+    /** Nombre de la tabla en el mapa de permisos → snake_case. Por defecto = tabla */
+    tablaPermisos?: string;
+
     /** Devuelve un objeto limpio para "nuevo registro" */
     getCleanForm: () => T;
 
@@ -42,7 +45,7 @@ export const useCrudTable = <T extends { [k: string]: any }>(opts: UseCrudTableO
     const { $rules } = useNuxtApp() as any;
 
     const crud = useCrudService<T>(opts.tabla);
-    const permisos = crud.permisos();
+    const permisos = crud.permisos(opts.tablaPermisos);
 
     // ---------- Primary key resolver ----------
     const resolvePK = (item: T): number | string => {

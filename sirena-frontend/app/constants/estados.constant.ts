@@ -1,20 +1,4 @@
 // C:\sirena\sirena-frontend\app\constants\estados.constant.ts
-// ============================================================
-// ARCHIVO GENERADO AUTOMATICAMENTE
-// ============================================================
-//
-// NO EDITAR MANUALMENTE.
-//
-// Origen:   C:\sirena\sirena-backend\src\common\constants\estados.constant.ts
-// Generado: 2026-09-10 09:36:15
-//
-// Transformacion aplicada:
-//   Record<EnumName, ConstanteMetadata> -> Record<number, ConstanteMetadata>
-//   (compatibilidad con Nuxt 4)
-//
-// ============================================================
-
-// C:\sirena\sirena-backend\src\common\constants\estados.constant.ts
 
 export interface ConstanteMetadata {
     id: number;
