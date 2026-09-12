@@ -37,147 +37,11 @@
                 @page="onPage"
                 @sort="onSort"
             >
-
                 <template #header>
-    <div class="px-4 py-3 bg-white border-b border-slate-200">
-        <!-- Primera fila: Empresa, Buscar, Coincidencia -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div class="md:col-span-1 w-full">
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    Empresa <span class="text-red-500">*</span>
-                </label>
-                <BaseSelect
-                    v-model="filters.empresa_id"
-                    :options="empresaOptions"
-                    option-label="label"
-                    option-value="value"
-                    placeholder="Seleccionar empresa..."
-                    size="sm"
-                    filter
-                    :loading="loadingEmpresas"
-                    @update:model-value="onEmpresaChange"
-                    class="w-full"
-                />
-            </div>
-
-            <div class="md:col-span-1 w-full">
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    Buscar
-                </label>
-                <BaseSearch
-                    v-model="filters.global"
-                    placeholder="NIT, razón social, etiqueta..."
-                    @search="onSearch"
-                    class="w-full"
-                />
-            </div>
-
-            <div class="md:col-span-1 w-full">
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    Coincidencia
-                </label>
-                <BaseSelect
-                    v-model="filters.exactMatch"
-                    :options="opcionesExactMatch"
-                    option-label="label"
-                    option-value="value"
-                    size="sm"
-                    @update:model-value="onSearch"
-                    class="w-full"
-                />
-            </div>
-        </div>
-
-        <!-- Segunda fila: Ambiente, Modalidad, Inicio Vigencia, Fin Vigencia -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 items-end">
-            <div class="w-full">
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    Ambiente
-                </label>
-                <BaseSelect
-                    v-model="filters.ambiente_id"
-                    :options="ambienteOptions"
-                    option-label="label"
-                    option-value="value"
-                    placeholder="Todos"
-                    size="sm"
-                    show-clear
-                    @update:model-value="onFilterChange"
-                    class="w-full"
-                />
-            </div>
-
-            <div class="w-full">
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    Modalidad Facturación
-                </label>
-                <BaseSelect
-                    v-model="filters.modalidad_facturacion_id"
-                    :options="modalidadOptions"
-                    option-label="label"
-                    option-value="value"
-                    placeholder="Todas"
-                    size="sm"
-                    show-clear
-                    @update:model-value="onFilterChange"
-                    class="w-full"
-                />
-            </div>
-
-            <div class="w-full">
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    Inicio Vigencia
-                </label>
-                <div class="flex gap-2 w-full">
-                    <BaseInput
-                        v-model="filters.fecha_inicio_vigencia_desde"
-                        type="date"
-                        size="sm"
-                        placeholder="Desde"
-                        @update:model-value="onFilterChange"
-                        class="w-full"
-                    />
-                    <BaseInput
-                        v-model="filters.fecha_inicio_vigencia_hasta"
-                        type="date"
-                        size="sm"
-                        placeholder="Hasta"
-                        @update:model-value="onFilterChange"
-                        class="w-full"
-                    />
-                </div>
-            </div>
-
-            <div class="w-full">
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    Fin Vigencia
-                </label>
-                <div class="flex gap-2 w-full">
-                    <BaseInput
-                        v-model="filters.fecha_fin_vigencia_desde"
-                        type="date"
-                        size="sm"
-                        placeholder="Desde"
-                        @update:model-value="onFilterChange"
-                        class="w-full"
-                    />
-                    <BaseInput
-                        v-model="filters.fecha_fin_vigencia_hasta"
-                        type="date"
-                        size="sm"
-                        placeholder="Hasta"
-                        @update:model-value="onFilterChange"
-                        class="w-full"
-                    />
-                </div>
-            </div>
-        </div>
-    </div>
-</template>
-                <!--<template #header>
-                    <div class="px-4 py-3 bg-white border-b border-slate-200">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="md:col-span-1">
+                    <div class="px-4 py-3 bg-white border-b border-slate-200 max-h-[45vh] overflow-y-auto">
+                        <!-- Primera fila: Empresa, Buscar, Coincidencia -->
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                            <div class="md:col-span-6 w-full">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                     Empresa <span class="text-red-500">*</span>
                                 </label>
@@ -191,10 +55,11 @@
                                     filter
                                     :loading="loadingEmpresas"
                                     @update:model-value="onEmpresaChange"
+                                    class="w-full"
                                 />
                             </div>
 
-                            <div class="md:col-span-1">
+                            <div class="md:col-span-4 w-full">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                     Buscar
                                 </label>
@@ -202,28 +67,29 @@
                                     v-model="filters.global"
                                     placeholder="NIT, razón social, etiqueta..."
                                     @search="onSearch"
+                                    class="w-full"
                                 />
                             </div>
 
-                            <div class="md:col-span-1 flex items-end gap-2">
-                                <div class="flex-1">
-                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                        Coincidencia
-                                    </label>
-                                    <BaseSelect
-                                        v-model="filters.exactMatch"
-                                        :options="opcionesExactMatch"
-                                        option-label="label"
-                                        option-value="value"
-                                        size="sm"
-                                        @update:model-value="onSearch"
-                                    />
-                                </div>
+                            <div class="md:col-span-2 w-full">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                    Coincidencia
+                                </label>
+                                <BaseSelect
+                                    v-model="filters.exactMatch"
+                                    :options="opcionesExactMatch"
+                                    option-label="label"
+                                    option-value="value"
+                                    size="sm"
+                                    @update:model-value="onSearch"
+                                    class="w-full"
+                                />
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-                            <div>
+                        <!-- Segunda fila: Ambiente, Modalidad, Inicio Vigencia, Fin Vigencia -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 items-end">
+                            <div class="w-full">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                     Ambiente
                                 </label>
@@ -236,10 +102,11 @@
                                     size="sm"
                                     show-clear
                                     @update:model-value="onFilterChange"
+                                    class="w-full"
                                 />
                             </div>
 
-                            <div>
+                            <div class="w-full">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                     Modalidad Facturación
                                 </label>
@@ -252,20 +119,22 @@
                                     size="sm"
                                     show-clear
                                     @update:model-value="onFilterChange"
+                                    class="w-full"
                                 />
                             </div>
 
-                            <div>
+                            <div class="w-full">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                     Inicio Vigencia
                                 </label>
-                                <div class="flex gap-2">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
                                     <BaseInput
                                         v-model="filters.fecha_inicio_vigencia_desde"
                                         type="date"
                                         size="sm"
                                         placeholder="Desde"
                                         @update:model-value="onFilterChange"
+                                        class="w-full"
                                     />
                                     <BaseInput
                                         v-model="filters.fecha_inicio_vigencia_hasta"
@@ -273,21 +142,23 @@
                                         size="sm"
                                         placeholder="Hasta"
                                         @update:model-value="onFilterChange"
+                                        class="w-full"
                                     />
                                 </div>
                             </div>
 
-                            <div>
+                            <div class="w-full">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                     Fin Vigencia
                                 </label>
-                                <div class="flex gap-2">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
                                     <BaseInput
                                         v-model="filters.fecha_fin_vigencia_desde"
                                         type="date"
                                         size="sm"
                                         placeholder="Desde"
                                         @update:model-value="onFilterChange"
+                                        class="w-full"
                                     />
                                     <BaseInput
                                         v-model="filters.fecha_fin_vigencia_hasta"
@@ -295,12 +166,13 @@
                                         size="sm"
                                         placeholder="Hasta"
                                         @update:model-value="onFilterChange"
+                                        class="w-full"
                                     />
                                 </div>
                             </div>
                         </div>
                     </div>
-                </template>-->
+                </template>
 
                 <template #body-nit="{ data }">
                     <div class="flex flex-col">
@@ -321,11 +193,11 @@
                 </template>
 
                 <template #body-razon_social="{ data }">
-                    <div class="flex flex-col text-[10px] leading-tight max-w-[260px]">
-                        <span class="font-semibold text-slate-700 truncate" :title="data.razon_social">
+                    <div class="flex flex-col text-[10px] leading-tight items-end w-full lg:items-center">
+                        <span class="font-semibold text-slate-700 truncate max-w-full" :title="data.razon_social">
                             {{ data.razon_social }}
                         </span>
-                        <span v-if="data.email_fiscal" class="text-slate-400 truncate" :title="data.email_fiscal">
+                        <span v-if="data.email_fiscal" class="text-slate-400 truncate max-w-full" :title="data.email_fiscal">
                             <i class="pi pi-envelope text-[9px] mr-1"></i>{{ data.email_fiscal }}
                         </span>
                     </div>
@@ -346,7 +218,7 @@
                 </template>
 
                 <template #body-vigencia="{ data }">
-                    <div class="flex flex-col text-[10px] leading-tight items-center">
+                    <div class="flex flex-col text-[10px] leading-tight items-end w-full lg:items-center">
                         <span class="text-emerald-700 font-semibold">
                             <i class="pi pi-calendar-plus text-[9px] mr-1"></i>{{ data.fecha_inicio_vigencia || '—' }}
                         </span>
@@ -377,10 +249,10 @@
 
         <Dialog
             v-model:visible="dialog"
-            :style="{ width: '1100px', maxHeight: '95vh' }"
             :modal="true"
             :closable="!loading"
-            class="custom-modal"
+            class="custom-modal w-[95vw] sm:w-[90vw] md:w-[1100px]"
+            :style="{ maxHeight: '95vh' }"
         >
             <template #header>
                 <div class="flex items-center gap-3">
@@ -395,7 +267,7 @@
             </template>
 
             <div class="p-6">
-                <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div class="bg-white p-5 rounded-2xl border border-slate-300 shadow-sm">
                         <div class="flex justify-between items-center mb-4 text-blue-700 uppercase tracking-wider font-black text-xs">
                             <span>Identificación Fiscal</span>
@@ -404,8 +276,8 @@
                             </span>
                         </div>
 
-                        <div class="grid grid-cols-12 gap-x-4 gap-y-3">
-                            <div class="col-span-12">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-3">
+                            <div class="md:col-span-12">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Empresa <span class="text-red-500">*</span>
                                 </label>
@@ -433,7 +305,7 @@
                                 </small>
                             </div>
 
-                            <div class="col-span-6">
+                            <div class="md:col-span-6">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     NIT <span class="text-red-500">*</span>
                                 </label>
@@ -457,7 +329,7 @@
                                 </small>
                             </div>
 
-                            <div class="col-span-6">
+                            <div class="md:col-span-6">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Etiqueta <span class="text-red-500">*</span>
                                 </label>
@@ -481,7 +353,7 @@
                                 </small>
                             </div>
 
-                            <div class="col-span-12">
+                            <div class="md:col-span-12">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Razón Social <span class="text-red-500">*</span>
                                 </label>
@@ -504,7 +376,7 @@
                                 </small>
                             </div>
 
-                            <div class="col-span-12">
+                            <div class="md:col-span-12">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Actividad Económica Principal <span class="text-red-500">*</span>
                                 </label>
@@ -530,7 +402,7 @@
                                 </small>
                             </div>
 
-                            <div class="col-span-12">
+                            <div class="md:col-span-12">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Email Fiscal <span class="text-red-500">*</span>
                                 </label>
@@ -561,8 +433,8 @@
                             Configuración Fiscal
                         </span>
 
-                        <div class="grid grid-cols-12 gap-x-4 gap-y-3">
-                            <div class="col-span-6">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-3">
+                            <div class="md:col-span-6">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Ambiente <span class="text-red-500">*</span>
                                 </label>
@@ -583,7 +455,7 @@
                                 </small>
                             </div>
 
-                            <div class="col-span-6">
+                            <div class="md:col-span-6">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Modalidad Facturación <span class="text-red-500">*</span>
                                 </label>
@@ -604,7 +476,7 @@
                                 </small>
                             </div>
 
-                            <div class="col-span-6">
+                            <div class="md:col-span-6">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Inicio Vigencia <span class="text-red-500">*</span>
                                 </label>
@@ -622,7 +494,7 @@
                                 </small>
                             </div>
 
-                            <div class="col-span-6">
+                            <div class="md:col-span-6">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Fin Vigencia <span class="text-red-500">*</span>
                                 </label>
@@ -640,7 +512,7 @@
                                 </small>
                             </div>
 
-                            <div v-if="rangoFechasInvalido" class="col-span-12">
+                            <div v-if="rangoFechasInvalido" class="md:col-span-12">
                                 <div class="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 p-2 rounded-lg">
                                     <i class="pi pi-exclamation-triangle mt-0.5 text-xs"></i>
                                     <span class="text-[10px] font-semibold">
@@ -649,9 +521,9 @@
                                 </div>
                             </div>
 
-                            <div class="col-span-12 border-t border-dashed border-slate-200 my-2"></div>
+                            <div class="md:col-span-12 border-t border-dashed border-slate-200 my-2"></div>
 
-                            <div class="col-span-12">
+                            <div class="md:col-span-12">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Certificado Digital
                                 </label>
@@ -663,7 +535,7 @@
                                 />
                             </div>
 
-                            <div class="col-span-6">
+                            <div class="md:col-span-6">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Password Certificado
                                 </label>
@@ -676,7 +548,7 @@
                                 />
                             </div>
 
-                            <div class="col-span-6">
+                            <div class="md:col-span-6">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Token SIAT
                                 </label>
@@ -965,10 +837,5 @@
             onSearch();
             return;
         }
-
-        /*if (empresaOptions.value.length === 1) {
-            filters.value.empresa_id = empresaOptions.value[0].value;
-            onSearch();
-        }*/
     });
 </script>

@@ -6,6 +6,7 @@
 
         <!-- Input -->
         <input
+            ref="inputRef"
             type="text"
             :value="modelValue"
             :placeholder="placeholder"
@@ -34,13 +35,15 @@
         placeholder?: string;
         disabled?: boolean;
         showClear?: boolean;
-        debounce?: number;   // ms; 0 = sin debounce
+        debounce?: number;
+        autofocus?: boolean;
     }>(), {
         modelValue: '',
         placeholder: 'Buscar...',
         disabled: false,
         showClear: true,
         debounce: 400,
+        autofocus: false,
     });
 
     const emit = defineEmits<{
@@ -48,6 +51,16 @@
         search: [value: string];
         clear: [];
     }>();
+
+    const inputRef = ref<HTMLInputElement | null>(null);
+
+    onMounted(async () => {
+        if (props.autofocus) {
+            await nextTick();
+            inputRef.value?.focus();
+            inputRef.value?.select();
+        }
+    });
 
     let timer: ReturnType<typeof setTimeout> | null = null;
 

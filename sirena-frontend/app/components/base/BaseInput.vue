@@ -1,3 +1,4 @@
+<!-- C:\sirena\sirena-frontend\app\components\base\BaseInput.vue -->
 <template>
     <div class="flex flex-col gap-0.5 w-full">
         <label v-if="label" class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{{ label }}</label>

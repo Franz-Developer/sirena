@@ -45,11 +45,11 @@
                 </template>
 
                 <template #body-contacto="{ data }">
-                    <div class="flex flex-col text-[10px] leading-tight">
+                    <div class="flex flex-col items-end text-[10px] leading-tight min-w-0">
                         <span v-if="data.telefono" class="text-slate-600">
                             <i class="pi pi-phone text-[9px] mr-1"></i>{{ data.telefono }}
                         </span>
-                        <span v-if="data.email" class="text-slate-500 truncate max-w-[180px]">
+                        <span v-if="data.email" class="text-slate-500 truncate max-w-full">
                             <i class="pi pi-envelope text-[9px] mr-1"></i>{{ data.email }}
                         </span>
                         <span v-if="!data.telefono && !data.email" class="text-slate-300">—</span>
@@ -104,8 +104,8 @@
                             </span>
                         </div>
 
-                        <div class="grid grid-cols-12 gap-x-4 gap-y-3">
-                            <div class="col-span-12">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-3">
+                            <div class="md:col-span-12">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Razón Social <span class="text-red-500">*</span>
                                 </label>
@@ -128,7 +128,7 @@
                                 </small>
                             </div>
 
-                            <div class="col-span-6">
+                            <div class="md:col-span-6">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Código Interno <span class="text-red-500">*</span>
                                 </label>
@@ -151,7 +151,7 @@
                                 </small>
                             </div>
 
-                            <div class="col-span-6">
+                            <div class="md:col-span-6">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                     Matrícula Comercio <span class="text-red-500">*</span>
                                 </label>
@@ -174,18 +174,17 @@
                                 </small>
                             </div>
 
-                            <div class="col-span-6">
+                            <div class="md:col-span-6">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">Representante Legal</label>
                                 <BaseInput v-model="formObj.representante" :maxlength="100" size="sm" />
                             </div>
 
-                            <div class="col-span-6">
+                            <div class="md:col-span-6">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">Eslogan</label>
                                 <BaseInput v-model="formObj.eslogan" :maxlength="150" size="sm" />
                             </div>
                         </div>
                     </div>
-
                     <div class="bg-white p-5 rounded-2xl border border-slate-300 shadow-sm">
                         <span class="block text-xs font-black text-blue-700 uppercase tracking-wider mb-4">Contacto y Ubicación</span>
 
@@ -268,19 +267,19 @@
                                 @change="onLogoChange"
                             />
 
-                            <div class="flex gap-2">
+                            <div class="flex gap-2 justify-center">
                                 <BaseButton
                                     v-if="logoPreview"
                                     label="Quitar"
                                     icon="pi pi-trash"
-                                    variant="danger"
+                                    variant="ghost-red"
                                     size="sm"
                                     @click="quitarLogo"
                                 />
                                 <BaseButton
                                     :label="logoPreview ? 'Cambiar Logo' : 'Cargar Logo'"
                                     icon="pi pi-upload"
-                                    variant="primary"
+                                    variant="ghost-sky"
                                     size="sm"
                                     @click="abrirSelectorLogo"
                                 />

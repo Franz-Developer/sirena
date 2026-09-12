@@ -10,7 +10,7 @@
 
         <Select
             v-bind="$attrs"
-            :class="selectClasses"
+            :class="[selectClasses, 'base-select']"
             :panelClass="panelClass"
             :placeholder="placeholder"
             :disabled="disabled"
@@ -32,7 +32,6 @@
 </template>
 
 <script setup lang="ts">
-    // ⬇️ 1. Props con tipado fuerte
     const props = withDefaults(defineProps<{
         label?: string;
         placeholder?: string;
@@ -58,7 +57,6 @@
         optionValue: 'value',
         optionDisabled: undefined,
         modelValue: null,
-        // ⬇️ 2. panelClass con valor por defecto pero PERSONALIZABLE desde fuera
         panelClass: 'min-w-[320px] max-w-[600px]',
         filter: false,
         filterPlaceholder: 'Buscar...',
@@ -73,7 +71,7 @@
     const selectClasses = computed(() => [
         'w-full bg-white border border-[var(--border-color)] rounded-[var(--radius-std)] transition-all',
         'focus:outline-none focus:border-[var(--primary-color)] focus:ring-2 focus:ring-blue-100',
-        props.size === 'sm' ? 'min-h-[38px] text-xs' : 'min-h-[40px] text-sm',
+        props.size === 'sm' ? 'min-h-[38px] h-[38px] !text-xs !py-0 flex items-center' : 'min-h-[40px] text-sm',
     ]);
 
     const onUpdate = (value: any) => {
@@ -82,24 +80,16 @@
 </script>
 
 <style scoped>
-    /*
-     * ⚠️ IMPORTANTE: `:deep()` aplica a elementos DENTRO del scope del componente.
-     * El `.p-select-label` está dentro del trigger del Select (scope OK).
-     * El panel flotante `.p-select-panel` está en `body` (fuera del scope) → NO
-     * se puede estilizar con `:deep()` desde aquí. Para eso, usa `panelClass`
-     * (que ya se aplica al panel) o estilos globales.
-     */
-
-    /* Permitir que el texto seleccionado se muestre completo */
+    /* Forzar que el texto seleccionado dentro del Select use text-xs (12px) y se alinee */
     :deep(.p-select-label) {
-        white-space: normal !important;
-        overflow: visible !important;
-        text-overflow: clip !important;
-        word-break: break-word !important;
-        line-height: 1.3 !important;
-        padding-right: 2rem !important;
-        min-height: 1.5rem !important;
+        font-size: 0.75rem !important;
+        line-height: 1rem !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
     }
 
-    /* El panel flotante se estiliza vía `panelClass`, no vía `:deep()` */
+    /* Forzar el tamaño de las opciones del desplegable */
+    :deep(.p-select-option) {
+        font-size: 0.75rem !important;
+    }
 </style>

@@ -1,6 +1,7 @@
 <!-- C:\sirena\sirena-frontend\app\components\base\BaseButton.vue -->
 <template>
     <button
+        ref="buttonRef"
         v-bind="$attrs"
         type="button"
         :class="buttonClass"
@@ -12,14 +13,14 @@
     </button>
 </template>
 
-<script setup>
-    import { computed } from 'vue';
+<script setup lang="ts">
+    import { computed, ref, type Ref } from 'vue';
 
     const props = defineProps({
         variant: {
             type: String,
             default: 'primary',
-            validator: (value) => [
+            validator: (value: string) => [
                 'primary', 'secondary', 'danger', 'cancel', 'dialog-cancel',
                 'success', 'warning', 'ghost', 'ghost-orange', 'ghost-green',
                 'ghost-red', 'ghost-purple', 'ghost-amber', 'ghost-sky',
@@ -33,28 +34,29 @@
         size: {
             type: String,
             default: 'default',
-            validator: (value) => ['sm', 'default', 'lg'].includes(value)
+            validator: (value: string) => ['sm', 'default', 'lg'].includes(value)
         }
     });
 
     const buttonClass = computed(() => {
-        const base = 'inline-flex items-center justify-center gap-2 font-bold border-0 cursor-pointer transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed';
+        // Añadimos clases de focus visibles (outline, ring y offset)
+        const base = 'inline-flex items-center justify-center gap-2 font-bold border-0 cursor-pointer transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2';
 
-        const sizeClasses = {
+        const sizeClasses: Record<string, string> = {
             sm: 'text-[10px] px-2 py-1 rounded-lg min-h-[28px]',
             default: 'text-xs px-4 py-2 rounded-[var(--radius-std)]',
             lg: 'text-sm px-6 py-3 rounded-[var(--radius-std)]'
         };
 
-        const variantClasses = {
+        const variantClasses: Record<string, string> = {
             primary: 'bg-[var(--primary-dark)] text-white hover:bg-[var(--primary-dark-hover)]',
             secondary: 'bg-[var(--secondary-color)] text-white hover:bg-[var(--secondary-hover)]',
             danger: 'bg-[var(--danger-color)] text-white hover:bg-[var(--danger-hover)]',
-            cancel: 'bg-[var(--bg-disabled)] text-slate-700 border border-[var(--border-color)] hover:bg-slate-300', 'dialog-cancel': 'bg-slate-600 text-white hover:bg-slate-800',
+            cancel: 'bg-[var(--bg-disabled)] text-slate-700 border border-[var(--border-color)] hover:bg-slate-300',
+            'dialog-cancel': 'bg-slate-600 text-white hover:bg-slate-800',
             success: 'bg-emerald-600 text-white hover:bg-emerald-800',
             warning: 'bg-amber-600 text-white hover:bg-amber-700',
 
-            // Ghost: sin fondo → hover con fondo de color notorio.
             ghost: 'bg-transparent text-slate-600 hover:bg-slate-200 hover:text-slate-900',
             'ghost-orange': 'bg-transparent text-orange-500 hover:bg-orange-200 hover:text-orange-700',
             'ghost-green': 'bg-transparent text-emerald-600 hover:bg-emerald-200 hover:text-emerald-800',
@@ -73,5 +75,12 @@
             sizeClasses[props.size] || sizeClasses.default,
             variantClasses[props.variant] || variantClasses.primary
         ];
+    });
+
+    const buttonRef: Ref<HTMLButtonElement | null> = ref(null);
+
+    defineExpose({
+        focus: () => buttonRef.value?.focus(),
+        blur: () => buttonRef.value?.blur(),
     });
 </script>

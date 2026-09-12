@@ -117,7 +117,7 @@
 
                 <!-- Factores -->
                 <template #body-factores="{ data }">
-                    <div class="flex flex-col text-[10px] leading-tight items-center">
+                    <div class="flex flex-col text-[10px] leading-tight items-end w-full md:items-center">
                         <span class="text-emerald-700 font-bold">C: {{ data.factor_compra }}</span>
                         <span class="text-red-700 font-bold">V: {{ data.factor_venta }}</span>
                     </div>
@@ -147,10 +147,10 @@
         <!-- DIALOG CREAR / EDITAR -->
         <Dialog
             v-model:visible="dialog"
-            :style="{ width: '720px', maxHeight: '90vh' }"
             :modal="true"
             :closable="!loading"
-            class="custom-modal"
+            class="custom-modal w-[95vw] sm:w-[90vw] md:w-[720px]"
+            :style="{ maxHeight: '90vh' }"
         >
             <template #header>
                 <div class="flex items-center gap-3">
@@ -173,9 +173,9 @@
                         </span>
                     </div>
 
-                    <div class="grid grid-cols-12 gap-x-4 gap-y-3">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-3">
                         <!-- Moneda Origen -->
-                        <div class="col-span-6">
+                        <div class="md:col-span-6">
                             <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                 Moneda Origen <span class="text-red-500">*</span>
                             </label>
@@ -197,7 +197,7 @@
                         </div>
 
                         <!-- Moneda Destino -->
-                        <div class="col-span-6">
+                        <div class="md:col-span-6">
                             <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                 Moneda Destino <span class="text-red-500">*</span>
                             </label>
@@ -219,7 +219,7 @@
                         </div>
 
                         <!-- Aviso monedas iguales -->
-                        <div v-if="monedaError" class="col-span-12">
+                        <div v-if="monedaError" class="md:col-span-12">
                             <div class="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 p-2 rounded-lg">
                                 <i class="pi pi-exclamation-circle mt-0.5 text-xs"></i>
                                 <span class="text-[10px] font-semibold">{{ monedaError }}</span>
@@ -227,7 +227,7 @@
                         </div>
 
                         <!-- Fecha Cotización -->
-                        <div class="col-span-4">
+                        <div class="md:col-span-4">
                             <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                 Fecha Cotización <span class="text-red-500">*</span>
                             </label>
@@ -246,7 +246,7 @@
                         </div>
 
                         <!-- Factor Compra -->
-                        <div class="col-span-4">
+                        <div class="md:col-span-4">
                             <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                 Factor Compra <span class="text-red-500">*</span>
                             </label>
@@ -267,7 +267,7 @@
                         </div>
 
                         <!-- Factor Venta -->
-                        <div class="col-span-4">
+                        <div class="md:col-span-4">
                             <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                 Factor Venta <span class="text-red-500">*</span>
                             </label>
@@ -288,7 +288,7 @@
                         </div>
 
                         <!-- Aviso factor_compra <= factor_venta -->
-                        <div v-if="factoresInvalidos" class="col-span-12">
+                        <div v-if="factoresInvalidos" class="md:col-span-12">
                             <div class="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 p-2 rounded-lg">
                                 <i class="pi pi-exclamation-triangle mt-0.5 text-xs"></i>
                                 <span class="text-[10px] font-semibold">

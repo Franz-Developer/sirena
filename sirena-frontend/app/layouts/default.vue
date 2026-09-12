@@ -24,11 +24,11 @@
                     <p class="text-emerald-400 text-[10px] font-bold italic">En línea</p>
                 </div>
 
-                <button @click="toggleUserMenu" class="rounded-full ring-2 ring-transparent hover:ring-amber-400 transition-all">
+                <button @click="openUserMenu" class="rounded-full ring-2 ring-transparent hover:ring-amber-400 transition-all">
                     <img :src="avatarUrl" class="w-10 h-10 rounded-full border-2 border-white/20 object-cover" />
                 </button>
 
-                <Popover ref="userMenu">
+                <Popover v-if="showUserMenu" ref="userMenu" @hide="showUserMenu = false">
                     <BaseCard class="w-80 shadow-2xl border-slate-200 rounded-xl">
                         <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-slate-50 border-b border-slate-200">
                             <div class="relative">
@@ -88,7 +88,7 @@
                             </button>
                         </div>
 
-                        <button @click="authStore.logout()"
+                        <button @click="handleLogout"
                             class="w-full flex items-center gap-3 p-4 bg-slate-50 hover:bg-red-50 transition-colors border-t border-slate-200 group">
                             <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:bg-red-500 group-hover:text-white transition-all flex-shrink-0">
                                 <i class="pi pi-power-off text-xs"></i>
@@ -133,7 +133,7 @@
             </main>
         </div>
 
-        <Dialog v-model:visible="showPasswordModal" :modal="true" :draggable="false" :closable="!isUpdatingPassword" class="w-[90vw] md:w-[450px]">
+        <Dialog v-if="showPasswordModal" v-model:visible="showPasswordModal" :modal="true" :draggable="false" :closable="!isUpdatingPassword" class="w-[90vw] md:w-[450px]">
             <template #header>
                 <div class="flex items-center gap-3">
                     <div class="bg-[var(--primary-dark)] p-2 rounded-lg shadow-md"><i class="pi pi-lock text-white text-lg"></i></div>
@@ -181,19 +181,18 @@
 </template>
 
 <script setup lang="ts">
-    import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+    import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
     import { useRoute } from 'vue-router';
-    // ⬇️ Importación explícita (no dependemos del auto-import)
     import { useNotify } from '~/composables/useNotify';
 
     const { notify } = useNotify();
     const route = useRoute();
     const authStore = useAuthStore();
-    // ⬇️ Obtenemos $api del plugin centralizado
     const { $api } = useNuxtApp() as any;
     const config = useRuntimeConfig();
 
     const userMenu = ref();
+    const showUserMenu = ref(false);
     const isSidebarOpen = ref<boolean>(true);
     const isMobile = ref<boolean>(false);
     const showPasswordModal = ref<boolean>(false);
@@ -238,8 +237,11 @@
     const loginTime = computed(() => formatUnixTime(tokenData.value?.iat));
     const expirationTime = computed(() => formatUnixTime(tokenData.value?.exp));
 
-    const toggleUserMenu = (event: Event): void => {
-        userMenu.value?.toggle(event);
+    const openUserMenu = (event: Event): void => {
+        showUserMenu.value = true;
+        nextTick(() => {
+            userMenu.value?.toggle(event);
+        });
     };
 
     const toggleSidebar = (): void => {
@@ -267,8 +269,6 @@
 
         try {
             const userId = authStore.user.usuario_id;
-
-            // ⬇️ Usamos $api: el plugin ya añade el token y maneja el 401.
             await $api(`/usuarios/${userId}/password`, {
                 method: 'PATCH',
                 body: {
@@ -291,15 +291,11 @@
         }
     };
 
-    // ─────────────────────────────────────────────
     // Detectar móvil vía matchMedia (más robusto que resize)
-    // ─────────────────────────────────────────────
     let mediaQuery: MediaQueryList | null = null;
 
     const handleMediaChange = (e: MediaQueryListEvent | MediaQueryList): void => {
         isMobile.value = e.matches;
-        // Desktop → sidebar abierto por defecto
-        // Móvil → sidebar cerrado por defecto
         isSidebarOpen.value = !e.matches;
     };
 
@@ -313,14 +309,17 @@
         mediaQuery?.removeEventListener('change', handleMediaChange);
     });
 
-    // ─────────────────────────────────────────────
     // Cerrar sidebar al navegar (solo en móvil)
-    // ─────────────────────────────────────────────
     watch(() => route.path, () => {
         if (isMobile.value) {
             isSidebarOpen.value = false;
         }
     });
+
+    const handleLogout = (): void => {
+        showUserMenu.value = false;
+        authStore.logout();
+    };
 
     const closePasswordModal = (): void => {
         showPasswordModal.value = false;

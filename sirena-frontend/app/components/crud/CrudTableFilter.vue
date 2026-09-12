@@ -19,6 +19,7 @@
                     :model-value="searchValue"
                     :placeholder="searchPlaceholder"
                     :debounce="debounce"
+                    :autofocus="autofocus"
                     class="w-full"
                     @update:model-value="$emit('update:searchValue', $event)"
                     @search="$emit('search')"
@@ -54,6 +55,7 @@
         exactMatch?: number;
         showExactMatch?: boolean;
         debounce?: number;
+        autofocus?: boolean;
     }>(), {
         searchValue: '',
         searchPlaceholder: 'Buscar...',
@@ -61,6 +63,7 @@
         exactMatch: 0,
         showExactMatch: true,
         debounce: 400,
+        autofocus: false,
     });
 
     defineEmits<{

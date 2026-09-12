@@ -7,9 +7,10 @@
         :draggable="false"
         :showHeader="false"
         :pt="{
-            root: { class: '!p-0' },
+            root: { class: '!p-0', autofocus: false },
             content: { class: '!p-0' },
         }"
+        @show="focusCancelButton"
     >
         <!-- Header personalizado -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
@@ -18,6 +19,7 @@
             </h3>
             <button
                 type="button"
+                tabindex="-1"
                 class="ripple-btn w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
                 @click="visible = false"
             >
@@ -42,6 +44,7 @@
         <template #footer>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 min-h-[72px]">
                 <BaseButton
+                    ref="cancelBtnRef"
                     label="Cancelar"
                     icon="pi pi-times"
                     variant="dialog-cancel"
@@ -60,6 +63,8 @@
 </template>
 
 <script setup lang="ts">
+    import { ref, nextTick, computed } from 'vue';
+
     const props = defineProps<{
         visible: boolean;
         title: string;
@@ -75,4 +80,15 @@
         get: () => props.visible,
         set: (val) => emit('update:visible', val),
     });
+
+    const cancelBtnRef = ref<any>(null);
+
+    const focusCancelButton = async () => {
+        await nextTick();
+        setTimeout(() => {
+            requestAnimationFrame(() => {
+                cancelBtnRef.value?.focus();
+            });
+        }, 50);
+    };
 </script>

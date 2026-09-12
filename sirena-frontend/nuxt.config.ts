@@ -42,7 +42,7 @@ export default defineNuxtConfig({
         '@vueuse/nuxt',
     ],
     primevue: {
-        autoImport: true,
+        autoImport: false,
         options: {
             ripple: true,
             locale: {
@@ -83,5 +83,41 @@ export default defineNuxtConfig({
                 }
             }
         }
-    }
+    },
+    vite: {
+        optimizeDeps: {
+            include: [
+                'primevue/tag',
+                'primevue/button',
+                'primevue/inputtext',
+                'primevue/password',
+                'primevue/dialog',
+                'primevue/popover',
+                'primevue/panelmenu',
+                'primevue/badge',
+                'primevue/datatable',
+                'primevue/column',
+                'primevue/select',
+                'primevue/toast',
+                'primevue/usetoast',
+                'primevue/tooltip',
+                'primevue/ripple',
+                'primevue/focustrap',
+                'primevue/styleclass',
+                '@primevue/icons/eye',
+                '@primevue/icons/eyeslash',
+                '@primevue/icons/windowmaximize',
+                '@primevue/icons/windowminimize',
+                '@primevue/icons/chevrondown',
+                '@primevue/icons/chevronright',
+                '@primevue/icons/spinner',
+                '@primevue/icons/check',
+                '@primevue/icons/times',
+                '@primevue/icons/exclamationtriangle',
+                'js-cookie',
+                'jwt-decode',
+                'chart.js',
+            ],
+        },
+    },
 });

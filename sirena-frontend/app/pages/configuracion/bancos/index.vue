@@ -28,6 +28,7 @@
             >
                 <template #header>
                     <CrudTableFilter
+                        autofocus
                         v-model:search-value="filters.global"
                         v-model:exact-match="filters.exactMatch"
                         search-placeholder="Buscar banco..."
@@ -37,6 +38,18 @@
 
                 <template #body-codigo="{ data }">
                     <span class="font-mono font-bold text-blue-600">{{ data.codigo_asfi }}</span>
+                </template>
+
+                <template #body-abreviatura="{ data }">
+                    <span class="font-semibold text-slate-700">{{ data.abreviatura }}</span>
+                </template>
+
+                <template #body-banco="{ data }">
+                    <span class="font-bold text-slate-800">{{ data.banco }}</span>
+                </template>
+
+                <template #body-descripcion="{ data }">
+                    <span class="text-slate-500 text-xs">{{ data.descripcion || 'Sin descripción' }}</span>
                 </template>
 
                 <template #body-estado="{ data }">
@@ -58,8 +71,15 @@
             </BaseTable>
         </div>
 
-        <!-- DIALOG CREAR / EDITAR (mantén el tuyo por ahora) -->
-        <Dialog v-model:visible="dialog" :style="{ width: '720px', maxHeight: '90vh' }" :modal="true" :closable="!loading" class="custom-modal">
+        <!-- DIALOG CREAR / EDITAR -->
+        <Dialog
+            v-model:visible="dialog"
+            :modal="true"
+            :closable="!loading"
+            class="custom-modal w-[95vw] sm:w-[90vw] md:w-[720px]"
+            :style="{ maxHeight: '90vh' }"
+            @show="focusFirstInput"
+        >
             <template #header>
                 <div class="flex items-center gap-3">
                     <div class="bg-[var(--primary-dark)] p-2 rounded-lg shadow">
@@ -80,10 +100,11 @@
                             Campos obligatorios <span class="text-red-500">*</span>
                         </span>
                     </div>
-                    <div class="grid grid-cols-12 gap-x-4 gap-y-3">
-                        <div class="col-span-3">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-3">
+                        <div class="md:col-span-3">
                             <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">Código ASFI <span class="text-red-500">*</span></label>
                             <BaseInput
+                                ref="codigoAsfiRef"
                                 v-model="formObj.codigo_asfi"
                                 :maxlength="2"
                                 size="sm"
@@ -92,6 +113,7 @@
                                     'p-invalid': (submitted || touched.codigo_asfi) && $rules.obligatoria()(formObj.codigo_asfi) !== true,
                                     'opacity-60 cursor-not-allowed': estaProtegido('codigo_asfi')
                                 }"
+                                @blur="touched.codigo_asfi = true"
                             />
                             <small v-if="estaProtegido('codigo_asfi')" class="text-amber-500 font-semibold text-[10px]">
                                 <i class="pi pi-lock mr-1"></i>Bloqueado por dependencias
@@ -100,7 +122,7 @@
                                 Requerido
                             </small>
                         </div>
-                        <div class="col-span-3">
+                        <div class="md:col-span-3">
                             <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">Abreviatura <span class="text-red-500">*</span></label>
                             <BaseInput
                                 v-model="formObj.abreviatura"
@@ -127,7 +149,7 @@
                                 Requerido
                             </small>
                         </div>
-                        <div class="col-span-6">
+                        <div class="md:col-span-6">
                             <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">Nombre del Banco <span class="text-red-500">*</span></label>
                             <BaseInput
                                 v-model="formObj.banco"
@@ -154,7 +176,7 @@
                                 Requerido
                             </small>
                         </div>
-                        <div class="col-span-12">
+                        <div class="md:col-span-12">
                             <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">Descripción</label>
                             <BaseInput v-model="formObj.descripcion" :maxlength="255" size="sm" placeholder="Observaciones o notas adicionales" />
                         </div>
@@ -176,6 +198,8 @@
 </template>
 
 <script setup lang="ts">
+    import { ref, nextTick } from 'vue';
+
     const {
         items, loading, totalRecords, filters, lazyParams,
         dialog, deleteDialog, formObj, submitted, touched,
@@ -238,11 +262,21 @@
         },
     });
 
+    const codigoAsfiRef = ref<any>(null);
+    const focusFirstInput = async () => {
+        await nextTick();
+        setTimeout(() => {
+            const input = codigoAsfiRef.value?.$el?.querySelector('input') as HTMLInputElement | null;
+            input?.focus();
+            input?.select();
+        }, 350);
+    };
+
     const columns = [
         { field: 'codigo_asfi', header: 'CÓDIGO', sortable: true, template: 'body-codigo', bodyClass: '!text-center', class: 'w-20' },
-        { field: 'abreviatura', header: 'ABREV.', sortable: true, class: 'w-24' },
-        { field: 'banco', header: 'BANCO', sortable: true },
-        { field: 'descripcion', header: 'DESCRIPCIÓN', sortable: false },
+        { field: 'abreviatura', header: 'ABREV.', sortable: true, template: 'body-abreviatura', class: 'w-24' },
+        { field: 'banco', header: 'BANCO', sortable: true, template: 'body-banco' },
+        { field: 'descripcion', header: 'DESCRIPCIÓN', sortable: false, template: 'body-descripcion' },
         { field: 'estado_registro', header: 'ESTADO', template: 'body-estado', bodyClass: '!text-center', class: 'w-24', sortable: false },
         { header: 'ACCIONES', template: 'body-acciones', class: '!text-center !w-28', sortable: false },
     ];

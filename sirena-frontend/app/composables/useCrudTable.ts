@@ -287,6 +287,7 @@ export const useCrudTable = <T extends { [k: string]: any }>(opts: UseCrudTableO
             if (opts.getExtraFilters) {
                 Object.assign(params, opts.getExtraFilters(filters.value));
             }
+
             const response = await crud.listar(params);
             items.value = response.data || [];
             totalRecords.value = response.total || 0;
