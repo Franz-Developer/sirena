@@ -54,6 +54,11 @@ Authorization: Bearer {{authToken}}
 GET {{baseUrl_bancos}}?estado_id=1002
 Authorization: Bearer {{authToken}}
 
+
+###
+GET {{baseUrl_bancos}}?limit=10&offset=0&sortField=banco_id&sortOrder=-1&exactMatch=0
+Authorization: Bearer {{authToken}}
+
 # ==============================================================================
 # BÚSQUEDA POR TEXTO (q)
 # ==============================================================================
