@@ -20,7 +20,7 @@ Content-Type: application/json
 
 ### 2. GUARDAR TOKEN EN VARIABLE.
 # No se debe presionar es automatico.
-@authToken = {{login.response.body.token}}
+# @authToken = {{login.response.body.token}}
 
 # ==============================================================================
 # AUTENTICACIÓN - USUARIO 3
@@ -32,12 +32,12 @@ POST {{baseUrl}}/auth/validar
 Content-Type: application/json
 
 {
-    "username": "GLADYS",
+    "username": "PRUEBA",
     "password": "12345678"
 }
 
 ### 2.b GUARDAR TOKEN USUARIO 3
-# @authToken = {{loginUser3.response.body.token}}
+@authToken = {{loginUser3.response.body.token}}
 
 # ==============================================================================
 # ENDPOINT EXTRAS
@@ -189,7 +189,6 @@ Content-Type: application/json
 GET {{baseUrl_empresas}}/3
 Authorization: Bearer {{authToken}}
 
-
 ### LISTAR TODAS (Activos + Históricos por defecto)
 GET {{baseUrl_empresas}}?estado_id=1000
 Authorization: Bearer {{authToken}}
@@ -198,22 +197,26 @@ Authorization: Bearer {{authToken}}
 # ACTUALIZAR EMPRESA
 # ==============================================================================
 
+###
+GET {{baseUrl_empresas}}/3
+Authorization: Bearer {{authToken}}
+
 ### ACTUALIZAR TODOS LOS CAMPOS
 PATCH {{baseUrl_empresas}}/3
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-    "empresa": "FARMACIA SALUD Y VIDA S.A. B",
-    "codigo": "321",
-    "eslogan": "SALUD PARA TODOS BUENOS",
-    "descripcion": "Cadena de farmacias",
-    "lugar": "ORURO - BOLIVIA",
-    "representante": "JUAN PEREZ GARCIA",
-    "direccion": "AV. ARCE NRO. 2105, SOPOCACHI, BENI",
+    "empresa": "FARMACIA SALUD Y VIDA S.A. BBB",
+    "codigo": "3215",
+    "eslogan": "SALUD PARA TODOS BUENOS HOLA HOLA",
+    "descripcion": "Cadena de farmacias la mejor",
+    "lugar": "SANTA CRUZ DE LA SIERRA - BOLIVIA",
+    "representante": "JUAN PEREZ GARCIA OROPEZA",
+    "direccion": "AV. ARCE NRO. 2105, SOPOCACHI, CALLE BENI",
     "telefono": "22441122",
     "email": "info@saludyvida.com.bo",
-    "matricula_comercio": "M-356992"
+    "matricula_comercio": "M-35699241"
 }
 
 ### ACTUALIZAR TODOS LOS CAMPOS

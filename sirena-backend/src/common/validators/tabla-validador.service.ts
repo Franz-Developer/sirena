@@ -877,9 +877,9 @@ export class TablaValidadorService {
             FROM usuarios u
             INNER JOIN roles r ON u.rol_id = r.rol_id
             WHERE u.usuario_id = $1
-            AND u.estado_id = $2
-            AND r.estado_id = $2
-            AND (r.codigo = 'ADM' OR r.rol_id = 2)
+                AND u.estado_id = $2
+                AND r.estado_id = $2
+                AND r.es_admin = 1
             LIMIT 1`,
             [usuarioId, ESTADO_ACTIVO]
         );

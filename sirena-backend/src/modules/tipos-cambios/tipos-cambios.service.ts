@@ -123,6 +123,9 @@ export class TiposCambiosService extends BaseService {
         return runInTransaction(this.dataSource, async (manager) => {
             this.validarReglasNegocio(dto);
 
+            const origenMeta = TIPO_MONEDA_METADATA[dto.origen_moneda_id as TipoMoneda]?.abreviatura ?? 'Desconocida';
+            const destinoMeta = TIPO_MONEDA_METADATA[dto.destino_moneda_id as TipoMoneda]?.abreviatura ?? 'Desconocida';
+
             await Promise.all([
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.unicidadValidador.validarUnicidad({
@@ -134,6 +137,7 @@ export class TiposCambiosService extends BaseService {
                     ],
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS],
+                    mensajePersonalizado: `Ya existe un tipo de cambio configurado de '${origenMeta}' a '${destinoMeta}' para la fecha '${dto.fecha_cotizacion}'.`,
                 }),
                 this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
@@ -194,9 +198,14 @@ export class TiposCambiosService extends BaseService {
                 usuarioId
             );
 
-            if (dtoProcesado.origen_moneda_id !== undefined ||
-                dtoProcesado.destino_moneda_id !== undefined ||
-                dtoProcesado.fecha_cotizacion !== undefined) {
+            if (dtoProcesado.origen_moneda_id !== undefined || dtoProcesado.destino_moneda_id !== undefined || dtoProcesado.fecha_cotizacion !== undefined) {
+                const origenEval = dtoProcesado.origen_moneda_id ?? tipoCambioActual.origen_moneda_id;
+                const destinoEval = dtoProcesado.destino_moneda_id ?? tipoCambioActual.destino_moneda_id;
+                const fechaEval = dtoProcesado.fecha_cotizacion ?? tipoCambioActual.fecha_cotizacion;
+
+                const origenMeta = TIPO_MONEDA_METADATA[origenEval as TipoMoneda]?.abreviatura ?? 'Desconocida';
+                const destinoMeta = TIPO_MONEDA_METADATA[destinoEval as TipoMoneda]?.abreviatura ?? 'Desconocida';
+
                 await this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
                     campos: [
@@ -216,6 +225,7 @@ export class TiposCambiosService extends BaseService {
                     idExcluir: id,
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS],
+                    mensajePersonalizado: `Ya existe un tipo de cambio configurado de '${origenMeta}' a '${destinoMeta}' para la fecha '${fechaEval}'.`,
                 });
             }
 

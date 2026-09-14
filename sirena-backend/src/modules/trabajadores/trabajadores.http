@@ -35,7 +35,7 @@ POST {{baseUrl}}/auth/validar
 Content-Type: application/json
 
 {
-    "username": "GLADYS",
+    "username": "PRUEBA",
     "password": "12345678"
 }
 

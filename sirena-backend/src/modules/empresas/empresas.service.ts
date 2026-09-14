@@ -50,9 +50,29 @@ export class EmpresasService extends BaseService {
         return runInTransaction(this.dataSource, async (manager) => {
             await Promise.all([
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
-                this.unicidadValidador.validarUnicidad({ tabla: this.nombreTabla, campos: [{ nombre: 'empresa', valor: dto.empresa }], campoPk: this.campoPK, estadosValidos: [...ESTADOS_VIVOS] }),
-                this.unicidadValidador.validarUnicidad({ tabla: this.nombreTabla, campos: [{ nombre: 'codigo', valor: dto.codigo }], campoPk: this.campoPK, estadosValidos: [...ESTADOS_VIVOS] }),
-                this.unicidadValidador.validarUnicidad({ tabla: this.nombreTabla, campos: [{ nombre: 'matricula_comercio', valor: dto.matricula_comercio }], campoPk: this.campoPK, estadosValidos: [...ESTADOS_VIVOS] }),
+                this.unicidadValidador.validarUnicidad({
+                    tabla:
+                    this.nombreTabla,
+                    campos: [{ nombre: 'empresa', valor: dto.empresa }],
+                    campoPk: this.campoPK,
+                    estadosValidos: [...ESTADOS_VIVOS],
+                    mensajePersonalizado: `Ya existe una empresa registrada con el nombre '${dto.empresa}'.`
+                }),
+                this.unicidadValidador.validarUnicidad({
+                    tabla:
+                    this.nombreTabla,
+                    campos: [{ nombre: 'codigo', valor: dto.codigo }],
+                    campoPk: this.campoPK,
+                    estadosValidos: [...ESTADOS_VIVOS],
+                    mensajePersonalizado: `Ya existe una empresa registrada con el código '${dto.codigo}'.`
+                }),
+                this.unicidadValidador.validarUnicidad({
+                    tabla: this.nombreTabla,
+                    campos: [{ nombre: 'matricula_comercio', valor: dto.matricula_comercio }],
+                    campoPk: this.campoPK,
+                    estadosValidos: [...ESTADOS_VIVOS],
+                    mensajePersonalizado: `Ya existe una empresa registrada con la matrícula de comercio '${dto.matricula_comercio}'.`
+                }),
                 this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
 
@@ -98,7 +118,7 @@ export class EmpresasService extends BaseService {
                 throw new DomainException('Empresa no encontrada.', { httpStatus: HttpStatus.NOT_FOUND });
             }
 
-            dto = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
                 dto,
@@ -108,7 +128,34 @@ export class EmpresasService extends BaseService {
                 usuarioId
             );
 
-            manager.merge(Empresa, empresaActual, dto);
+            await Promise.all([
+                dtoProcesado.empresa !== undefined && this.unicidadValidador.validarUnicidad({
+                    tabla: this.nombreTabla,
+                    campos: [{ nombre: 'empresa', valor: dtoProcesado.empresa }],
+                    idExcluir: id,
+                    campoPk: this.campoPK,
+                    estadosValidos: [...ESTADOS_VIVOS],
+                    mensajePersonalizado: `Ya existe una empresa registrada con el nombre '${dtoProcesado.empresa}'.`
+                }),
+                dtoProcesado.codigo !== undefined && this.unicidadValidador.validarUnicidad({
+                    tabla: this.nombreTabla,
+                    campos: [{ nombre: 'codigo', valor: dtoProcesado.codigo }],
+                    idExcluir: id,
+                    campoPk: this.campoPK,
+                    estadosValidos: [...ESTADOS_VIVOS],
+                    mensajePersonalizado: `Ya existe una empresa registrada con el código '${dtoProcesado.codigo}'.`
+                }),
+                dtoProcesado.matricula_comercio !== undefined && this.unicidadValidador.validarUnicidad({
+                    tabla: this.nombreTabla,
+                    campos: [{ nombre: 'matricula_comercio', valor: dtoProcesado.matricula_comercio }],
+                    idExcluir: id,
+                    campoPk: this.campoPK,
+                    estadosValidos: [...ESTADOS_VIVOS],
+                    mensajePersonalizado: `Ya existe una empresa registrada con la matrícula de comercio '${dtoProcesado.matricula_comercio}'.`
+                })
+            ].filter(Boolean));
+
+            manager.merge(Empresa, empresaActual, dtoProcesado);
             empresaActual.update(usuarioId);
 
             try {

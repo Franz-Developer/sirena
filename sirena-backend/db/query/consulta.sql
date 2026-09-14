@@ -1,3 +1,11 @@
+/*
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+    AND table_type = 'BASE TABLE'
+ORDER BY table_name;
+
+*/
 
 -- TABLAS DEPENDIENTES.
 SELECT
@@ -74,9 +82,16 @@ WHERE c.table_schema = 'public'
     )
 ORDER BY c.table_name, c.ordinal_position;
 
+SELECT setval('roles_menus_rol_menu_id_seq', COALESCE((SELECT MAX(rol_menu_id) FROM roles_menus), 0), (SELECT COUNT(*) > 0 FROM roles_menus));
 
-SELECT table_name
-FROM information_schema.tables
-WHERE table_schema = 'public'
-    AND table_type = 'BASE TABLE'
-ORDER BY table_name;
+-- ROL: PRUEBA (rol_id = 9) - TODOS LOS MENÚS (igual que ADMIN)
+INSERT INTO roles_menus (rol_id, menu_id, estado_id, usuario_id_registro)
+SELECT 9, m.menu_id, 1000, 1
+FROM menus m
+WHERE m.estado_id = 1000
+ORDER BY m.menu_id;
+
+SELECT setval('roles_menus_rol_menu_id_seq', COALESCE((SELECT MAX(rol_menu_id) FROM roles_menus), 0), (SELECT COUNT(*) > 0 FROM roles_menus));
+
+SELECT * from roles_menus;
+

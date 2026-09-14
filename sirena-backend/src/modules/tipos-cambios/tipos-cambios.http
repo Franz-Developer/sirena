@@ -32,7 +32,7 @@ POST {{baseUrl}}/auth/validar
 Content-Type: application/json
 
 {
-    "username": "GLADYS",
+    "username": "PRUEBA",
     "password": "12345678"
 }
 
@@ -304,12 +304,14 @@ Content-Type: application/json
 }
 
 ### ACTUALIZAR MONEDA DE ORIGEN
-PATCH {{baseUrl_tipos_cambios}}/1
+PATCH {{baseUrl_tipos_cambios}}/368
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-    "origen_moneda_id": 2302
+    "origen_moneda_id": 2301,
+    "destino_moneda_id": 2300,
+    "fecha_cotizacion": "2026-05-21"
 }
 
 ### ACTUALIZAR MONEDA DE DESTINO
