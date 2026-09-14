@@ -3,12 +3,13 @@
     <div class="flex flex-col gap-0.5 w-full">
         <label
             v-if="label"
-            class="text-[9px] font-bold text-slate-500 uppercase tracking-wider"
+            class="text-[9px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap"
         >
             {{ label }}
         </label>
 
         <Select
+            ref="selectRef"
             v-bind="$attrs"
             :class="[selectClasses, 'base-select']"
             :panelClass="panelClass"
@@ -32,6 +33,17 @@
 </template>
 
 <script setup lang="ts">
+    import { ref } from 'vue';
+
+    const selectRef = ref<any>(null);
+    defineExpose({
+        show: () => selectRef.value?.show?.(),
+        hide: () => selectRef.value?.hide?.(),
+        focus: () => selectRef.value?.focus?.(),
+        getSelectEl: () => selectRef.value?.$el as HTMLElement | null,
+        getInstance: () => selectRef.value,
+    });
+
     const props = withDefaults(defineProps<{
         label?: string;
         placeholder?: string;
@@ -67,11 +79,9 @@
         'update:modelValue': [value: any];
     }>();
 
-    // ⬇️ 3. Computed para las clases del trigger (más limpio que en el template)
     const selectClasses = computed(() => [
         'w-full bg-white border border-[var(--border-color)] rounded-[var(--radius-std)] transition-all',
-        'focus:outline-none focus:border-[var(--primary-color)] focus:ring-2 focus:ring-blue-100',
-        props.size === 'sm' ? 'min-h-[38px] h-[38px] !text-xs !py-0 flex items-center' : 'min-h-[40px] text-sm',
+        props.size === 'sm' ? 'min-h-[38px] !text-xs !py-0' : 'min-h-[40px] text-sm',
     ]);
 
     const onUpdate = (value: any) => {
@@ -83,9 +93,12 @@
     /* Forzar que el texto seleccionado dentro del Select use text-xs (12px) y se alinee */
     :deep(.p-select-label) {
         font-size: 0.75rem !important;
-        line-height: 1rem !important;
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
+        line-height: 1.25 !important;
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
 
     /* Forzar el tamaño de las opciones del desplegable */

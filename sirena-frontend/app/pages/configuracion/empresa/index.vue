@@ -26,6 +26,7 @@
             >
                 <template #header>
                     <CrudTableFilter
+                        autofocus
                         v-model:search-value="filters.global"
                         v-model:exact-match="filters.exactMatch"
                         search-placeholder="Buscar empresa, código, NIT..."
@@ -81,6 +82,7 @@
             :modal="true"
             :closable="!loading"
             class="custom-modal"
+            @show="focusRazonSocial"
         >
             <template #header>
                 <div class="flex items-center gap-3">
@@ -110,6 +112,7 @@
                                     Razón Social <span class="text-red-500">*</span>
                                 </label>
                                 <BaseInput
+                                    ref="razonSocialRef"
                                     v-model="formObj.empresa"
                                     :maxlength="200"
                                     size="sm"
@@ -313,6 +316,8 @@
 </template>
 
 <script setup lang="ts">
+    import { ref, nextTick } from 'vue';
+
     useHead({ title: 'Empresas | SIRENA' });
 
     const { validate: validateImage, getConfigDisplay } = useImageValidator()
@@ -512,6 +517,16 @@
         } finally {
             loading.value = false;
         }
+    };
+
+    const razonSocialRef = ref<any>(null);
+    const focusRazonSocial = async () => {
+        await nextTick();
+        setTimeout(() => {
+            const input = razonSocialRef.value?.$el?.querySelector('input') as HTMLInputElement | null;
+            input?.focus();
+            input?.select();
+        }, 350);
     };
 
     const columns = [

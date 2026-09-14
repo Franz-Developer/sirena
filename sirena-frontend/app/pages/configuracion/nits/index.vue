@@ -11,19 +11,6 @@
             @action="openNewConEmpresa"
         />
 
-        <div
-            v-if="!filters.empresa_id && !loadingEmpresas"
-            class="mb-4 flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-2xl"
-        >
-            <i class="pi pi-info-circle mt-0.5 text-lg"></i>
-            <div class="flex flex-col">
-                <span class="text-xs font-black uppercase tracking-wider">Seleccione una empresa</span>
-                <p class="text-[11px] font-semibold mt-0.5">
-                    El listado de NITs requiere filtrar por empresa. Seleccione una para continuar.
-                </p>
-            </div>
-        </div>
-
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" style="height: 75vh;">
             <BaseTable
                 :value="items"
@@ -40,10 +27,10 @@
                 <template #header>
                     <div class="px-4 py-3 bg-white border-b border-slate-200 max-h-[45vh] overflow-y-auto">
                         <!-- Primera fila: Empresa, Buscar, Coincidencia -->
-                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                            <div class="md:col-span-6 w-full">
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
+                            <div class="lg:col-span-6 w-full">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                    Empresa <span class="text-red-500">*</span>
+                                    Empresa
                                 </label>
                                 <BaseSelect
                                     v-model="filters.empresa_id"
@@ -53,17 +40,19 @@
                                     placeholder="Seleccionar empresa..."
                                     size="sm"
                                     filter
+                                    show-clear
                                     :loading="loadingEmpresas"
                                     @update:model-value="onEmpresaChange"
                                     class="w-full"
                                 />
                             </div>
 
-                            <div class="md:col-span-4 w-full">
+                            <div class="lg:col-span-4 w-full">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                     Buscar
                                 </label>
                                 <BaseSearch
+                                    autofocus
                                     v-model="filters.global"
                                     placeholder="NIT, razón social, etiqueta..."
                                     @search="onSearch"
@@ -71,7 +60,7 @@
                                 />
                             </div>
 
-                            <div class="md:col-span-2 w-full">
+                            <div class="lg:col-span-2 w-full">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                     Coincidencia
                                 </label>
@@ -88,7 +77,7 @@
                         </div>
 
                         <!-- Segunda fila: Ambiente, Modalidad, Inicio Vigencia, Fin Vigencia -->
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 items-end">
+                        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mt-4 items-end">
                             <div class="w-full">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                     Ambiente
@@ -239,7 +228,7 @@
                     <CrudRowActions
                         :estado-id="Number(data.estado_id)"
                         :puede="permisos"
-                        @edit="edit(data)"
+                        @edit="handleEdit(data)"
                         @toggle="toggleEstado(data)"
                         @delete="confirmDelete(data)"
                     />
@@ -253,6 +242,7 @@
             :closable="!loading"
             class="custom-modal w-[95vw] sm:w-[90vw] md:w-[1100px]"
             :style="{ maxHeight: '95vh' }"
+            @show="focusEmpresa"
         >
             <template #header>
                 <div class="flex items-center gap-3">
@@ -282,6 +272,7 @@
                                     Empresa <span class="text-red-500">*</span>
                                 </label>
                                 <BaseSelect
+                                    ref="empresaSelectRef"
                                     v-model="formObj.empresa_id"
                                     :options="empresaOptions"
                                     option-label="label"
@@ -594,7 +585,7 @@
 </template>
 
 <script setup lang="ts">
-    import { ref, computed, shallowRef } from 'vue';
+    import { ref, computed, shallowRef, watch, nextTick } from 'vue';
     import { Ambiente, AMBIENTE_METADATA, ModalidadFacturacion, MODALIDAD_FACTURACION_METADATA, ESTADO_ACTIVO } from '~/constants/estados.constant';
 
     useHead({ title: 'NITs Fiscales | SIRENA' });
@@ -703,7 +694,7 @@
 
         getCleanForm: () => ({
             empresa_nit_id: null,
-            empresa_id: empresaIdInicial,
+            empresa_id: empresaIdInicial ? Number(empresaIdInicial) : null,
             ambiente_id: Ambiente.PILOTO_PRUEBAS,
             nit: '',
             razon_social: '',
@@ -804,11 +795,6 @@
 
     const onEmpresaChange = () => {
         lazyParams.value.first = 0;
-        if (!filters.value.empresa_id) {
-            items.value = [];
-            totalRecords.value = 0;
-            return;
-        }
         onSearch();
     };
 
@@ -830,12 +816,80 @@
         { header: 'ACCIONES', template: 'body-acciones', class: '!text-center !w-28', sortable: false },
     ];
 
+    const empresaSelectRef = ref<any>(null);
+    const focusEmpresa = async () => {
+        await nextTick();
+        setTimeout(() => {
+            const el = empresaSelectRef.value?.$el as HTMLElement | null;
+            if (!el) return;
+
+            const trigger = el.querySelector('.p-select-label') as HTMLElement | null;
+            trigger?.click();   // esto abre el dropdown automáticamente
+        }, 350);
+    };
+
+    const handleEdit = async (item: any) => {
+        if (empresaOptions.value.length === 0) {
+            await cargarEmpresas();
+        }
+
+        const empresaId = item.empresa_id != null ? Number(item.empresa_id) : null;
+        const existe = empresaOptions.value.some(o => o.value === empresaId);
+
+        if (empresaId && !existe) {
+            empresaOptions.value = [
+                ...empresaOptions.value,
+                {
+                    label: item.empresa_nombre
+                        ? `${item.empresa_codigo ?? ''} — ${item.empresa_nombre}`.trim()
+                        : `Empresa ${empresaId}`,
+                    value: empresaId,
+                },
+            ];
+        }
+
+        edit(item);
+        formObj.value.empresa_id = empresaId;
+        formObj.value.ambiente_id = Number(item.ambiente_id);
+        formObj.value.modalidad_facturacion_id = Number(item.modalidad_facturacion_id);
+    };
+
+    watch(dialog, async (isOpen) => {
+        if (!isOpen) { return; }
+
+        await nextTick();
+        setTimeout(() => {
+            if (formObj.value.empresa_id != null) {
+                formObj.value.empresa_id = Number(formObj.value.empresa_id);
+            }
+            if (formObj.value.ambiente_id != null) {
+                formObj.value.ambiente_id = Number(formObj.value.ambiente_id);
+            }
+            if (formObj.value.modalidad_facturacion_id != null) {
+                formObj.value.modalidad_facturacion_id = Number(formObj.value.modalidad_facturacion_id);
+            }
+
+            const empresaId = formObj.value.empresa_id;
+            if (empresaId && !empresaOptions.value.some(o => o.value === empresaId)) {
+                const item = items.value.find((i: any) => Number(i.empresa_id) === empresaId);
+                empresaOptions.value = [
+                    ...empresaOptions.value,
+                    {
+                        label: item
+                            ? `${item.empresa_codigo ?? ''} — ${item.empresa_nombre}`.trim()
+                            : `Empresa ${empresaId}`,
+                        value: empresaId,
+                    },
+                ];
+            }
+        }, 150);
+    });
+
     onMounted(async () => {
         await cargarEmpresas();
 
         if (filters.value.empresa_id) {
             onSearch();
-            return;
         }
     });
 </script>

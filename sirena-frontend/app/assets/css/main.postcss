@@ -69,7 +69,7 @@ body {
 
 /* 5. ESTILOS GLOBALES PARA TABLAS */
 .p-datatable .p-datatable-thead > tr > th {
-    background-color: var(--primary-dark) !important;
+    background-color: #172554 !important;   /* MAYA1 */
     color: white !important;
     font-size: 10px !important;
     text-transform: uppercase !important;
@@ -79,15 +79,41 @@ body {
     padding-bottom: 0.5rem !important;
     padding-left: 0.75rem !important;
     padding-right: 0.75rem !important;
-    border-color: var(--primary-dark) !important;
+    border-color: #172554 !important;   /* MAYA2 */
 
     /* CENTRADO DE CABEZA */
     text-align: center !important;
     vertical-align: middle !important;
 }
 
-.p-datatable .p-datatable-column-header-content {
+/* CENTRADO UNIVERSAL DE CABECERAS EN TODAS LAS TABLAS PRIMEVUE */
+/* Nivel 1: el <th> */
+.p-datatable .p-datatable-thead > tr > th,
+.p-datatable .p-datatable-header-cell {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+/* Nivel 2: el wrapper flex interno (el culpable real) */
+.p-datatable .p-datatable-thead > tr > th > .p-datatable-column-header-content,
+.p-datatable .p-datatable-header-cell > .p-datatable-column-header-content {
+    display: flex !important;
     justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+/* Nivel 3: el título y el ícono de sort */
+.p-datatable .p-datatable-thead > tr > th .p-column-title,
+.p-datatable .p-datatable-header-cell .p-column-title {
+    text-align: center !important;
+    flex: 0 1 auto !important;
+}
+
+.p-datatable .p-datatable-thead > tr > th .p-sortable-column-icon,
+.p-datatable .p-datatable-header-cell .p-sortable-column-icon {
+    flex: 0 0 auto !important;
+    margin-left: 0.25rem !important;
 }
 
 .p-datatable .p-datatable-tbody > tr > td {
@@ -96,6 +122,14 @@ body {
     padding-bottom: 0.5rem !important;
     padding-left: 0.75rem !important;
     padding-right: 0.75rem !important;
+}
+
+/* Centrado del contenido del body (Tag, badges, botones) */
+.p-datatable .p-datatable-tbody > tr > td > .p-tag,
+.p-datatable .p-datatable-tbody > tr > td > .p-badge {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: block !important;
 }
 
 .p-datatable .p-datatable-tbody > tr > td .p-button.p-button-sm {
@@ -133,7 +167,6 @@ body {
 }
 
 /* 6. ESTILOS GLOBALES PARA DROPDOWNS Y SELECTS */
-
 /* Control del panel desplegable - ancho dinámico */
 .p-select-panel {
     min-width: 100% !important;    /* Mínimo el ancho del input */
@@ -187,6 +220,25 @@ body {
 
 .p-select.p-invalid .p-select-label {
     color: var(--danger-color) !important;
+}
+
+/* FOCO UNIFICADO VERDE PARA TODOS LOS SELECTS */
+.p-select:focus,
+.p-select:focus-visible,
+.p-select.p-focus,
+.p-select.p-inputwrapper-focus,
+.base-select .p-select:focus,
+.base-select .p-select:focus-visible,
+.base-select .p-select.p-focus {
+    outline: none !important;
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Fondo verde claro para el panel de opciones */
+.p-select-panel {
+    background-color: #f0fdf4 !important; /* Verde muy claro */
+    border: 1px solid #10b981 !important; /* Borde verde */
 }
 
 /* 7. ESTILOS GLOBALES PARA MODALES (DIALOG) */
@@ -268,7 +320,7 @@ body {
 
 /* Cabecera azul */
 .base-table .p-datatable .p-datatable-thead > tr > th {
-    background-color: var(--primary-dark) !important;
+    background-color: #172554 !important;   /* MAYA3 */
     color: white !important;
     font-size: 10px !important;
     text-transform: uppercase !important;
@@ -278,7 +330,7 @@ body {
     padding-bottom: 0.5rem !important;
     padding-left: 0.75rem !important;
     padding-right: 0.75rem !important;
-    border-color: var(--primary-dark) !important;
+    border-color: #172554 !important;   /* MAYA4 */
 
     /* Sticky header */
     position: sticky !important;
@@ -317,7 +369,7 @@ body {
 }
 
 /* Layout flex controlado en móvil para que las tarjetas tengan scroll interno y el paginador permanezca visible */
-@media screen and (max-width: 960px) {
+@media screen and (max-width: 768px) {
     .base-table,
     .base-table.h-full {
         display: flex !important;
@@ -375,13 +427,13 @@ body {
     position: sticky !important;
     top: 0 !important;
     z-index: 2 !important;
-    background-color: var(--primary-dark) !important;
+    background-color: #172554 !important;   /* MAYA5 */
     color: white !important;
 }
 
 /* Evita que el fondo se transparente al hacer scroll */
 .p-datatable-scrollable .p-datatable-thead {
-    background-color: var(--primary-dark) !important;
+    background-color: #172554 !important;   /* MAYA6 */
 }
 
 /* El contenedor de la tabla con scroll interno */
@@ -415,4 +467,35 @@ body {
     line-height: 1.3 !important;
     padding-right: 2rem !important;
     min-height: 1.5rem !important;
+}
+
+/* 12. SEPARADOR VERTICAL EN CABECERA (respeta border-radius) */
+.base-table .p-datatable .p-datatable-thead > tr > th,
+.p-datatable .p-datatable-thead > tr > th {
+    box-shadow: inset -1px 0 0 0 #ffffff !important;
+}
+.base-table .p-datatable .p-datatable-thead > tr > th:last-child,
+.p-datatable .p-datatable-thead > tr > th:last-child {
+    box-shadow: none !important;
+}
+
+/* 13. INPUTS DE FECHA — compactar para que quepan en grids estrechos */
+input[type="date"] {
+    min-width: 0 !important;
+    padding-left: 0.375rem !important;
+    padding-right: 0.25rem !important;
+    font-size: 11px !important;
+}
+
+/* El ícono del calendario de Chrome */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    padding: 0 !important;
+    margin-left: 0 !important;
+    cursor: pointer;
+}
+
+/* Firefox y otros */
+input[type="date"]::-moz-calendar-picker-indicator {
+    padding: 0 !important;
+    margin: 0 !important;
 }

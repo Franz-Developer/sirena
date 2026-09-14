@@ -37,7 +37,7 @@
                     :field="column.field"
                     :header="column.header"
                     :sortable="column.sortable !== undefined ? column.sortable : true"
-                    :headerClass="'bg-[var(--primary-dark)] text-white text-[10px] uppercase tracking-wider font-bold ' + (column.headerClass || '')"
+                    :headerClass="'bg-[var(--primary-dark)] text-white text-[10px] uppercase tracking-wider font-bold text-center ' + (column.headerClass || '')"
                     :bodyClass="'text-[11px] ' + (column.bodyClass || '')"
                     :class="column.class"
                     :style="column.style"
@@ -60,10 +60,12 @@
         <!-- MÓVIL: tarjetas generadas con v-for -->
         <div
             v-else-if="viewportReady"
-            class="flex flex-col w-full h-full min-h-0"
+            class="flex flex-col w-full h-full min-h-0 overflow-y-auto"
         >
             <!-- Filtros (slot header) -->
-            <slot name="header" />
+            <div class="flex-shrink-0">
+                <slot name="header" />
+            </div>
 
             <!-- Estado de carga -->
             <div
@@ -293,7 +295,7 @@
     };
 
     onMounted(() => {
-        mediaQuery = window.matchMedia('(max-width: 960px)');
+        mediaQuery = window.matchMedia('(max-width: 768px)');
         isDesktop.value = !mediaQuery.matches;
         viewportReady.value = true;
         mediaQuery.addEventListener('change', updateIsDesktop);

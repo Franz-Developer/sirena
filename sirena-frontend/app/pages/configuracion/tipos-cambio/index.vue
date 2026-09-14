@@ -26,7 +26,6 @@
                 @page="onPage"
                 @sort="onSort"
             >
-
                 <template #header>
                     <div class="px-4 py-3 bg-white border-b border-slate-200">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -36,6 +35,7 @@
                                         Moneda Origen
                                     </label>
                                     <BaseSelect
+                                        ref="monedaOrigenFiltroRef"
                                         v-model="filters.origen_moneda_id"
                                         :options="monedaOptions"
                                         option-label="label"
@@ -151,6 +151,7 @@
             :closable="!loading"
             class="custom-modal w-[95vw] sm:w-[90vw] md:w-[720px]"
             :style="{ maxHeight: '90vh' }"
+            @show="focusMonedaOrigenDialog"
         >
             <template #header>
                 <div class="flex items-center gap-3">
@@ -180,6 +181,7 @@
                                 Moneda Origen <span class="text-red-500">*</span>
                             </label>
                             <BaseSelect
+                                ref="monedaOrigenDialogRef"
                                 v-model="formObj.origen_moneda_id"
                                 :options="monedaOptions"
                                 option-label="label"
@@ -346,6 +348,7 @@
 </template>
 
 <script setup lang="ts">
+    import { ref, computed, nextTick } from 'vue';
     import { TipoMoneda, TIPO_MONEDA_METADATA } from '~/constants/estados.constant';
 
     useHead({ title: 'Tipos de Cambio | SIRENA' });
@@ -382,7 +385,7 @@
         defaultFilters: {
             global: '',
             exactMatch: 0,
-            origen_moneda_id: null,
+            origen_moneda_id: TipoMoneda.BOLIVIANO,
             destino_moneda_id: null,
         },
 
@@ -390,6 +393,8 @@
             exactMatch: f.exactMatch ?? 0,
             ...(f.origen_moneda_id ? { origen_moneda_id: f.origen_moneda_id } : {}),
             ...(f.destino_moneda_id ? { destino_moneda_id: f.destino_moneda_id } : {}),
+            ...(f.fecha_cotizacion_desde ? { fecha_cotizacion_desde: f.fecha_cotizacion_desde } : {}),
+            ...(f.fecha_cotizacion_hasta ? { fecha_cotizacion_hasta: f.fecha_cotizacion_hasta } : {}),
         }),
 
         getPrimaryKey: (item) => item.tipo_cambio_id,
@@ -471,71 +476,45 @@
         TIPO_MONEDA_METADATA[formObj.value.destino_moneda_id as TipoMoneda]?.abreviatura ?? '—'
     );
 
-    // ============================================
-    // Nombre del item para el diálogo de eliminar
-    // ============================================
     const deleteItemName = computed(() => {
         const o = TIPO_MONEDA_METADATA[formObj.value.origen_moneda_id as TipoMoneda]?.abreviatura ?? '—';
         const d = TIPO_MONEDA_METADATA[formObj.value.destino_moneda_id as TipoMoneda]?.abreviatura ?? '—';
         return `${o} → ${d} (${formObj.value.fecha_cotizacion ?? ''})`;
     });
 
-    // ============================================
-    // Columnas de la tabla
-    // ============================================
     const columns = [
-        {
-            field: 'tipo_cambio_id',
-            header: 'ID',
-            sortable: true,
-            bodyClass: '!text-center',
-            class: 'w-16',
-        },
-        {
-            field: 'fecha_cotizacion',
-            header: 'FECHA',
-            sortable: true,
-            template: 'body-fecha',
-            bodyClass: '!text-center',
-            class: 'w-32',
-        },
-        {
-            field: 'origen_moneda_id',
-            header: 'ORIGEN',
-            sortable: true,
-            template: 'body-origen',
-            bodyClass: '!text-center',
-            class: 'w-24',
-        },
-        {
-            field: 'destino_moneda_id',
-            header: 'DESTINO',
-            sortable: true,
-            template: 'body-destino',
-            bodyClass: '!text-center',
-            class: 'w-24',
-        },
-        {
-            field: 'factor_compra',
-            header: 'FACTORES',
-            sortable: false,
-            template: 'body-factores',
-            bodyClass: '!text-center',
-            class: 'w-28',
-        },
-        {
-            field: 'estado_registro',
-            header: 'ESTADO',
-            template: 'body-estado',
-            bodyClass: '!text-center',
-            class: 'w-24',
-            sortable: false,
-        },
-        {
-            header: 'ACCIONES',
-            template: 'body-acciones',
-            class: '!text-center !w-28',
-            sortable: false,
-        },
+        { field: 'tipo_cambio_id', header: 'ID', sortable: true, bodyClass: '!text-center', class: 'w-16', },
+        { field: 'fecha_cotizacion', header: 'FECHA', sortable: true, template: 'body-fecha', bodyClass: '!text-center', class: 'w-32', },
+        { field: 'origen_moneda_id', header: 'ORIGEN', sortable: true, template: 'body-origen', bodyClass: '!text-center', class: 'w-24', },
+        { field: 'destino_moneda_id', header: 'DESTINO', sortable: true, template: 'body-destino', bodyClass: '!text-center', class: 'w-24', },
+        { field: 'factor_compra', header: 'FACTORES', sortable: false, template: 'body-factores', bodyClass: '!text-center', class: 'w-28', },
+        { field: 'estado_registro', header: 'ESTADO', template: 'body-estado', bodyClass: '!text-center', class: 'w-24', sortable: false, },
+        { header: 'ACCIONES', template: 'body-acciones', class: '!text-center !w-28', sortable: false, },
     ];
+
+    const monedaOrigenFiltroRef = ref<any>(null);
+    const focusMonedaOrigenFiltro = async () => {
+        await nextTick();
+        setTimeout(() => {
+            const el = monedaOrigenFiltroRef.value?.$el as HTMLElement | null;
+            if (!el) return;
+            const trigger = el.querySelector('.p-select-label') as HTMLElement | null;
+            trigger?.click();
+        }, 350);
+    };
+
+    const monedaOrigenDialogRef = ref<any>(null);
+    const focusMonedaOrigenDialog = async () => {
+        await nextTick();
+        setTimeout(() => {
+            const el = monedaOrigenDialogRef.value?.$el as HTMLElement | null;
+            if (!el) return;
+            const trigger = el.querySelector('.p-select-label') as HTMLElement | null;
+            trigger?.click();
+        }, 350);
+    };
+
+    onMounted(() => {
+        focusMonedaOrigenFiltro();
+    });
 </script>
