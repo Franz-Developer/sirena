@@ -6,21 +6,22 @@ import { DomainException } from '../exceptions/domain.exception';
 import { getErrorMessage, getErrorStack, isDomainException } from '../utils/error.util';
 
 export interface UnicidadConfig {
-    tabla: string;                      // Nombre de la tabla
-    campos: {                           // Array de campos a validar
-        nombre: string;                 // Nombre de la columna
-        valor: any;                     // Valor a validar
+    tabla: string;                      // Nombre de la tabla.
+    campos: {                           // Array de campos a validar.
+        nombre: string;                 // Nombre de la columna.
+        valor: any;                     // Valor a validar.
     }[];
-    idExcluir?: number;                 // ID a excluir (para updates)
-    campoPk?: string;                   // Nombre del campo PK (por defecto 'id')
-    incluirEstado?: boolean;            // Incluir filtro de estado
-    estadosValidos?: number[];          // Estados a considerar
-    caseInsensitive?: boolean;          // Case insensitive
-    permitirNull?: boolean;             // Permitir NULL
-    condicionesExtra?: {                // Para filtros adicionales (ej. estado_contrato_id = 4750)
+    idExcluir?: number;                 // ID a excluir (para updates).
+    campoPk?: string;                   // Nombre del campo PK (por defecto 'id').
+    incluirEstado?: boolean;            // Incluir filtro de estado.
+    estadosValidos?: number[];          // Estados a considerar.
+    caseInsensitive?: boolean;          // Case insensitive.
+    permitirNull?: boolean;             // Permitir NULL.
+    condicionesExtra?: {                // Para filtros adicionales (ej. estado_contrato_id = 4750).
         nombre: string;
         valor: any;
     }[];
+    mensajePersonalizado?: string;
 }
 
 @Injectable()
@@ -131,8 +132,10 @@ export class UnicidadValidadorService {
                     .map((campo) => `${campo.nombre.replace(/_/g, ' ')} "${campo.valor ?? 'NULL'}"`)
                     .join(', con ');
 
+                const mensajeFinal = opts.mensajePersonalizado ?? `Ya existe un registro con ${detalleCampos}.`;
+
                 throw new DomainException(
-                    `Ya existe un registro con ${detalleCampos}.`,
+                    mensajeFinal,
                     {
                         tabla: opts.tabla,
                         campos: opts.campos,

@@ -134,7 +134,7 @@ export class AlmacenesService extends BaseService {
         return runInTransaction(this.dataSource, async (manager) => {
             await Promise.all([
                 this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dto.sucursal_id),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.'),
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
@@ -154,7 +154,7 @@ export class AlmacenesService extends BaseService {
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK
                 }),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
 
             this.validarCombinacionTipoAlmacen(dto.tipo_operacion_almacen_id, dto.tipo_almacen_id);

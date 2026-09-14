@@ -34,6 +34,7 @@ export const loggerConfig: Params = {
                           },
                       ]
                     : []),
+                // Archivo general para todos los niveles (app.log) con límite ampliado a 90
                 {
                     target: 'pino-roll',
                     options: {
@@ -41,7 +42,19 @@ export const loggerConfig: Params = {
                         frequency: 'daily',
                         size: '10m',
                         compress: true,
-                        limit: { count: 30 },
+                        limit: { count: 90 },
+                    },
+                },
+                // Archivo aislado exclusivamente para errores (error.log)
+                {
+                    level: 'error',
+                    target: 'pino-roll',
+                    options: {
+                        file: resolve(logDir, 'error.log'),
+                        frequency: 'daily',
+                        size: '10m',
+                        compress: true,
+                        limit: { count: 90 },
                     },
                 },
             ],

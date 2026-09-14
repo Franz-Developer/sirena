@@ -160,7 +160,7 @@ export class UsuariosService extends BaseService {
                 this.tablaValidador.validarPermisoTabla(usuarioId, 'usuarios', 'crear'),
                 this.tablaValidador.validarRegistrosActivos('roles', 'rol_id', dto.rol_id),
                 this.tablaValidador.validarRegistrosActivos('trabajadores', 'trabajador_id', dto.trabajador_id),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
 
             if (!dto.avatar) {

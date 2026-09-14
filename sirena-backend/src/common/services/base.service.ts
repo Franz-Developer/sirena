@@ -618,7 +618,6 @@ export abstract class BaseService {
             const { nombreTabla, campoPK } = this.config;
             const dependencias = tablasDependientes || this.config.tablasDependientes || [];
 
-
             if (this.tablaValidador && typeof this.tablaValidador.validarPreDelete === 'function') {
                 await this.tablaValidador.validarPreDelete(
                     nombreTabla,

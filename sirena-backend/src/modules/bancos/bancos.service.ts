@@ -60,21 +60,24 @@ export class BancosService extends BaseService {
                     tabla: this.nombreTabla,
                     campos: [{ nombre: 'codigo_asfi', valor: dto.codigo_asfi }],
                     campoPk: this.campoPK,
-                    estadosValidos: [...ESTADOS_VIVOS]
+                    estadosValidos: [...ESTADOS_VIVOS],
+                    mensajePersonalizado: `Ya existe un banco registrado con el código ASFI "${dto.codigo_asfi}".`,
                 }),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
                     campos: [{ nombre: 'abreviatura', valor: dto.abreviatura }],
                     campoPk: this.campoPK,
-                    estadosValidos: [...ESTADOS_VIVOS]
+                    estadosValidos: [...ESTADOS_VIVOS],
+                    mensajePersonalizado: `Ya existe un banco registrado con la abreviatura "${dto.abreviatura}".`,
                 }),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
                     campos: [{ nombre: 'banco', valor: dto.banco }],
                     campoPk: this.campoPK,
-                    estadosValidos: [...ESTADOS_VIVOS]
+                    estadosValidos: [...ESTADOS_VIVOS],
+                    mensajePersonalizado: `Ya existe un banco registrado con el nombre "${dto.banco}".`,
                 }),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
 
             const banco = manager.create(Banco, {
@@ -143,7 +146,8 @@ export class BancosService extends BaseService {
                         campos: [{ nombre: 'codigo_asfi', valor: dtoProcesado.codigo_asfi }],
                         idExcluir: id,
                         campoPk: this.campoPK,
-                        estadosValidos: [...ESTADOS_VIVOS]
+                        estadosValidos: [...ESTADOS_VIVOS],
+                        mensajePersonalizado: `Ya existe un banco registrado con el código ASFI "${dtoProcesado.codigo_asfi}".`,
                     })
                 );
             }
@@ -155,7 +159,8 @@ export class BancosService extends BaseService {
                         campos: [{ nombre: 'abreviatura', valor: dtoProcesado.abreviatura }],
                         idExcluir: id,
                         campoPk: this.campoPK,
-                        estadosValidos: [...ESTADOS_VIVOS]
+                        estadosValidos: [...ESTADOS_VIVOS],
+                        mensajePersonalizado: `Ya existe un banco registrado con la abreviatura "${dtoProcesado.abreviatura}".`,
                     })
                 );
             }
@@ -167,7 +172,8 @@ export class BancosService extends BaseService {
                         campos: [{ nombre: 'banco', valor: dtoProcesado.banco }],
                         idExcluir: id,
                         campoPk: this.campoPK,
-                        estadosValidos: [...ESTADOS_VIVOS]
+                        estadosValidos: [...ESTADOS_VIVOS],
+                        mensajePersonalizado: `Ya existe un banco registrado con el nombre "${dtoProcesado.banco}".`,
                     })
                 );
             }

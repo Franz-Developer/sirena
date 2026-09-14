@@ -105,7 +105,7 @@ export class EmpresasCuentasService extends BaseService {
                 this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', dto.empresa_id),
                 this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dto.banco_id),
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
 
             await this.unicidadValidador.validarUnicidad({

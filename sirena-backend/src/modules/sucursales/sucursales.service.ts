@@ -1,7 +1,7 @@
 // C:\sirena\sirena-backend\src\modules\sucursales\sucursales.service.ts
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
@@ -78,8 +78,9 @@ export class SucursalesService extends BaseService {
 
     async create(dto: CreateSucursalDto, usuarioId: number): Promise<SucursalResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            const nombreEmpresa = await this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', dto.empresa_id, 't.empresa');
+
             await Promise.all([
-                this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', dto.empresa_id),
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
@@ -88,7 +89,8 @@ export class SucursalesService extends BaseService {
                         { nombre: 'sucursal', valor: dto.sucursal }
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
-                    campoPk: this.campoPK
+                    campoPk: this.campoPK,
+                    mensajePersonalizado: `Ya existe una sucursal con el nombre '${dto.sucursal}' para la empresa '${nombreEmpresa}'.`,
                 }),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
@@ -97,7 +99,8 @@ export class SucursalesService extends BaseService {
                         { nombre: 'sucursal_largo', valor: dto.sucursal_largo }
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
-                    campoPk: this.campoPK
+                    campoPk: this.campoPK,
+                    mensajePersonalizado: `Ya existe una sucursal con el nombre largo '${dto.sucursal_largo}' para la empresa '${nombreEmpresa}'.`,
                 }),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
@@ -106,7 +109,8 @@ export class SucursalesService extends BaseService {
                         { nombre: 'codigo', valor: dto.codigo }
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
-                    campoPk: this.campoPK
+                    campoPk: this.campoPK,
+                    mensajePersonalizado: `Ya existe un registro con el código '${dto.codigo}' para la empresa '${nombreEmpresa}'.`,
                 }),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
@@ -115,9 +119,10 @@ export class SucursalesService extends BaseService {
                         { nombre: 'codigo_sin', valor: dto.codigo_sin }
                     ],
                     estadosValidos: [ESTADO_ACTIVO],
-                    campoPk: this.campoPK
+                    campoPk: this.campoPK,
+                    mensajePersonalizado: `Ya existe un registro con código sin '${dto.codigo_sin}' para la empresa '${nombreEmpresa}'.`,
                 }),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
 
             const sucursal = manager.create(Sucursal, {
@@ -175,14 +180,13 @@ export class SucursalesService extends BaseService {
                 usuarioId
             );
 
-            if (dtoProcesado.empresa_id !== undefined && dtoProcesado.empresa_id !== sucursalActual.empresa_id) {
-                await this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', dtoProcesado.empresa_id);
-            }
+            const empresaIdEval = dtoProcesado.empresa_id ?? sucursalActual.empresa_id;
+            const nombreEmpresa = await this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', empresaIdEval, 't.empresa');
 
             const validaciones: Promise<any>[] = [];
-            const empresaIdEval = dtoProcesado.empresa_id ?? sucursalActual.empresa_id;
 
             if (dtoProcesado.sucursal !== undefined || dtoProcesado.empresa_id !== undefined) {
+                const valorSucursal = dtoProcesado.sucursal ?? sucursalActual.sucursal;
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
@@ -193,11 +197,13 @@ export class SucursalesService extends BaseService {
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
                         campoPk: this.campoPK,
+                        mensajePersonalizado: `Ya existe una sucursal con el nombre '${valorSucursal}' para la empresa '${nombreEmpresa}'.`,
                     })
                 );
             }
 
             if (dtoProcesado.sucursal_largo !== undefined || dtoProcesado.empresa_id !== undefined) {
+                const valorSucursalLargo = dtoProcesado.sucursal_largo ?? sucursalActual.sucursal_largo;
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
@@ -208,11 +214,13 @@ export class SucursalesService extends BaseService {
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
                         campoPk: this.campoPK,
+                        mensajePersonalizado: `Ya existe una sucursal con el nombre largo '${valorSucursalLargo}' para la empresa '${nombreEmpresa}'.`,
                     })
                 );
             }
 
             if (dtoProcesado.codigo !== undefined || dtoProcesado.empresa_id !== undefined) {
+                const valorCodigo = dtoProcesado.codigo ?? sucursalActual.codigo;
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
@@ -223,11 +231,13 @@ export class SucursalesService extends BaseService {
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
                         campoPk: this.campoPK,
+                        mensajePersonalizado: `Ya existe un registro con el código '${valorCodigo}' para la empresa '${nombreEmpresa}'.`,
                     })
                 );
             }
 
             if (dtoProcesado.codigo_sin !== undefined || dtoProcesado.empresa_id !== undefined) {
+                const valorCodigoSin = dtoProcesado.codigo_sin ?? sucursalActual.codigo_sin;
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
@@ -238,6 +248,7 @@ export class SucursalesService extends BaseService {
                         idExcluir: id,
                         estadosValidos: [ESTADO_ACTIVO],
                         campoPk: this.campoPK,
+                        mensajePersonalizado: `Ya existe un registro con código sin '${valorCodigoSin}' para la empresa '${nombreEmpresa}'.`,
                     })
                 );
             }
@@ -262,5 +273,45 @@ export class SucursalesService extends BaseService {
                 throw crearError(error, 'la sucursal', 'actualizar');
             }
         });
+    }
+
+    async siguienteCodigoSin(
+        empresaId: number,
+        usuarioId: number
+    ): Promise<{ codigo_sin: number }> {
+        await Promise.all([
+            this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'leer'),
+            this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', empresaId),
+        ]);
+
+        try {
+            const max = await this.dataSource
+                .getRepository(Sucursal)
+                .maximum('codigo_sin', {
+                    empresa_id: empresaId,
+                    estado_id: In([...ESTADOS_VIVOS]),
+                });
+
+            const siguiente = (max ?? -1) + 1;
+
+            return {
+                codigo_sin: Number.isFinite(siguiente) && siguiente >= 0 ? siguiente : 0,
+            };
+        } catch (error: unknown) {
+            if (isDomainException(error)) {
+                throw error;
+            }
+
+            const errorMessage = getErrorMessage(error);
+            this.logger.error(
+                `Error inesperado en siguienteCodigoSin: ${errorMessage}`,
+                getErrorStack(error)
+            );
+
+            throw new DomainException(
+                'No se pudo obtener el siguiente código SIN.',
+                { httpStatus: HttpStatus.INTERNAL_SERVER_ERROR, causa: errorMessage }
+            );
+        }
     }
 }

@@ -62,7 +62,7 @@ export class TablasService extends BaseService {
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK,
                 }),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
 
             const tabla = manager.create(Tabla, {

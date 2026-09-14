@@ -294,20 +294,7 @@ export const TEMPORADA_METADATA: Record<Temporada, ConstanteMetadata & { es_defe
 };
 
 // ==========================================
-// ESTADO FISCAL
-export enum EstadoFiscal {
-    ACTIVO = 1650,
-    AGOTADO = 1651,
-    VENCIDO = 1652,
-    CANCELADO = 1653,
-}
-
-export const ESTADO_FISCAL_METADATA: Record<EstadoFiscal, ConstanteMetadata & { es_defecto?: boolean }> = {
-    [EstadoFiscal.ACTIVO]: { id: EstadoFiscal.ACTIVO, abreviatura: 'ACTIVO', prefijo: null, valor: 0, descripcion: 'Dosificación fiscal vigente y operativa. Permite la emisión de facturas electrónicas con validez ante el SIN. El sistema puede generar comprobantes fiscales sin restricciones. CONSTANTE POR DEFECTO.', es_defecto: true },
-    [EstadoFiscal.AGOTADO]: { id: EstadoFiscal.AGOTADO, abreviatura: 'AGOTADO', prefijo: null, valor: 0, descripcion: 'Rango de numeración de facturas completamente consumido. No es posible emitir más facturas con esta dosificación. Se debe solicitar una nueva autorización al SIN. Bloquea automáticamente la emisión de comprobantes.' },
-    [EstadoFiscal.VENCIDO]: { id: EstadoFiscal.VENCIDO, abreviatura: 'VENCIDO', prefijo: null, valor: 0, descripcion: 'Fecha de vigencia de la dosificación superada según lo establecido por el SIN. No es posible emitir facturas con esta autorización vencida. Se debe renovar la dosificación ante el SIN.' },
-    [EstadoFiscal.CANCELADO]: { id: EstadoFiscal.CANCELADO, abreviatura: 'CANCELADO', prefijo: null, valor: 0, descripcion: 'Dosificación anulada o cancelada por decisión administrativa o por disposición del SIN. No es posible emitir facturas con esta autorización. Estado irreversible que mantiene el registro histórico para auditoría.' },
-};
+// 1650 NO SE USA.
 
 // ==========================================
 // TIPO ALMACEN
@@ -448,18 +435,7 @@ export const MOTIVO_OUTLIER_METADATA: Record<MotivoOutlier, ConstanteMetadata & 
 };
 
 // ==========================================
-// FORMATO PDF
-export enum FormatoPDF {
-    ESTANDAR = 1950,
-    RESUMIDO = 1951,
-    DETALLADO = 1952,
-}
-
-export const FORMATO_PDF_METADATA: Record<FormatoPDF, ConstanteMetadata & { es_defecto?: boolean }> = {
-    [FormatoPDF.ESTANDAR]: { id: FormatoPDF.ESTANDAR, abreviatura: 'ESTANDAR', prefijo: null, valor: 0, descripcion: 'Formato estándar de factura con todos los datos fiscales requeridos por el SIN. Incluye información completa del emisor, receptor, detalle de productos, impuestos desglosados y códigos de control. Aplica para facturación regular. CONSTANTE POR DEFECTO.', es_defecto: true },
-    [FormatoPDF.RESUMIDO]: { id: FormatoPDF.RESUMIDO, abreviatura: 'RESUMIDO', prefijo: null, valor: 0, descripcion: 'Formato resumido con información esencial y diseño compacto. Incluye solo los datos fiscales obligatorios: emisor, receptor, totales e impuestos. Omite detalles extensos. Aplica para tickets rápidos, ventas de mostrador o comprobantes internos.' },
-    [FormatoPDF.DETALLADO]: { id: FormatoPDF.DETALLADO, abreviatura: 'DETALLADO', prefijo: null, valor: 0, descripcion: 'Formato extendido con información completa y adicional. Incluye todos los datos del estándar más información complementaria: desglose por lote, fechas de vencimiento, registros sanitarios, datos del laboratorio y notas adicionales. Aplica para facturas a instituciones o clientes corporativos.' },
-};
+// 1950 NO SE USA.
 
 // ==========================================
 // ESTADO MODELO
@@ -1458,22 +1434,7 @@ export const METODO_MARCACION_METADATA: Record<MetodoMarcacion, ConstanteMetadat
 };
 
 // ==========================================
-// TIPO ALERTA RRHH
-export enum TipoAlertaRRHH {
-    RRHH = 4550,
-    FALTAS_CONSECUTIVAS = 4551,
-    BAJA_RENDIMIENTO = 4552,
-    VENCIMIENTO_CONTRATO = 4553,
-    CUMPLEANOS = 4554,
-}
-
-export const TIPO_ALERTA_RRHH_METADATA: Record<TipoAlertaRRHH, ConstanteMetadata & { es_defecto?: boolean }> = {
-    [TipoAlertaRRHH.RRHH]: { id: TipoAlertaRRHH.RRHH, abreviatura: 'RRHH', prefijo: null, valor: 0, descripcion: 'Alerta relacionada con el módulo de Recursos Humanos. Agrupa notificaciones de asistencia, planillas y personal. CONSTANTE POR DEFECTO.', es_defecto: true },
-    [TipoAlertaRRHH.FALTAS_CONSECUTIVAS]: { id: TipoAlertaRRHH.FALTAS_CONSECUTIVAS, abreviatura: 'FALTAS_CONSECUTIVAS', prefijo: null, valor: 1, descripcion: 'Alerta por faltas consecutivas del trabajador. Requiere atención del supervisor.' },
-    [TipoAlertaRRHH.BAJA_RENDIMIENTO]: { id: TipoAlertaRRHH.BAJA_RENDIMIENTO, abreviatura: 'BAJA_RENDIMIENTO', prefijo: null, valor: 2, descripcion: 'Alerta por bajo rendimiento del trabajador. Requiere evaluación de desempeño.' },
-    [TipoAlertaRRHH.VENCIMIENTO_CONTRATO]: { id: TipoAlertaRRHH.VENCIMIENTO_CONTRATO, abreviatura: 'VENCIMIENTO_CONTRATO', prefijo: null, valor: 3, descripcion: 'Alerta por vencimiento de contrato del trabajador. Requiere renovación o finalización.' },
-    [TipoAlertaRRHH.CUMPLEANOS]: { id: TipoAlertaRRHH.CUMPLEANOS, abreviatura: 'CUMPLEANOS', prefijo: null, valor: 4, descripcion: 'Alerta por cumpleaños del trabajador. Notificación para área de RRHH.' },
-};
+// 4550 NO SE USA.
 
 // ==========================================
 // TIPO PLANILLA

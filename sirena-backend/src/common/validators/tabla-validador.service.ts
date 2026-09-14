@@ -7,6 +7,7 @@ import { DomainException } from '../exceptions/domain.exception';
 import { IDataSource } from '../interfaces/repository.interface';
 import { getErrorMessage, getErrorStack, isDomainException } from '../utils/error.util';
 import { ConfiguracionService } from '../services/configuracion.service';
+import { obtenerDatosTablaAmigable, obtenerNombreAmigableTabla } from '../constants/nombres-tablas.constant';
 
 export interface ItemValidacionFK {
     id: number;
@@ -68,13 +69,17 @@ export class TablaValidadorService {
         tabla: string,
         campoPk: string = 'id',
         pkId: number,
-    ): Promise<boolean> {
+        columnasSelect?: string,
+        mensajePersonalizado?: string,
+    ): Promise<any> {
         const tablaNormalizada = tabla.toLowerCase().trim();
         const tablaSanitizada = this.dataSource.escapeIdentifier(tablaNormalizada);
         const campoPkSanitizado = this.dataSource.escapeIdentifier(campoPk);
 
+        const selectClause = columnasSelect ? columnasSelect : '1';
+
         const query = `
-            SELECT 1
+            SELECT ${selectClause}
             FROM ${tablaSanitizada} t
             WHERE t.${campoPkSanitizado} = $1
                 AND t.estado_id = $2
@@ -87,8 +92,9 @@ export class TablaValidadorService {
             const resultado = await this.dataSource.query(query, params);
 
             if (!resultado || resultado.length === 0) {
+                const mensajeFinal = mensajePersonalizado || `No se encontró un registro activo con ID ${pkId}. Verifique que el registro exista y no esté dado de baja.`;
                 throw new DomainException(
-                    `No se encontró un registro activo con ID ${pkId}. Verifique que el registro exista y no esté dado de baja.`,
+                    mensajeFinal,
                     {
                         httpStatus: HttpStatus.BAD_REQUEST,
                         tabla: tablaNormalizada,
@@ -97,7 +103,19 @@ export class TablaValidadorService {
                     }
                 );
             }
-            return true;
+
+            if (!columnasSelect) {
+                return true;
+            }
+
+            const row = resultado[0] as Record<string, unknown>;
+            const firstKey = Object.keys(row)[0];
+
+            if (!firstKey) {
+                return null;
+            }
+
+            return row[firstKey];
         } catch (error) {
             if (isDomainException(error)) {
                 throw error;
@@ -468,19 +486,29 @@ export class TablaValidadorService {
             }
 
             if (tieneDependencias) {
-                const tablasDependientesStr = tablasDependientes
-                    .map(item => typeof item === 'string' ? item : `${item.tabla}(${item.campoFk})`)
-                    .join(', ');
+                const nombres = tablasDependientes.map(item =>
+                    obtenerNombreAmigableTabla(typeof item === 'string' ? item : item.tabla)
+                );
+
+                const lista = nombres.length === 1
+                    ? nombres[0]
+                    : nombres.slice(0, -1).join(', ') + ' y ' + nombres[nombres.length - 1];
+
+                // Usamos obtenerDatosTablaAmigable para extraer la propiedad .singular (ej: "el banco")
+                const datosEntidad = obtenerDatosTablaAmigable(tablaNormalizada);
+
+                // Detalle técnico solo en consola
+                console.warn(
+                    `[DEPENDENCIAS_ACTIVAS] ${tablaNormalizada}#${pkId} (usuario ${usuarioId}) → ` +
+                    tablasDependientes.map(i => typeof i === 'string' ? i : `${i.tabla}(${i.campoFk})`).join(', ')
+                );
 
                 throw new DomainException(
-                    `No se puede eliminar el registro porque tiene dependencias en: ${tablasDependientesStr}. Primero debe eliminar los registros dependientes.`,
+                    `No se puede eliminar ${datosEntidad.singular} porque tiene registros relacionados en: ${lista}.`,
                     {
-                        httpStatus: HttpStatus.CONFLICT,
+                        httpStatus: HttpStatus.BAD_REQUEST,
                         tabla: tablaNormalizada,
-                        pkId,
-                        campoPk: campoFkDefault,
-                        tablasDependientes: tablasDependientesStr,
-                        motivo: 'DEPENDENCIAS_ACTIVAS'
+                        motivo: 'REGISTROS_RELACIONADOS'
                     }
                 );
             }

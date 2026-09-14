@@ -54,7 +54,6 @@ Authorization: Bearer {{authToken}}
 GET {{baseUrl_bancos}}?estado_id=1002
 Authorization: Bearer {{authToken}}
 
-
 ###
 GET {{baseUrl_bancos}}?limit=10&offset=0&sortField=banco_id&sortOrder=-1&exactMatch=0
 Authorization: Bearer {{authToken}}
@@ -124,11 +123,9 @@ Authorization: Bearer {{authToken}}
 GET {{baseUrl_bancos}}?offset=10&limit=10
 Authorization: Bearer {{authToken}}
 
-
 ###
 GET {{baseUrl_bancos}}?limit=20&offset=0&sortField=banco_id&sortOrder=-1
 Authorization: Bearer {{authToken}}
-
 
 # ==============================================================================
 # ORDENAMIENTO
@@ -195,9 +192,9 @@ Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-    "banco": "arbdomob Ba4 sss7",
-    "codigo_asfi": "26",
-    "abreviatura": "bbbBA5",
+    "banco": "BANCO HOLA 2",
+    "codigo_asfi": "54",
+    "abreviatura": "BBMM",
     "descripcion": "NIñóS ss"
 }
 
@@ -273,8 +270,12 @@ Content-Type: application/json
     "abreviatura": "ABAN1 arbolitos"
 }
 
+### Búsqueda exacta con acentos
+GET {{baseUrl_bancos}}?q=BNB
+Authorization: Bearer {{authToken}}
+
 ### ELIMINAR BANCO (ACTIVO → BORRADO)
-DELETE {{baseUrl_bancos}}/14
+DELETE {{baseUrl_bancos}}/2
 Authorization: Bearer {{authToken}}
 
 ### Obtener banco específico

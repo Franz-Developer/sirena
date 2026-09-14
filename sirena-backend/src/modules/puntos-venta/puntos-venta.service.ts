@@ -87,7 +87,7 @@ export class PuntosVentaService extends BaseService {
             await Promise.all([
                 this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dto.sucursal_id),
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
 
             // VALIDACIÓN DE UNICIDAD: Código y Nombre son únicos por sucursal para estados vivos (1000, 1002)

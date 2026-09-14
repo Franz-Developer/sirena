@@ -30,10 +30,11 @@ export class FindSucursalesQueryDto extends BasePaginationQueryDto {
     })
     estado_id?: number;
 
+    @IsOptional()
     @Type(() => Number)
     @IsInt({ message: 'El ID de empresa debe ser un número entero.' })
     @Min(1, { message: 'El ID de empresa debe ser un número entero mayor o igual a 1.' })
-    empresa_id: number;
+    empresa_id?: number;
 
     @IsOptional()
     @Type(() => Number)
@@ -92,31 +93,29 @@ export class FindSucursalesQueryDto extends BasePaginationQueryDto {
         ];
     }
 
-    // Todas las dependencias.
     static getDependencias(): Array<string | { tabla: string; campoFk: string }> {
         return [
-            // Tablas que dependen directamente de sucursales
-            { tabla: 'puntos_venta', campoFk: 'sucursal_id' },
-            { tabla: 'cuis', campoFk: 'sucursal_id' },
-            { tabla: 'cufd', campoFk: 'sucursal_id' },
-            { tabla: 'almacenes', campoFk: 'sucursal_id' },
-            { tabla: 'usuarios', campoFk: 'sucursal_id' },
-            { tabla: 'inventarios_fisicos', campoFk: 'sucursal_id' },
-            { tabla: 'control_facturas', campoFk: 'sucursal_id' },
-            { tabla: 'kardex', campoFk: 'sucursal_id' },
-            { tabla: 'kardex', campoFk: 'sucursal_destino_id' },
-            { tabla: 'recetas', campoFk: 'sucursal_id' },
-            { tabla: 'kardex_productos', campoFk: 'sucursal_id' },
-            { tabla: 'cajas', campoFk: 'sucursal_id' },
             { tabla: 'alertas_notificaciones', campoFk: 'sucursal_id' },
-            { tabla: 'patrones_consumo', campoFk: 'sucursal_id' },
-            { tabla: 'variables_exogenas', campoFk: 'sucursal_id' },
+            { tabla: 'almacenes',              campoFk: 'sucursal_id' },
+            { tabla: 'analitica_productos',    campoFk: 'sucursal_id' },
+            { tabla: 'asistencias',            campoFk: 'sucursal_id' },
+            { tabla: 'cajas',                  campoFk: 'sucursal_id' },
+            { tabla: 'carritos_compra',        campoFk: 'sucursal_id' },
+            { tabla: 'control_facturas',       campoFk: 'sucursal_id' },
+            { tabla: 'cufd',                   campoFk: 'sucursal_id' },
+            { tabla: 'cuis',                   campoFk: 'sucursal_id' },
+            { tabla: 'historicos',             campoFk: 'sucursal_id' },
+            { tabla: 'kardex',                 campoFk: 'sucursal_id' },
+            { tabla: 'kardex',                 campoFk: 'sucursal_destino_id' },
+            { tabla: 'kardex_productos',       campoFk: 'sucursal_id' },
+            { tabla: 'patrones_consumo',       campoFk: 'sucursal_id' },
+            { tabla: 'pedidos_online',         campoFk: 'sucursal_id' },
+            { tabla: 'planillas',              campoFk: 'sucursal_id' },
+            { tabla: 'puntos_venta',           campoFk: 'sucursal_id' },
+            { tabla: 'recetas',                campoFk: 'sucursal_id' },
+            { tabla: 'trabajadores',           campoFk: 'sucursal_id' },
             { tabla: 'umbrales_configuracion', campoFk: 'sucursal_id' },
-            { tabla: 'analitica_productos', campoFk: 'sucursal_id' },
-            { tabla: 'pedidos_online', campoFk: 'sucursal_id' },
-            { tabla: 'asistencias', campoFk: 'sucursal_id' },
-            { tabla: 'planillas', campoFk: 'sucursal_id' },
-            { tabla: 'historicos', campoFk: 'sucursal_id' },
+            { tabla: 'variables_exogenas',     campoFk: 'sucursal_id' },
         ];
     }
 

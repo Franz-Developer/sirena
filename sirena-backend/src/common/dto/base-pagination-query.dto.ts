@@ -14,7 +14,7 @@ export abstract class BasePaginationQueryDto {
     @Type(() => Number)
     @IsInt({ message: 'limit debe ser un número entero.' })
     @Min(1, { message: 'limit debe ser >= 1' })
-    @Max(100, { message: 'limit no puede exceder 100 registros.' })
+    @Max(1000, { message: 'limit no puede exceder 1000 registros.' })
     limit?: number;
 
     @IsOptional()

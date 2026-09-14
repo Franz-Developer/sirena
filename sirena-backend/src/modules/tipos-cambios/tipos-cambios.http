@@ -59,7 +59,6 @@ Authorization: Bearer {{authToken}}
 GET {{baseUrl_tipos_cambios}}?estado_id=1000
 Authorization: Bearer {{authToken}}
 
-
 ### LISTAR
 GET {{baseUrl_tipos_cambios}}?limit=10&offset=0&sortField=tipo_cambio_id&sortOrder=-1&exactMatch=0
 Authorization: Bearer {{authToken}}
@@ -97,19 +96,23 @@ Authorization: Bearer {{authToken}}
 # ==============================================================================
 
 ### FILTRAR POR FECHA DE COTIZACIÓN (2026-08-20)
-GET {{baseUrl_tipos_cambios}}?fecha_cotizacion_inicio=2026-08-20&fecha_cotizacion_fin=2026-08-20
+GET {{baseUrl_tipos_cambios}}?fecha_cotizacion_desde=2026-08-20&fecha_cotizacion_hasta=2026-08-20
+Authorization: Bearer {{authToken}}
+
+### FILTRAR POR FECHA DE COTIZACIÓN (2026-08-20)
+GET {{baseUrl_tipos_cambios}}?fecha_cotizacion_desde=2026-03-01&sortField=fecha_cotizacion&sortOrder=1
 Authorization: Bearer {{authToken}}
 
 ### FILTRAR POR RANGO DE FECHAS (Agosto 2026)
-GET {{baseUrl_tipos_cambios}}?fecha_cotizacion_inicio=2026-08-01&fecha_cotizacion_fin=2026-08-31
+GET {{baseUrl_tipos_cambios}}?fecha_cotizacion_desde=2026-08-01&fecha_cotizacion_hasta=2026-08-31
 Authorization: Bearer {{authToken}}
 
 ### FILTRAR POR RANGO DE FECHAS + MONEDA ORIGEN
-GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2301&fecha_cotizacion_inicio=2026-08-01&fecha_cotizacion_fin=2026-08-31
+GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2301&fecha_cotizacion_desde=2026-08-01&fecha_cotizacion_hasta=2026-08-31
 Authorization: Bearer {{authToken}}
 
 ### FILTRAR POR RANGO DE FECHAS (Agosto 2026)
-GET {{baseUrl_tipos_cambios}}?fecha_cotizacion_inicio=2026-08-03
+GET {{baseUrl_tipos_cambios}}?fecha_cotizacion_desde=2026-08-03
 Authorization: Bearer {{authToken}}
 # ==============================================================================
 # USUARIO
@@ -380,7 +383,7 @@ GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2300&destino_moneda_id=2301&estad
 Authorization: Bearer {{authToken}}
 
 ### 3. Obtener tipos de cambio del mes actual (Dólar → Boliviano)
-GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2301&destino_moneda_id=2300&fecha_cotizacion_inicio=2026-08-01&fecha_cotizacion_fin=2026-08-31&sortField=fecha_cotizacion&sortOrder=-1
+GET {{baseUrl_tipos_cambios}}?origen_moneda_id=2301&destino_moneda_id=2300&fecha_cotizacion_desde=2026-08-01&fecha_cotizacion_hasta=2026-08-31&sortField=fecha_cotizacion&sortOrder=-1
 Authorization: Bearer {{authToken}}
 
 ### 4. Obtener el tipo de cambio más reciente (Dólar → Boliviano)

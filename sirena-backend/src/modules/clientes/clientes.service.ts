@@ -92,7 +92,7 @@ export class ClientesService extends BaseService {
         return runInTransaction(this.dataSource, async (manager) => {
             const validacionesPromise: Promise<any>[] = [
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ];
 
             if (dto.banco_base_id) {

@@ -53,7 +53,7 @@ export class EmpresasService extends BaseService {
                 this.unicidadValidador.validarUnicidad({ tabla: this.nombreTabla, campos: [{ nombre: 'empresa', valor: dto.empresa }], campoPk: this.campoPK, estadosValidos: [...ESTADOS_VIVOS] }),
                 this.unicidadValidador.validarUnicidad({ tabla: this.nombreTabla, campos: [{ nombre: 'codigo', valor: dto.codigo }], campoPk: this.campoPK, estadosValidos: [...ESTADOS_VIVOS] }),
                 this.unicidadValidador.validarUnicidad({ tabla: this.nombreTabla, campos: [{ nombre: 'matricula_comercio', valor: dto.matricula_comercio }], campoPk: this.campoPK, estadosValidos: [...ESTADOS_VIVOS] }),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
 
             const empresa = manager.create(Empresa, {

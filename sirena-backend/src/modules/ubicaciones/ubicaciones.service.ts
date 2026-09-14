@@ -132,7 +132,7 @@ export class UbicacionesService extends BaseService {
             await Promise.all([
                 this.tablaValidador.validarRegistrosActivos('almacenes', 'almacen_id', dto.almacen_id),
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
 
             const tipo = dto.jerarquia.tipo;

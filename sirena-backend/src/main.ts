@@ -8,13 +8,14 @@ import compression from 'compression';
 import helmet from 'helmet';
 import { Logger as PinoLogger } from 'nestjs-pino';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 process.stdout.setDefaultEncoding('utf8');
 process.stderr.setDefaultEncoding('utf8');
 
 function getLogLevels(): LogLevel[] {
     const env = process.env['NODE_ENV'] || 'development';
-    if (env === 'production') return ['error', 'warn'];
+    if (env === 'production') { return ['error', 'warn']; }
     if (env === 'development') return ['log', 'error', 'warn'];  // Se quito , 'debug', 'verbose'
     return ['log', 'error', 'warn'];
 }
@@ -32,6 +33,7 @@ async function bootstrap() {
         const uploadDir = configService.get<string>('UPLOAD_DIR', 'uploads');
 
         app.useLogger(app.get(PinoLogger));
+        app.useGlobalFilters(new AllExceptionsFilter(app.get(PinoLogger)));
         app.enableShutdownHooks();
         app.use(compression());
         app.use(helmet({ crossOriginResourcePolicy: false, contentSecurityPolicy: false }));

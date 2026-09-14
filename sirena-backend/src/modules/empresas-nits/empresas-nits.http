@@ -74,7 +74,7 @@ Authorization: Bearer {{authToken}}
 # ==============================================================================
 
 ### LISTAR TODOS (Activos + Históricos por defecto)
-GET {{baseUrl_empresas_nits}}?empresa_id=2
+GET {{baseUrl_empresas_nits}}
 Authorization: Bearer {{authToken}}
 
 ### LISTAR POR ESTADO ACTIVOS (1000)

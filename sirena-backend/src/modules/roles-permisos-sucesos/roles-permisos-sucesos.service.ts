@@ -113,7 +113,7 @@ export class RolesPermisosSucesosService extends BaseService {
                     campoPk: this.campoPK,
                     estadosValidos: [...ESTADOS_VIVOS],
                 }),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
 
             const permiso = manager.create(RolPermisoSuceso, {

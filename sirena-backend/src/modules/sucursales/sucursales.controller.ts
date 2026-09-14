@@ -33,6 +33,16 @@ export class SucursalesController {
         return this.sucursalesService.findAll(query, user.usuario_id);
     }
 
+    // GET /sucursales/siguiente-codigo-sin?empresa_id=X
+    @Get('siguiente-codigo-sin')
+    @FindOneRateLimit()
+    siguienteCodigoSin(
+        @Query('empresa_id', ParseIntPipe) empresaId: number,
+        @GetUser() user: AuthenticatedUser
+    ): Promise<{ codigo_sin: number }> {
+        return this.sucursalesService.siguienteCodigoSin(empresaId, user.usuario_id);
+    }
+
     // GET /sucursales/:id - Obtener una sucursal por ID
     @Get(':id')
     @FindOneRateLimit()

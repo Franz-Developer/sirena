@@ -135,7 +135,7 @@ export class EmpresasNitsService extends BaseService {
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK
                 }),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId)
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
 
             const empresaNit = manager.create(EmpresaNit, {
@@ -160,7 +160,7 @@ export class EmpresasNitsService extends BaseService {
     }
 
         async update(id: number, dto: UpdateEmpresaNitDto, usuarioId: number): Promise<EmpresaNitResponseDto> {
-        return runInTransaction(this.dataSource, async (manager) => {
+            return runInTransaction(this.dataSource, async (manager) => {
             const hasFields = Object.values(dto).some(val => val !== undefined);
             if (!hasFields) {
                 throw new DomainException(

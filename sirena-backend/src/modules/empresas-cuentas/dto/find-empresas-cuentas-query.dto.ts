@@ -30,10 +30,11 @@ export class FindEmpresasCuentasQueryDto extends BasePaginationQueryDto {
     })
     estado_id?: number;
 
+    @IsOptional()
     @Type(() => Number)
     @IsInt({ message: 'El ID de empresa debe ser un número entero.' })
     @Min(1, { message: 'El ID de empresa debe ser un número entero mayor o igual a 1.' })
-    empresa_id: number;
+    empresa_id?: number;
 
     @IsOptional()
     @Type(() => Number)

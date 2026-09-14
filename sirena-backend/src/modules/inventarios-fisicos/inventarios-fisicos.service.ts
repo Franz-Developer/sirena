@@ -228,7 +228,7 @@ export class InventariosFisicosService extends BaseService {
                 this.tablaValidador.validarRegistrosActivos('trabajadores', 'trabajador_id', dto.trabajador_responsable_id),
                 this.tablaValidador.validarRegistrosActivos('trabajadores', 'trabajador_id', dto.trabajador_supervisor_id),
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.'),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
                     campos: [
