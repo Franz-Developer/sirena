@@ -129,8 +129,9 @@ export class UbicacionesService extends BaseService {
 
     async create(dto: CreateUbicacionDto, usuarioId: number): Promise<UbicacionResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            const nombreAlmacen = await this.tablaValidador.validarRegistrosActivos('almacenes', 'almacen_id', dto.almacen_id, 't.almacen');
+
             await Promise.all([
-                this.tablaValidador.validarRegistrosActivos('almacenes', 'almacen_id', dto.almacen_id),
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
@@ -157,10 +158,12 @@ export class UbicacionesService extends BaseService {
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK,
+                    mensajePersonalizado: `Ya existe una ubicación con el código '${codigo}' para el almacén '${nombreAlmacen}'.`,
                 });
 
                 const ubicacion = manager.create(Ubicacion, {
                     ...dto,
+                    codigo,
                     usuario_id_registro: Number(usuarioId),
                 });
 
@@ -217,23 +220,24 @@ export class UbicacionesService extends BaseService {
                 usuarioId
             );
 
+            const almacenIdEval = dtoProcesado.almacen_id ?? ubicacionActual.almacen_id;
+            const nombreAlmacen = await this.tablaValidador.validarRegistrosActivos('almacenes', 'almacen_id', almacenIdEval, 't.almacen');
+
             const validaciones: Promise<any>[] = [];
 
-            if (dtoProcesado.almacen_id !== undefined && dtoProcesado.almacen_id !== ubicacionActual.almacen_id) {
-                validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('almacenes', 'almacen_id', dtoProcesado.almacen_id)
-                );
-
+            if (dtoProcesado.almacen_id !== undefined) {
+                const valorCodigo = ubicacionActual.codigo;
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
-                            { nombre: 'almacen_id', valor: dtoProcesado.almacen_id },
-                            { nombre: 'codigo', valor: ubicacionActual.codigo }
+                            { nombre: 'almacen_id', valor: almacenIdEval },
+                            { nombre: 'codigo', valor: valorCodigo }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
                         campoPk: this.campoPK,
+                        mensajePersonalizado: `Ya existe una ubicación con el código '${valorCodigo}' para el almacén '${nombreAlmacen}'.`,
                     })
                 );
             }
@@ -242,14 +246,7 @@ export class UbicacionesService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            if (dtoProcesado.almacen_id !== undefined) {
-                ubicacionActual.almacen_id = dtoProcesado.almacen_id;
-            }
-
-            if (dtoProcesado.descripcion !== undefined) {
-                ubicacionActual.descripcion = dtoProcesado.descripcion;
-            }
-
+            Object.assign(ubicacionActual, dtoProcesado);
             ubicacionActual.update(usuarioId);
 
             try {

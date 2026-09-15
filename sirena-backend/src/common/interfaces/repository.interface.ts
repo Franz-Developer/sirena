@@ -21,8 +21,7 @@ export interface IRepository<T = any> {
 export interface IDataSource {
     query(query: string, parameters?: any[]): Promise<any>;
     createQueryRunner(): IQueryRunner;
-    /** Escapa identificadores SQL (tablas, columnas) */
-    escapeIdentifier(identifier: string): string; // 👈 NUEVO
+    escapeIdentifier(identifier: string): string;
 }
 
 /**

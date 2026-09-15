@@ -27,6 +27,7 @@ export interface UsuarioRawResult {
     rol_id: string | number;
     rol_nombre?: string;
     rol_codigo?: string;
+    es_admin?: string | number;
     cargo_id?: string | number;
     cargo_nombre?: string;
     cargo_codigo?: string;
@@ -103,6 +104,10 @@ export class UsuarioResponseDto {
     @Expose()
     @Transform(({ obj }) => obj.rol_codigo || null)
     rol_codigo!: string;
+
+    @Expose()
+    @Transform(({ obj }) => obj.es_admin === 1 || obj.es_admin === true || obj.es_admin === '1')
+    es_admin!: boolean;
 
     @Expose() cargo_id!: number;
 

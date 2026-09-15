@@ -122,8 +122,9 @@ export class EmpresasNitsService extends BaseService {
         return runInTransaction(this.dataSource, async (manager) => {
             this.validarReglasNegocio(dto);
 
+            const nombreEmpresa = await this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', dto.empresa_id, 't.empresa');
+
             await Promise.all([
-                this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', dto.empresa_id),
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
@@ -133,7 +134,8 @@ export class EmpresasNitsService extends BaseService {
                         { nombre: 'empresa_id', valor: dto.empresa_id }
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
-                    campoPk: this.campoPK
+                    campoPk: this.campoPK,
+                    mensajePersonalizado: `Ya existe un NIT con la etiqueta '${dto.etiqueta}' y número '${dto.nit}' para la empresa '${nombreEmpresa}'.`
                 }),
                 this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
@@ -159,8 +161,8 @@ export class EmpresasNitsService extends BaseService {
         });
     }
 
-        async update(id: number, dto: UpdateEmpresaNitDto, usuarioId: number): Promise<EmpresaNitResponseDto> {
-            return runInTransaction(this.dataSource, async (manager) => {
+    async update(id: number, dto: UpdateEmpresaNitDto, usuarioId: number): Promise<EmpresaNitResponseDto> {
+        return runInTransaction(this.dataSource, async (manager) => {
             const hasFields = Object.values(dto).some(val => val !== undefined);
             if (!hasFields) {
                 throw new DomainException(
@@ -184,7 +186,7 @@ export class EmpresasNitsService extends BaseService {
                 );
             }
 
-            dto = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
                 dto,
@@ -194,41 +196,32 @@ export class EmpresasNitsService extends BaseService {
                 usuarioId
             );
 
-            const validaciones: Promise<any>[] = [];
-
-            if (dto.empresa_id !== undefined && dto.empresa_id !== nitActual.empresa_id) {
-                validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', dto.empresa_id)
-                );
-            }
-
-            if (validaciones.length > 0) {
-                await Promise.all(validaciones);
-            }
-
-            const nuevoEmpresaId = dto.empresa_id ?? nitActual.empresa_id;
-            const nuevoNit = dto.nit ?? nitActual.nit;
-            const nuevoEtiqueta = dto.etiqueta ?? nitActual.etiqueta;
+            const empresaIdEval = dtoProcesado.empresa_id ?? nitActual.empresa_id;
+            const nombreEmpresa = await this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', empresaIdEval, 't.empresa');
 
             if (
-                dto.empresa_id !== undefined ||
-                dto.nit !== undefined ||
-                dto.etiqueta !== undefined
+                dtoProcesado.empresa_id !== undefined ||
+                dtoProcesado.nit !== undefined ||
+                dtoProcesado.etiqueta !== undefined
             ) {
+                const valorNit = dtoProcesado.nit ?? nitActual.nit;
+                const valorEtiqueta = dtoProcesado.etiqueta ?? nitActual.etiqueta;
+
                 await this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
                     campos: [
-                        { nombre: 'nit', valor: nuevoNit },
-                        { nombre: 'etiqueta', valor: nuevoEtiqueta },
-                        { nombre: 'empresa_id', valor: nuevoEmpresaId }
+                        { nombre: 'nit', valor: valorNit },
+                        { nombre: 'etiqueta', valor: valorEtiqueta },
+                        { nombre: 'empresa_id', valor: empresaIdEval }
                     ],
                     idExcluir: id,
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK,
+                    mensajePersonalizado: `Ya existe un NIT con la etiqueta '${valorEtiqueta}' y número '${valorNit}' para la empresa '${nombreEmpresa}'.`,
                 });
             }
 
-            Object.assign(nitActual, dto);
+            Object.assign(nitActual, dtoProcesado);
             nitActual.update(usuarioId);
 
             try {

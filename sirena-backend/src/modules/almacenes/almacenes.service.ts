@@ -132,8 +132,9 @@ export class AlmacenesService extends BaseService {
 
     async create(dto: CreateAlmacenDto, usuarioId: number): Promise<AlmacenResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
+            const nombreSucursal = await this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dto.sucursal_id, 't.sucursal');
+
             await Promise.all([
-                this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dto.sucursal_id),
                 this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.'),
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.unicidadValidador.validarUnicidad({
@@ -143,7 +144,8 @@ export class AlmacenesService extends BaseService {
                         { nombre: 'sucursal_id', valor: dto.sucursal_id }
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
-                    campoPk: this.campoPK
+                    campoPk: this.campoPK,
+                    mensajePersonalizado: `Ya existe un almacén con el nombre '${dto.almacen}' para la sucursal '${nombreSucursal}'.`
                 }),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
@@ -152,7 +154,8 @@ export class AlmacenesService extends BaseService {
                         { nombre: 'sucursal_id', valor: dto.sucursal_id }
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
-                    campoPk: this.campoPK
+                    campoPk: this.campoPK,
+                    mensajePersonalizado: `Ya existe un almacén con el código '${dto.codigo}' para la sucursal '${nombreSucursal}'.`
                 }),
                 this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
@@ -214,28 +217,27 @@ export class AlmacenesService extends BaseService {
                 usuarioId
             );
 
-            const validaciones: Promise<any>[] = [];
+            const sucursalIdEval = dtoProcesado.sucursal_id ?? almacenActual.sucursal_id;
+            const nombreSucursal = await this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', sucursalIdEval, 't.sucursal');
 
-            if (dtoProcesado.sucursal_id !== undefined && dtoProcesado.sucursal_id !== almacenActual.sucursal_id) {
-                validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dtoProcesado.sucursal_id)
-                );
-            }
+            const validaciones: Promise<any>[] = [];
 
             if (
                 (dtoProcesado.almacen !== undefined && dtoProcesado.almacen !== almacenActual.almacen) ||
                 (dtoProcesado.sucursal_id !== undefined && dtoProcesado.sucursal_id !== almacenActual.sucursal_id)
             ) {
+                const valorAlmacen = dtoProcesado.almacen ?? almacenActual.almacen;
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
-                            { nombre: 'almacen', valor: dtoProcesado.almacen ?? almacenActual.almacen },
-                            { nombre: 'sucursal_id', valor: dtoProcesado.sucursal_id ?? almacenActual.sucursal_id }
+                            { nombre: 'almacen', valor: valorAlmacen },
+                            { nombre: 'sucursal_id', valor: sucursalIdEval }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
                         campoPk: this.campoPK,
+                        mensajePersonalizado: `Ya existe un almacén con el nombre '${valorAlmacen}' para la sucursal '${nombreSucursal}'.`,
                     })
                 );
             }
@@ -244,16 +246,18 @@ export class AlmacenesService extends BaseService {
                 (dtoProcesado.codigo !== undefined && dtoProcesado.codigo !== almacenActual.codigo) ||
                 (dtoProcesado.sucursal_id !== undefined && dtoProcesado.sucursal_id !== almacenActual.sucursal_id)
             ) {
+                const valorCodigo = dtoProcesado.codigo ?? almacenActual.codigo;
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
-                            { nombre: 'codigo', valor: dtoProcesado.codigo ?? almacenActual.codigo },
-                            { nombre: 'sucursal_id', valor: dtoProcesado.sucursal_id ?? almacenActual.sucursal_id }
+                            { nombre: 'codigo', valor: valorCodigo },
+                            { nombre: 'sucursal_id', valor: sucursalIdEval }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
                         campoPk: this.campoPK,
+                        mensajePersonalizado: `Ya existe un almacén con el código '${valorCodigo}' para la sucursal '${nombreSucursal}'.`,
                     })
                 );
             }

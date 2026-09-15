@@ -67,13 +67,15 @@ export class UnidadesService extends BaseService {
                     tabla: this.nombreTabla,
                     campos: [{ nombre: 'codigo', valor: dto.codigo }],
                     campoPk: this.campoPK,
-                    estadosValidos: [...ESTADOS_VIVOS]
+                    estadosValidos: [...ESTADOS_VIVOS],
+                    mensajePersonalizado: `Ya existe una unidad con el código '${dto.codigo}'.`,
                 }),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
                     campos: [{ nombre: 'unidad', valor: dto.unidad }],
                     campoPk: this.campoPK,
-                    estadosValidos: [...ESTADOS_VIVOS]
+                    estadosValidos: [...ESTADOS_VIVOS],
+                    mensajePersonalizado: `Ya existe la unidad '${dto.unidad}'.`,
                 }),
                 this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
@@ -142,7 +144,8 @@ export class UnidadesService extends BaseService {
                         campos: [{ nombre: 'codigo', valor: dtoProcesado.codigo }],
                         idExcluir: id,
                         campoPk: this.campoPK,
-                        estadosValidos: [...ESTADOS_VIVOS]
+                        estadosValidos: [...ESTADOS_VIVOS],
+                        mensajePersonalizado: `Ya existe una unidad con el código '${dtoProcesado.codigo}'.`,
                     })
                 );
             }
@@ -154,7 +157,8 @@ export class UnidadesService extends BaseService {
                         campos: [{ nombre: 'unidad', valor: dtoProcesado.unidad }],
                         idExcluir: id,
                         campoPk: this.campoPK,
-                        estadosValidos: [...ESTADOS_VIVOS]
+                        estadosValidos: [...ESTADOS_VIVOS],
+                        mensajePersonalizado: `Ya existe la unidad '${dtoProcesado.unidad}'.`,
                     })
                 );
             }

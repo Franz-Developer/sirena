@@ -2,7 +2,7 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { ESTADO_ACTIVO, ESTADOS_VIVOS } from '../../common/constants/estados.constant';
+import { ESTADO_ACTIVO, ESTADOS_VIVOS, TipoMoneda, TIPO_MONEDA_METADATA, TipoCuenta, TIPO_CUENTA_METADATA } from '../../common/constants/estados.constant';
 import { DomainException } from '../../common/exceptions/domain.exception';
 import { BaseService, BaseServiceConfig } from '../../common/services/base.service';
 import { runInTransaction } from '../../common/utils/transaction.helper';
@@ -101,12 +101,15 @@ export class EmpresasCuentasService extends BaseService {
 
     async create(dto: CreateEmpresaCuentaDto, usuarioId: number): Promise<EmpresaCuentaResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            await Promise.all([
-                this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', dto.empresa_id),
-                this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dto.banco_id),
+            const [nombreEmpresa, nombreBanco] = await Promise.all([
+                this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', dto.empresa_id, 't.empresa'),
+                this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dto.banco_id, 't.banco'),
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
+
+            const monedaDesc = TIPO_MONEDA_METADATA[dto.tipo_moneda_id as TipoMoneda]?.abreviatura ?? 'Moneda desconocida';
+            const cuentaDesc = TIPO_CUENTA_METADATA[dto.tipo_cuenta_id as TipoCuenta]?.abreviatura ?? 'Tipo de cuenta desconocido';
 
             await this.unicidadValidador.validarUnicidad({
                 tabla: this.nombreTabla,
@@ -119,6 +122,7 @@ export class EmpresasCuentasService extends BaseService {
                 ],
                 estadosValidos: [...ESTADOS_VIVOS],
                 campoPk: this.campoPK,
+                mensajePersonalizado: `Ya existe la cuenta bancaria '${dto.nro_cuenta}' (${cuentaDesc}, ${monedaDesc}) para la empresa '${nombreEmpresa}' en el banco '${nombreBanco}'.`,
             });
 
             const empresaCuenta = manager.create(EmpresaCuenta, {
@@ -166,7 +170,7 @@ export class EmpresasCuentasService extends BaseService {
                 );
             }
 
-            dto = await this.tablaValidador.procesarCamposProtegidos(
+            const dtoProcesado = await this.tablaValidador.procesarCamposProtegidos(
                 this.nombreTabla,
                 id,
                 dto,
@@ -178,15 +182,15 @@ export class EmpresasCuentasService extends BaseService {
 
             const validaciones: Promise<any>[] = [];
 
-            if (dto.empresa_id !== undefined && dto.empresa_id !== cuentaActual.empresa_id) {
+            if (dtoProcesado.empresa_id !== undefined && dtoProcesado.empresa_id !== cuentaActual.empresa_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', dto.empresa_id)
+                    this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', dtoProcesado.empresa_id)
                 );
             }
 
-            if (dto.banco_id !== undefined && dto.banco_id !== cuentaActual.banco_id) {
+            if (dtoProcesado.banco_id !== undefined && dtoProcesado.banco_id !== cuentaActual.banco_id) {
                 validaciones.push(
-                    this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dto.banco_id)
+                    this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', dtoProcesado.banco_id)
                 );
             }
 
@@ -194,18 +198,26 @@ export class EmpresasCuentasService extends BaseService {
                 await Promise.all(validaciones);
             }
 
-            const nuevoEmpresaId = dto.empresa_id ?? cuentaActual.empresa_id;
-            const nuevoBancoId = dto.banco_id ?? cuentaActual.banco_id;
-            const nuevoNroCuenta = dto.nro_cuenta ?? cuentaActual.nro_cuenta;
-            const nuevoTipoMonedaId = dto.tipo_moneda_id ?? cuentaActual.tipo_moneda_id;
-            const nuevoTipoCuentaId = dto.tipo_cuenta_id ?? cuentaActual.tipo_cuenta_id;
+            const nuevoEmpresaId = dtoProcesado.empresa_id ?? cuentaActual.empresa_id;
+            const nuevoBancoId = dtoProcesado.banco_id ?? cuentaActual.banco_id;
+            const nuevoNroCuenta = dtoProcesado.nro_cuenta ?? cuentaActual.nro_cuenta;
+            const nuevoTipoMonedaId = dtoProcesado.tipo_moneda_id ?? cuentaActual.tipo_moneda_id;
+            const nuevoTipoCuentaId = dtoProcesado.tipo_cuenta_id ?? cuentaActual.tipo_cuenta_id;
+
+            const [nombreEmpresa, nombreBanco] = await Promise.all([
+                this.tablaValidador.validarRegistrosActivos('empresas', 'empresa_id', nuevoEmpresaId, 't.empresa'),
+                this.tablaValidador.validarRegistrosActivos('bancos', 'banco_id', nuevoBancoId, 't.banco')
+            ]);
+
+            const monedaDesc = TIPO_MONEDA_METADATA[nuevoTipoMonedaId as TipoMoneda]?.abreviatura ?? 'Moneda desconocida';
+            const cuentaDesc = TIPO_CUENTA_METADATA[nuevoTipoCuentaId as TipoCuenta]?.abreviatura ?? 'Tipo de cuenta desconocido';
 
             if (
-                dto.empresa_id !== undefined ||
-                dto.banco_id !== undefined ||
-                dto.nro_cuenta !== undefined ||
-                dto.tipo_moneda_id !== undefined ||
-                dto.tipo_cuenta_id !== undefined
+                dtoProcesado.empresa_id !== undefined ||
+                dtoProcesado.banco_id !== undefined ||
+                dtoProcesado.nro_cuenta !== undefined ||
+                dtoProcesado.tipo_moneda_id !== undefined ||
+                dtoProcesado.tipo_cuenta_id !== undefined
             ) {
                 await this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
@@ -219,10 +231,11 @@ export class EmpresasCuentasService extends BaseService {
                     idExcluir: id,
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK,
+                    mensajePersonalizado: `Ya existe la cuenta bancaria '${nuevoNroCuenta}' (${cuentaDesc}, ${monedaDesc}) para la empresa '${nombreEmpresa}' en el banco '${nombreBanco}'.`,
                 });
             }
 
-            Object.assign(cuentaActual, dto);
+            Object.assign(cuentaActual, dtoProcesado);
             cuentaActual.update(usuarioId);
 
             try {

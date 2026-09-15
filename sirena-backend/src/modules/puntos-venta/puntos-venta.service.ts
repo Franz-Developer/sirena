@@ -84,14 +84,10 @@ export class PuntosVentaService extends BaseService {
 
     async create(dto: CreatePuntoVentaDto, usuarioId: number): Promise<PuntoVentaResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            await Promise.all([
-                this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dto.sucursal_id),
-                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
-            ]);
+            const nombreSucursal = await this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dto.sucursal_id, 't.sucursal');
 
-            // VALIDACIÓN DE UNICIDAD: Código y Nombre son únicos por sucursal para estados vivos (1000, 1002)
             await Promise.all([
+                this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
                     campos: [
@@ -100,6 +96,7 @@ export class PuntosVentaService extends BaseService {
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK,
+                    mensajePersonalizado: `Ya existe un punto de venta con el código '${dto.codigo}' para la sucursal '${nombreSucursal}'.`,
                 }),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
@@ -109,7 +106,9 @@ export class PuntosVentaService extends BaseService {
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK,
-                })
+                    mensajePersonalizado: `Ya existe un punto de venta con el nombre '${dto.nombre}' para la sucursal '${nombreSucursal}'.`,
+                }),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
             ]);
 
             const puntoVenta = manager.create(PuntoVenta, {
@@ -167,39 +166,41 @@ export class PuntosVentaService extends BaseService {
                 usuarioId
             );
 
-            if (dtoProcesado.sucursal_id !== undefined && dtoProcesado.sucursal_id !== puntoVentaActual.sucursal_id) {
-                await this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dtoProcesado.sucursal_id);
-            }
+            const sucursalIdEval = dtoProcesado.sucursal_id ?? puntoVentaActual.sucursal_id;
+            const nombreSucursal = await this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', sucursalIdEval, 't.sucursal');
 
             const validaciones: Promise<any>[] = [];
-            const nuevaSucursalId = dtoProcesado.sucursal_id ?? puntoVentaActual.sucursal_id;
 
-            if (dtoProcesado.sucursal_id !== undefined || dtoProcesado.codigo !== undefined) {
+            if (dtoProcesado.codigo !== undefined || dtoProcesado.sucursal_id !== undefined) {
+                const valorCodigo = dtoProcesado.codigo ?? puntoVentaActual.codigo;
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
-                            { nombre: 'sucursal_id', valor: nuevaSucursalId },
-                            { nombre: 'codigo', valor: dtoProcesado.codigo ?? puntoVentaActual.codigo }
+                            { nombre: 'sucursal_id', valor: sucursalIdEval },
+                            { nombre: 'codigo', valor: valorCodigo }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
                         campoPk: this.campoPK,
+                        mensajePersonalizado: `Ya existe un punto de venta con el código '${valorCodigo}' para la sucursal '${nombreSucursal}'.`,
                     })
                 );
             }
 
-            if (dtoProcesado.sucursal_id !== undefined || dtoProcesado.nombre !== undefined) {
+            if (dtoProcesado.nombre !== undefined || dtoProcesado.sucursal_id !== undefined) {
+                const valorNombre = dtoProcesado.nombre ?? puntoVentaActual.nombre;
                 validaciones.push(
                     this.unicidadValidador.validarUnicidad({
                         tabla: this.nombreTabla,
                         campos: [
-                            { nombre: 'sucursal_id', valor: nuevaSucursalId },
-                            { nombre: 'nombre', valor: dtoProcesado.nombre ?? puntoVentaActual.nombre }
+                            { nombre: 'sucursal_id', valor: sucursalIdEval },
+                            { nombre: 'nombre', valor: valorNombre }
                         ],
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
                         campoPk: this.campoPK,
+                        mensajePersonalizado: `Ya existe un punto de venta con el nombre '${valorNombre}' para la sucursal '${nombreSucursal}'.`,
                     })
                 );
             }

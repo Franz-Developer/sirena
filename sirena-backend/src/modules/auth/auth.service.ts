@@ -50,6 +50,7 @@ export class AuthService {
                     u.rol_id,
                     r.codigo AS rol_codigo,
                     r.rol AS rol_nombre,
+                    r.es_admin,
                     u.contrasena,
                     t.trabajador_id AS trabajador_id,
                     TRIM(t.nombres || ' ' || t.paterno || ' ' || COALESCE(t.materno, '')) AS trabajador_nombre_completo,
@@ -174,6 +175,7 @@ export class AuthService {
                 sub: usuarioDto.usuario_id,
                 username: usuarioDto.login,
                 rol_id: usuarioDto.rol_id,
+                es_admin: usuarioDto.es_admin,
             };
 
             const token = this.jwtService.sign(payload);

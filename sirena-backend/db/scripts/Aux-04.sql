@@ -1,105 +1,14 @@
------------------------------
-table_name                   
------------------------------
-alertas_notificaciones       
-almacenes                    
-almacenes_puntos_venta       
-analitica_productos          
-arqueos_detalle              
-asistencias                  
-bancos                       
-cajas                        
-cargos                       
-carritos_compra              
-categorias                   
-clientes                     
-comprobantes_pagos           
-concentraciones              
-contratos                    
-control_facturas             
-conversiones_unidad          
-costos_promedio              
-cufd                         
-cuis                         
-detalles_carritos            
-detalles_pedidos_online      
-empresas                     
-empresas_cuentas             
-empresas_nits                
-entrenamientos               
-equivalentes                 
-especialidades               
-formas                       
-historicos                   
-instituciones                
-inventarios_fisicos          
-inventarios_fisicos_detalle  
-kardex                       
-kardex_productos             
-laboratorios                 
-listas_precios               
-logs_ejecucion               
-lotes_productos              
-marcas                       
-medicos                      
-menus                        
-metricas_rendimiento         
-modelos                      
-movimientos                  
-ordenes_compra               
-pagos                        
-parametros_globales          
-patrones_consumo             
-pedidos_online               
-planes_pagos                 
-planillas                    
-planillas_detalle            
-politicas_precios            
-precios_productos            
-presentaciones               
-principios_activos           
-productos                    
-productos_controlados        
-productos_principios         
-productos_rangos_edad        
-productos_ubicaciones        
-productos_vias               
-promociones                  
-promociones_productos        
-proveedores                  
-proveedores_contactos        
-proveedores_rating_historico 
-puntos_venta                 
-rangos_edad                  
-recetas                      
-registros_sanitarios         
-roles                        
-roles_menus                  
-roles_permisos_sucesos       
-roles_permisos_tablas        
-sucesos                      
-sucursales                   
-tablas                       
-tareas_programadas           
-tipos_cambios                
-tipos_planes_pago            
-trabajadores                 
-trabajadores_cargos          
-ubicaciones                  
-ubicaciones_historial        
-ubicaciones_movimientos      
-umbrales_configuracion       
-unidades                     
-usuarios                     
-variables_exogenas           
-vias                         
------------------------------
-Total de filas: 92
+1. chart.js (el más probable)
 
-aqui puedes crear un archivo C:\sirena\sirena-backend\src\common\constants 
-que contenga 
-const nombresAmigables: Record<string, string> = {
-    empresas_cuentas: 'Cuentas Bancarias',
-    clientes: 'Clientes',
-    comprobantes_pagos: 'Comprobantes de Pagos',
-};
+Tu useChart.ts lo carga dinámicamente, pero si algún componente que se renderiza en principal.vue lo importa de forma estática, se incluye en el bundle inicial.
+
+Cómo verificar: En Firefox, presiona Ctrl+Shift+E, recarga, y busca chart en la lista de peticiones. Si ves un archivo .js grande con "chart" en el nombre, ahí está.
+
+2. estados.constant.ts (el archivo gigante)
+
+Ese archivo tiene más de 3000 líneas. Si principal.vue o algún componente que renderiza importa algo de ahí de forma estática (incluso una sola constante), todo el archivo se incluye en el bundle.
+
+Cómo verificar: Busca en tu principal.vue y en los componentes que usa (Dashboard, Cards, etc.) si hay algún import ... from '~/constants/estados.constant'. Si lo hay, ese es el problema.
+3. Componentes de PrimeVue registrados globalmente
+
+Tienes 12 componentes de PrimeVue registrados globalmente en plugins/primevue.ts. Si principal.vue usa varios de ellos en el primer render, todos se incluyen en el bundle inicial.

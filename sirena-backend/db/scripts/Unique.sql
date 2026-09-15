@@ -1,7 +1,7 @@
 Todos los archivos generados deben estar separados debe ir estrictamente dentro de las comillas invertidas de Markdown o backticks. Cada import debe ser una sola fila.
 
-Utiliza 👈 para mostrarme que modificaste 
-// 👈 comentarios 
+Utiliza // 👈 para mostrarme que modificar o adicionar 
+// 👈 comentario guia
 
 http://www.servicioswebbolivia.com/
 

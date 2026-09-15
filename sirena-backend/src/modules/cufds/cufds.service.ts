@@ -121,11 +121,16 @@ export class CufdsService extends BaseService {
 
     async create(dto: CreateCufdDto, usuarioId: number): Promise<CufdResponseDto> {
         return runInTransaction(this.dataSource, async (manager) => {
-            const validaciones: Promise<any>[] = [
-                this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dto.sucursal_id),
-                this.tablaValidador.validarRegistrosActivos('puntos_venta', 'punto_venta_id', dto.punto_venta_id),
+            const nombreSucursal = await this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', dto.sucursal_id, 't.sucursal');
+            const nombrePuntoVenta = await this.tablaValidador.validarRegistrosActivos('puntos_venta', 'punto_venta_id', dto.punto_venta_id, 't.nombre');
+
+            await Promise.all([
                 this.tablaValidador.validarPermisoTabla(usuarioId, this.nombreTabla, 'crear'),
                 this.validarPertenenciaSucursalPuntoVenta(manager, dto.sucursal_id, dto.punto_venta_id),
+                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
+            ]);
+
+            await Promise.all([
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
                     campos: [
@@ -134,6 +139,7 @@ export class CufdsService extends BaseService {
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK,
+                    mensajePersonalizado: `Ya existe un registro CUFD asociado a la sucursal '${nombreSucursal}' y al punto de venta '${nombrePuntoVenta}'.`,
                 }),
                 this.unicidadValidador.validarUnicidad({
                     tabla: this.nombreTabla,
@@ -142,11 +148,9 @@ export class CufdsService extends BaseService {
                     ],
                     estadosValidos: [...ESTADOS_VIVOS],
                     campoPk: this.campoPK,
-                }),
-                this.tablaValidador.validarRegistrosActivos('usuarios', 'usuario_id', usuarioId, undefined, 'El usuario del sistema no se encuentra activo o no existe.')
-            ];
-
-            await Promise.all(validaciones);
+                    mensajePersonalizado: `Ya existe un registro CUFD con el código '${dto.codigo_cufd}'.`,
+                })
+            ]);
 
             const cufd = manager.create(Cufd, {
                 ...dto,
@@ -216,6 +220,13 @@ export class CufdsService extends BaseService {
                 ? dtoProcesado.punto_venta_id
                 : cufdActual.punto_venta_id;
 
+            const nombreSucursal = await this.tablaValidador.validarRegistrosActivos('sucursales', 'sucursal_id', nuevoSucursalId, 't.sucursal');
+
+            let nombrePuntoVenta = '';
+            if (nuevoPuntoVentaId !== null && nuevoPuntoVentaId !== undefined) {
+                nombrePuntoVenta = await this.tablaValidador.validarRegistrosActivos('puntos_venta', 'punto_venta_id', nuevoPuntoVentaId, 't.nombre');
+            }
+
             await this.validarPertenenciaSucursalPuntoVenta(
                 manager,
                 nuevoSucursalId,
@@ -259,6 +270,7 @@ export class CufdsService extends BaseService {
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
                         campoPk: this.campoPK,
+                        mensajePersonalizado: `Ya existe un registro CUFD asociado a la sucursal '${nombreSucursal}' y al punto de venta '${nombrePuntoVenta}'.`,
                     })
                 );
             }
@@ -274,6 +286,7 @@ export class CufdsService extends BaseService {
                         idExcluir: id,
                         estadosValidos: [...ESTADOS_VIVOS],
                         campoPk: this.campoPK,
+                        mensajePersonalizado: `Ya existe un registro CUFD con el código '${dtoProcesado.codigo_cufd}'.`,
                     })
                 );
             }

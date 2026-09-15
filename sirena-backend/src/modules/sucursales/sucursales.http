@@ -56,7 +56,7 @@ GET {{baseUrl_sucursales}}
 Authorization: Bearer {{authToken}}
 
 ### LISTAR POR ESTADO ACTIVOS (1000)
-GET {{baseUrl_sucursales}}?estado_id=1000
+GET {{baseUrl_sucursales}}?estado_id=1000&empresa_id=2
 Authorization: Bearer {{authToken}}
 
 ### LISTAR POR ESTADO BORRADOS (1001)

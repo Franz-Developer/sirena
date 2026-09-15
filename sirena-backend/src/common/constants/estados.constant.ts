@@ -294,7 +294,7 @@ export const TEMPORADA_METADATA: Record<Temporada, ConstanteMetadata & { es_defe
 };
 
 // ==========================================
-// 1650 NO SE USA.
+// 1650 NO SE USA. MAYA
 
 // ==========================================
 // TIPO ALMACEN
@@ -435,7 +435,7 @@ export const MOTIVO_OUTLIER_METADATA: Record<MotivoOutlier, ConstanteMetadata & 
 };
 
 // ==========================================
-// 1950 NO SE USA.
+// 1950 NO SE USA. MAYA
 
 // ==========================================
 // ESTADO MODELO
@@ -1434,7 +1434,7 @@ export const METODO_MARCACION_METADATA: Record<MetodoMarcacion, ConstanteMetadat
 };
 
 // ==========================================
-// 4550 NO SE USA.
+// 4550 NO SE USA. MAYA
 
 // ==========================================
 // TIPO PLANILLA
