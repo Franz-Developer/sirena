@@ -9,7 +9,7 @@
                 </div>
 
                 <form @submit.prevent="login" class="space-y-4">
-                    <BaseInput v-model="username" label="Usuario" placeholder="Ingrese su usuario" icon="pi pi-user" required />
+                    <BaseInput ref="usernameInput" v-model="username" label="Usuario" placeholder="Ingrese su usuario" icon="pi pi-user" required />
                     <BaseInput v-model="password" label="Contraseña" placeholder="Ingrese su contraseña" icon="pi pi-lock" type="password" required />
                     <div class="pt-2">
                         <BaseButton type="submit" variant="primary" size="default" icon="pi pi-sign-in" :loading="loading" :disabled="loading" class="w-full" label="Ingresar" />
@@ -30,6 +30,8 @@
 </template>
 
 <script setup>
+    import { ref, onMounted, nextTick } from 'vue';
+
     const config = useRuntimeConfig();
     const router = useRouter();
     const authStore = useAuthStore();
@@ -37,9 +39,17 @@
     const password = ref('');
     const error = ref('');
     const loading = ref(false);
+    const usernameInput = ref(null);
 
     definePageMeta({ layout: false });
     useHead({ title: `${config.public.appName} | Login` });
+
+    onMounted(async () => {
+        await nextTick();
+        const el = usernameInput.value;
+        if (el?.focus) el.focus();
+        else if (el?.$el) el.$el.querySelector('input')?.focus();
+    });
 
     const login = async () => {
         error.value = '';

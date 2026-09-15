@@ -116,12 +116,15 @@
                                     v-model="formObj.empresa"
                                     :maxlength="200"
                                     size="sm"
-                                    :disabled="estaProtegido('empresa')"
-                                    :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('empresa') }"
+                                    :disabled="estaProtegido('empresa') && !authStore.isAdmin"
+                                    :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('empresa') && !authStore.isAdmin }"
                                     @blur="touched.empresa = true"
                                 />
-                                <small v-if="estaProtegido('empresa')" class="text-amber-500 font-semibold text-[10px]">
+                                <small v-if="estaProtegido('empresa') && !authStore.isAdmin" class="text-amber-500 font-semibold text-[10px]">
                                     <i class="pi pi-lock mr-1"></i>Bloqueado por dependencias
+                                </small>
+                                <small v-else-if="estaProtegido('empresa') && authStore.isAdmin" class="text-blue-600 font-semibold text-[10px]">
+                                    <i class="pi pi-shield mr-1"></i>Modo ADMIN: edición permitida
                                 </small>
                                 <small
                                     v-else-if="(submitted || touched.empresa) && !formObj.empresa"
@@ -139,12 +142,15 @@
                                     v-model="formObj.codigo"
                                     :maxlength="30"
                                     size="sm"
-                                    :disabled="estaProtegido('codigo')"
-                                    :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('codigo') }"
+                                    :disabled="estaProtegido('codigo') && !authStore.isAdmin"
+                                    :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('codigo') && !authStore.isAdmin }"
                                     @blur="touched.codigo = true"
                                 />
-                                <small v-if="estaProtegido('codigo')" class="text-amber-500 font-semibold text-[10px]">
+                                <small v-if="estaProtegido('codigo') && !authStore.isAdmin" class="text-amber-500 font-semibold text-[10px]">
                                     <i class="pi pi-lock mr-1"></i>Bloqueado por dependencias
+                                </small>
+                                <small v-else-if="estaProtegido('codigo') && authStore.isAdmin" class="text-blue-600 font-semibold text-[10px]">
+                                    <i class="pi pi-shield mr-1"></i>Modo ADMIN: edición permitida
                                 </small>
                                 <small
                                     v-else-if="(submitted || touched.codigo) && !formObj.codigo"
@@ -162,12 +168,15 @@
                                     v-model="formObj.matricula_comercio"
                                     :maxlength="50"
                                     size="sm"
-                                    :disabled="estaProtegido('matricula_comercio')"
-                                    :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('matricula_comercio') }"
+                                    :disabled="estaProtegido('matricula_comercio') && !authStore.isAdmin"
+                                    :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('matricula_comercio') && !authStore.isAdmin }"
                                     @blur="touched.matricula_comercio = true"
                                 />
-                                <small v-if="estaProtegido('matricula_comercio')" class="text-amber-500 font-semibold text-[10px]">
+                                <small v-if="estaProtegido('matricula_comercio') && !authStore.isAdmin" class="text-amber-500 font-semibold text-[10px]">
                                     <i class="pi pi-lock mr-1"></i>Bloqueado por dependencias
+                                </small>
+                                <small v-else-if="estaProtegido('matricula_comercio') && authStore.isAdmin" class="text-blue-600 font-semibold text-[10px]">
+                                    <i class="pi pi-shield mr-1"></i>Modo ADMIN: edición permitida
                                 </small>
                                 <small
                                     v-else-if="(submitted || touched.matricula_comercio) && !formObj.matricula_comercio"
@@ -317,7 +326,9 @@
 
 <script setup lang="ts">
     import { ref, nextTick } from 'vue';
+    import { useAuthStore } from '@/stores/auth';
 
+    const authStore = useAuthStore();
     useHead({ title: 'Empresas | SIRENA' });
 
     const { validate: validateImage, getConfigDisplay } = useImageValidator()

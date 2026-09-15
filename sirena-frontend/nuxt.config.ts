@@ -33,7 +33,8 @@ export default defineNuxtConfig({
         },
     },
     devServer: {
-        port: 3012,
+        host: process.env.NUXT_HOST || '127.0.0.1',
+        port: Number(process.env.NUXT_PORT) || 3012,
     },
     modules: [
         '@pinia/nuxt',

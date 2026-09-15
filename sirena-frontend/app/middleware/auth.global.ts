@@ -3,13 +3,26 @@ import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
 
 export default defineNuxtRouteMiddleware((to, from) => {
-    // Solo ejecutamos en el cliente
     if (process.server) return;
 
     const token = Cookies.get('auth_token');
+    const sessionData = process.client ? sessionStorage.getItem('auth_data') : null;
 
-    // 1. Si no hay token y el usuario intenta ir a cualquier página que NO sea el login (/)
+    if (token && !sessionData) {
+        console.warn('[auth] Cookie huérfana detectada. Eliminando sesión...');
+        Cookies.remove('auth_token');
+        if (process.client) {
+            sessionStorage.removeItem('auth_data');
+            localStorage.removeItem('auth_data');
+        }
+        return navigateTo('/');
+    }
+
     if (!token && to.path !== '/') {
+        if (process.client) {
+            sessionStorage.removeItem('auth_data');
+            localStorage.removeItem('auth_data');
+        }
         return navigateTo('/');
     }
 
@@ -21,6 +34,10 @@ export default defineNuxtRouteMiddleware((to, from) => {
             // Token expirado
             if (decoded.exp && decoded.exp < now) {
                 Cookies.remove('auth_token');
+                if (process.client) {
+                    sessionStorage.removeItem('auth_data');
+                    localStorage.removeItem('auth_data');
+                }
                 return navigateTo('/');
             }
 
@@ -29,8 +46,11 @@ export default defineNuxtRouteMiddleware((to, from) => {
                 return navigateTo('/principal');
             }
         } catch {
-            // Token corrupto
             Cookies.remove('auth_token');
+            if (process.client) {
+                sessionStorage.removeItem('auth_data');
+                localStorage.removeItem('auth_data');
+            }
             return navigateTo('/');
         }
     }

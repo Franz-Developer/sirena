@@ -1,6 +1,6 @@
 <!-- C:\sirena\sirena-frontend\app\layouts\default.vue -->
 <template>
-    <div class="flex flex-col h-screen bg-white dark:bg-[#0b1220] font-sans">
+    <div v-if="authStore.user" class="flex flex-col h-screen bg-white dark:bg-[#0b1220] font-sans">
         <header class="h-16 bg-[var(--primary-dark)] flex items-center justify-between px-4 shadow-md z-30 border-b-4 border-[#ff9800]">
             <div class="flex items-center gap-3">
                 <button
@@ -178,6 +178,13 @@
             </template>
         </Dialog>
     </div>
+    <!-- Fallback: spinner mientras se redirige al login -->
+    <div v-else class="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-[#0b1220]">
+        <div class="text-center">
+            <i class="pi pi-spin pi-spinner text-4xl text-slate-400"></i>
+            <p class="mt-4 text-sm text-slate-500 font-semibold uppercase tracking-wider">Cerrando sesión...</p>
+        </div>
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -316,9 +323,9 @@
         }
     });
 
-    const handleLogout = (): void => {
+    const handleLogout = async (): Promise<void> => {
         showUserMenu.value = false;
-        authStore.logout();
+        await authStore.logout();
     };
 
     const closePasswordModal = (): void => {

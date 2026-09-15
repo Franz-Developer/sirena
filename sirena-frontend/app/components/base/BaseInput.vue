@@ -18,6 +18,7 @@
             <InputText
                 v-else
                 v-bind="$attrs"
+                :type="type"
                 :model-value="String(modelValue ?? '')"
                 :class="inputClasses"
                 :placeholder="placeholder"

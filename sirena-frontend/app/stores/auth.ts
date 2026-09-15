@@ -16,6 +16,7 @@ interface UserData {
     rol_id: number;
     rol_codigo: string;
     rol_nombre: string;
+    es_admin: boolean;
     trabajador_id: number;
     trabajador_nombres: string;
     trabajador_paterno: string;
@@ -75,13 +76,10 @@ const normalizeMenu = (items: MenuItemBackend[] = []): MenuItem[] => {
 export const useAuthStore = defineStore('auth', {
     state: () => {
         const isClient = process.client;
-        const authData = isClient
-            ? (safeJSONParse(localStorage.getItem('auth_data'), null) as AuthData | null)
-            : null;
+        const authData = isClient ? (safeJSONParse(sessionStorage.getItem('auth_data'), null) as AuthData | null) : null;
 
         return {
             user: authData?.user || null,
-            // Normalizamos también lo que viene del localStorage por seguridad
             menu: normalizeMenu((authData?.menu as MenuItemBackend[]) || []),
             token: authData?.token || (isClient ? Cookies.get('auth_token') : null) || null,
             permisos: authData?.permisos || ({} as PermisosMap),
@@ -90,23 +88,24 @@ export const useAuthStore = defineStore('auth', {
 
     getters: {
         isLoggedIn: (state) => !!state.token,
+        isAdmin: (state) => state.user?.es_admin === true,
 
         can: (state) => (nombreTabla: string, accion: keyof PermisosTabla): boolean => {
-            if (state.user?.rol_codigo === 'ADM') return true;
+            if (state.user?.es_admin) return true;
             const permisosTabla = state.permisos[nombreTabla];
             if (!permisosTabla) return false;
             return permisosTabla[accion] === true;
         },
 
         canAny: (state) => (nombreTabla: string, acciones: (keyof PermisosTabla)[]): boolean => {
-            if (state.user?.rol_codigo === 'ADM') return true;
+            if (state.user?.es_admin) return true;
             const permisosTabla = state.permisos[nombreTabla];
             if (!permisosTabla) return false;
             return acciones.some(accion => permisosTabla[accion] === true);
         },
 
         canAll: (state) => (nombreTabla: string, acciones: (keyof PermisosTabla)[]): boolean => {
-            if (state.user?.rol_codigo === 'ADM') return true;
+            if (state.user?.es_admin) return true;
             const permisosTabla = state.permisos[nombreTabla];
             if (!permisosTabla) return false;
             return acciones.every(accion => permisosTabla[accion] === true);
@@ -125,26 +124,24 @@ export const useAuthStore = defineStore('auth', {
                 usuario_id: Number(userData.usuario_id),
                 trabajador_id: Number(userData.trabajador_id),
                 rol_id: Number(userData.rol_id),
+                es_admin: userData.es_admin === true,
                 empresa_id: userData.empresa_id ? Number(userData.empresa_id) : null,
                 sucursal_id: userData.sucursal_id ? Number(userData.sucursal_id) : null,
                 cargo_id: userData.cargo_id ? Number(userData.cargo_id) : null,
             };
 
             this.token = token;
-            // ⬇️ Normalizamos aquí para que TODO el frontend reciba siempre
-            //    la misma forma canónica, independientemente del backend.
             this.menu = normalizeMenu(menuData);
             this.permisos = { ...permisosData };
 
             Cookies.set('auth_token', token, {
-                expires: 1,
                 path: '/',
                 sameSite: 'Lax',
                 secure: process.env.NODE_ENV === 'production',
             });
 
             if (process.client) {
-                localStorage.setItem(
+                sessionStorage.setItem(
                     'auth_data',
                     JSON.stringify({
                         user: this.user,
@@ -156,18 +153,18 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
-        logout() {
+        async logout() {
+            Cookies.remove('auth_token');
+            if (process.client) {
+                sessionStorage.removeItem('auth_data');
+            }
+
+            await navigateTo('/');
+
             this.user = null;
             this.token = null;
             this.menu = [];
             this.permisos = {};
-
-            Cookies.remove('auth_token');
-            if (process.client) {
-                localStorage.removeItem('auth_data');
-            }
-
-            return navigateTo('/');
         },
     },
 });

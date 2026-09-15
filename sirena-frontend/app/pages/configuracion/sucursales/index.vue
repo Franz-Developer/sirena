@@ -166,7 +166,6 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-3">
-                        <!-- Empresa -->
                         <div class="md:col-span-12">
                             <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                 Empresa <span class="text-red-500">*</span>
@@ -181,12 +180,15 @@
                                 size="sm"
                                 filter
                                 :loading="loadingEmpresas"
-                                :disabled="estaProtegido('empresa_id')"
-                                :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('empresa_id') }"
+                                :disabled="estaProtegido('empresa_id') && !authStore.isAdmin"
+                                :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('empresa_id') && !authStore.isAdmin }"
                                 @update:model-value="touched.empresa_id = true"
                             />
-                            <small v-if="estaProtegido('empresa_id')" class="text-amber-500 font-semibold text-[10px]">
+                            <small v-if="estaProtegido('empresa_id') && !authStore.isAdmin" class="text-amber-500 font-semibold text-[10px]">
                                 <i class="pi pi-lock mr-1"></i>Bloqueado por dependencias
+                            </small>
+                            <small v-else-if="estaProtegido('empresa_id') && authStore.isAdmin" class="text-blue-600 font-semibold text-[10px]">
+                                <i class="pi pi-shield mr-1"></i>Modo ADMIN: edición permitida
                             </small>
                             <small
                                 v-else-if="(submitted || touched.empresa_id) && $rules.obligatoria()(formObj.empresa_id) !== true"
@@ -195,8 +197,6 @@
                                 Requerido
                             </small>
                         </div>
-
-                        <!-- Sucursal (nombre corto) -->
                         <div class="md:col-span-6">
                             <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                 Sucursal <span class="text-red-500">*</span>
@@ -207,12 +207,15 @@
                                 :maxlength="150"
                                 size="sm"
                                 placeholder="Ej: SUCURSAL CENTRAL"
-                                :disabled="estaProtegido('sucursal')"
-                                :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('sucursal') }"
+                                :disabled="estaProtegido('sucursal') && !authStore.isAdmin"
+                                :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('sucursal') && !authStore.isAdmin }"
                                 @blur="touched.sucursal = true"
                             />
-                            <small v-if="estaProtegido('sucursal')" class="text-amber-500 font-semibold text-[10px]">
+                            <small v-if="estaProtegido('sucursal') && !authStore.isAdmin" class="text-amber-500 font-semibold text-[10px]">
                                 <i class="pi pi-lock mr-1"></i>Bloqueado por dependencias
+                            </small>
+                            <small v-else-if="estaProtegido('sucursal') && authStore.isAdmin" class="text-blue-600 font-semibold text-[10px]">
+                                <i class="pi pi-shield mr-1"></i>Modo ADMIN: edición permitida
                             </small>
                             <small
                                 v-else-if="(submitted || touched.sucursal) && $rules.obligatoria()(formObj.sucursal) !== true"
@@ -221,8 +224,6 @@
                                 Requerido
                             </small>
                         </div>
-
-                        <!-- Código -->
                         <div class="md:col-span-3">
                             <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                 Código <span class="text-red-500">*</span>
@@ -232,12 +233,15 @@
                                 :maxlength="30"
                                 size="sm"
                                 placeholder="Ej: SUC-001"
-                                :disabled="estaProtegido('codigo')"
-                                :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('codigo') }"
+                                :disabled="estaProtegido('codigo') && !authStore.isAdmin"
+                                :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('codigo') && !authStore.isAdmin }"
                                 @blur="touched.codigo = true"
                             />
-                            <small v-if="estaProtegido('codigo')" class="text-amber-500 font-semibold text-[10px]">
+                            <small v-if="estaProtegido('codigo') && !authStore.isAdmin" class="text-amber-500 font-semibold text-[10px]">
                                 <i class="pi pi-lock mr-1"></i>Bloqueado por dependencias
+                            </small>
+                            <small v-else-if="estaProtegido('codigo') && authStore.isAdmin" class="text-blue-600 font-semibold text-[10px]">
+                                <i class="pi pi-shield mr-1"></i>Modo ADMIN: edición permitida
                             </small>
                             <small
                                 v-else-if="(submitted || touched.codigo) && $rules.codigoMayusculas(3)(formObj.codigo) !== true"
@@ -246,8 +250,6 @@
                                 {{ $rules.codigoMayusculas(3)(formObj.codigo) }}
                             </small>
                         </div>
-
-                        <!-- Código SIN -->
                         <div class="md:col-span-3">
                             <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                 Código SIN <span class="text-red-500">*</span>
@@ -258,12 +260,15 @@
                                 :min="0"
                                 size="sm"
                                 placeholder="Ej: 0"
-                                :disabled="estaProtegido('codigo_sin')"
-                                :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('codigo_sin') }"
+                                :disabled="estaProtegido('codigo_sin') && !authStore.isAdmin"
+                                :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('codigo_sin') && !authStore.isAdmin }"
                                 @blur="touched.codigo_sin = true"
                             />
-                            <small v-if="estaProtegido('codigo_sin')" class="text-amber-500 font-semibold text-[10px]">
+                            <small v-if="estaProtegido('codigo_sin') && !authStore.isAdmin" class="text-amber-500 font-semibold text-[10px]">
                                 <i class="pi pi-lock mr-1"></i>Bloqueado por dependencias
+                            </small>
+                            <small v-else-if="estaProtegido('codigo_sin') && authStore.isAdmin" class="text-blue-600 font-semibold text-[10px]">
+                                <i class="pi pi-shield mr-1"></i>Modo ADMIN: edición permitida
                             </small>
                             <small
                                 v-else-if="(submitted || touched.codigo_sin) && $rules.soloEnteros()(formObj.codigo_sin) !== true"
@@ -272,8 +277,6 @@
                                 {{ $rules.soloEnteros()(formObj.codigo_sin) }}
                             </small>
                         </div>
-
-                        <!-- Sucursal Largo -->
                         <div class="md:col-span-12">
                             <label class="block text-[11px] font-bold text-slate-600 mb-1 uppercase">
                                 Sucursal (Nombre Largo) <span class="text-red-500">*</span>
@@ -283,12 +286,15 @@
                                 :maxlength="300"
                                 size="sm"
                                 placeholder="Ej: SUCURSAL CENTRAL - AV. PRINCIPAL #123"
-                                :disabled="estaProtegido('sucursal_largo')"
-                                :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('sucursal_largo') }"
+                                :disabled="estaProtegido('sucursal_largo') && !authStore.isAdmin"
+                                :class="{ 'opacity-60 cursor-not-allowed': estaProtegido('sucursal_largo') && !authStore.isAdmin }"
                                 @blur="touched.sucursal_largo = true"
                             />
-                            <small v-if="estaProtegido('sucursal_largo')" class="text-amber-500 font-semibold text-[10px]">
+                            <small v-if="estaProtegido('sucursal_largo') && !authStore.isAdmin" class="text-amber-500 font-semibold text-[10px]">
                                 <i class="pi pi-lock mr-1"></i>Bloqueado por dependencias
+                            </small>
+                            <small v-else-if="estaProtegido('sucursal_largo') && authStore.isAdmin" class="text-blue-600 font-semibold text-[10px]">
+                                <i class="pi pi-shield mr-1"></i>Modo ADMIN: edición permitida
                             </small>
                             <small
                                 v-else-if="(submitted || touched.sucursal_largo) && $rules.obligatoria()(formObj.sucursal_largo) !== true"

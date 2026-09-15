@@ -108,15 +108,18 @@
                                 v-model="formObj.codigo_asfi"
                                 :maxlength="2"
                                 size="sm"
-                                :disabled="estaProtegido('codigo_asfi')"
+                                :disabled="estaProtegido('codigo_asfi') && !authStore.isAdmin"
                                 :class="{
                                     'p-invalid': (submitted || touched.codigo_asfi) && $rules.obligatoria()(formObj.codigo_asfi) !== true,
-                                    'opacity-60 cursor-not-allowed': estaProtegido('codigo_asfi')
+                                    'opacity-60 cursor-not-allowed': estaProtegido('codigo_asfi') && !authStore.isAdmin
                                 }"
                                 @blur="touched.codigo_asfi = true"
                             />
-                            <small v-if="estaProtegido('codigo_asfi')" class="text-amber-500 font-semibold text-[10px]">
+                            <small v-if="estaProtegido('codigo_asfi') && !authStore.isAdmin" class="text-amber-500 font-semibold text-[10px]">
                                 <i class="pi pi-lock mr-1"></i>Bloqueado por dependencias
+                            </small>
+                            <small v-else-if="estaProtegido('codigo_asfi') && authStore.isAdmin" class="text-blue-600 font-semibold text-[10px]">
+                                <i class="pi pi-shield mr-1"></i>Modo ADMIN: edición permitida
                             </small>
                             <small v-else-if="(submitted || touched.codigo_asfi) && $rules.obligatoria()(formObj.codigo_asfi) !== true" class="text-red-500 font-semibold text-[10px]">
                                 Requerido
@@ -129,18 +132,24 @@
                                 :maxlength="20"
                                 size="sm"
                                 placeholder=""
-                                :disabled="estaProtegido('abreviatura')"
+                                :disabled="estaProtegido('abreviatura') && !authStore.isAdmin"
                                 @blur="touched.abreviatura = true"
                                 :class="{
                                     'p-invalid': (submitted || touched.abreviatura) && $rules.obligatoria()(formObj.abreviatura) !== true,
-                                    'opacity-60 cursor-not-allowed': estaProtegido('abreviatura')
+                                    'opacity-60 cursor-not-allowed': estaProtegido('abreviatura') && !authStore.isAdmin
                                 }"
                             />
                             <small
-                                v-if="estaProtegido('abreviatura')"
+                                v-if="estaProtegido('abreviatura') && !authStore.isAdmin"
                                 class="text-amber-500 font-semibold text-[10px]"
                             >
                                 <i class="pi pi-lock mr-1"></i>Bloqueado por dependencias
+                            </small>
+                            <small
+                                v-else-if="estaProtegido('abreviatura') && authStore.isAdmin"
+                                class="text-blue-600 font-semibold text-[10px]"
+                            >
+                                <i class="pi pi-shield mr-1"></i>Modo ADMIN: edición permitida
                             </small>
                             <small
                                 v-else-if="(submitted || touched.abreviatura) && $rules.obligatoria()(formObj.abreviatura) !== true"
@@ -156,18 +165,24 @@
                                 :maxlength="60"
                                 size="sm"
                                 placeholder=""
-                                :disabled="estaProtegido('banco')"
+                                :disabled="estaProtegido('banco') && !authStore.isAdmin"
                                 @blur="touched.banco = true"
                                 :class="{
                                     'p-invalid': (submitted || touched.banco) && $rules.obligatoria()(formObj.banco) !== true,
-                                    'opacity-60 cursor-not-allowed': estaProtegido('banco')
+                                    'opacity-60 cursor-not-allowed': estaProtegido('banco') && !authStore.isAdmin
                                 }"
                             />
                             <small
-                                v-if="estaProtegido('banco')"
+                                v-if="estaProtegido('banco') && !authStore.isAdmin"
                                 class="text-amber-500 font-semibold text-[10px]"
                             >
                                 <i class="pi pi-lock mr-1"></i>Bloqueado por dependencias
+                            </small>
+                            <small
+                                v-else-if="estaProtegido('banco') && authStore.isAdmin"
+                                class="text-blue-600 font-semibold text-[10px]"
+                            >
+                                <i class="pi pi-shield mr-1"></i>Modo ADMIN: edición permitida
                             </small>
                             <small
                                 v-else-if="(submitted || touched.banco) && $rules.obligatoria()(formObj.banco) !== true"
@@ -199,6 +214,9 @@
 
 <script setup lang="ts">
     import { ref, nextTick } from 'vue';
+    import { useAuthStore } from '@/stores/auth';
+
+    const authStore = useAuthStore();
 
     const {
         items, loading, totalRecords, filters, lazyParams,
